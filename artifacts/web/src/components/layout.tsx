@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useRoute } from "wouter";
 import { Wallet, Building2, CreditCard, Briefcase, User, Bell } from "lucide-react";
 
 export function Layout({ children, title }: { children: React.ReactNode, title?: string }) {
@@ -55,31 +55,29 @@ export function Layout({ children, title }: { children: React.ReactNode, title?:
 }
 
 function NavLink({ href, icon, label }: { href: string, icon: React.ReactNode, label: string }) {
+  const [active] = useRoute(href);
   return (
     <Link href={href}>
-      {(active) => (
-        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors ${
-          active ? 'bg-primary/10 text-primary font-medium' : 'text-gray-600 hover:bg-gray-50'
-        }`}>
-          {icon}
-          <span>{label}</span>
-        </div>
-      )}
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors ${
+        active ? 'bg-primary/10 text-primary font-medium' : 'text-gray-600 hover:bg-gray-50'
+      }`}>
+        {icon}
+        <span>{label}</span>
+      </div>
     </Link>
   );
 }
 
 function MobileNavLink({ href, icon, label }: { href: string, icon: React.ReactNode, label: string }) {
+  const [active] = useRoute(href);
   return (
     <Link href={href}>
-      {(active) => (
-        <div className={`flex flex-col items-center gap-1 cursor-pointer ${
-          active ? 'text-primary' : 'text-gray-400'
-        }`}>
-          {icon}
-          <span className="text-[10px] font-medium">{label}</span>
-        </div>
-      )}
+      <div className={`flex flex-col items-center gap-1 cursor-pointer ${
+        active ? 'text-primary' : 'text-gray-400'
+      }`}>
+        {icon}
+        <span className="text-[10px] font-medium">{label}</span>
+      </div>
     </Link>
   );
 }
