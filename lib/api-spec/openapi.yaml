@@ -3,20 +3,34 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: S-PAY API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication and user management
+  - name: wallet
+    description: Wallet balance and transactions
+  - name: banking
+    description: Virtual bank accounts and incoming payments
+  - name: card
+    description: Virtual card management and transactions
+  - name: jobs
+    description: Remote job listings
+  - name: dashboard
+    description: Dashboard summary and overview
+  - name: webhooks
+    description: External service webhooks
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +38,452 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard overview summary
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /wallet/balance:
+    get:
+      operationId: getWalletBalance
+      tags: [wallet]
+      summary: Get wallet balance
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Wallet balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletBalance"
+
+  /wallet/transactions:
+    get:
+      operationId: getWalletTransactions
+      tags: [wallet]
+      summary: Get wallet transaction history
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Transaction list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionListResponse"
+
+  /wallet/send:
+    post:
+      operationId: sendMoney
+      tags: [wallet]
+      summary: Send money to another user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMoneyRequest"
+      responses:
+        "200":
+          description: Transfer initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Insufficient balance or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /wallet/add-funds:
+    post:
+      operationId: addFunds
+      tags: [wallet]
+      summary: Add funds to wallet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddFundsRequest"
+      responses:
+        "200":
+          description: Deposit initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddFundsResponse"
+
+  /banking/accounts:
+    get:
+      operationId: getBankingAccounts
+      tags: [banking]
+      summary: Get user virtual bank accounts
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Banking accounts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankingAccountsResponse"
+
+  /banking/incoming-payments:
+    get:
+      operationId: getIncomingPayments
+      tags: [banking]
+      summary: Get recent incoming payments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Incoming payments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncomingPaymentsResponse"
+
+  /banking/withdraw:
+    post:
+      operationId: initiateWithdraw
+      tags: [banking]
+      summary: Initiate a withdrawal via Noah payout
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithdrawRequest"
+      responses:
+        "200":
+          description: Withdrawal initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WithdrawResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /banking/rates:
+    get:
+      operationId: getExchangeRates
+      tags: [banking]
+      summary: Get current exchange rates for withdrawal
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: source
+          in: query
+          required: true
+          schema:
+            type: string
+            example: USDC
+        - name: target
+          in: query
+          required: true
+          schema:
+            type: string
+            example: KES
+      responses:
+        "200":
+          description: Exchange rate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExchangeRateResponse"
+
+  /card/details:
+    get:
+      operationId: getCardDetails
+      tags: [card]
+      summary: Get user virtual card details
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Card details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardDetailsResponse"
+
+  /card/transactions:
+    get:
+      operationId: getCardTransactions
+      tags: [card]
+      summary: Get card transaction history
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Card transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardTransactionListResponse"
+
+  /card/spending-summary:
+    get:
+      operationId: getSpendingSummary
+      tags: [card]
+      summary: Get spending summary by category
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [this_month, last_month, last_3_months]
+            default: this_month
+      responses:
+        "200":
+          description: Spending summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpendingSummaryResponse"
+
+  /card/waitlist:
+    post:
+      operationId: joinCardWaitlist
+      tags: [card]
+      summary: Join the virtual card waitlist
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Added to waitlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /jobs:
+    get:
+      operationId: getJobs
+      tags: [jobs]
+      summary: Get remote job listings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: keyword
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: Job listings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobsResponse"
+
+  /jobs/{jobId}:
+    get:
+      operationId: getJobById
+      tags: [jobs]
+      summary: Get a specific job listing
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /webhooks/noah:
+    post:
+      operationId: noahWebhook
+      tags: [webhooks]
+      summary: Noah API webhook handler
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Webhook received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /webhooks/stripe:
+    post:
+      operationId: stripeWebhook
+      tags: [webhooks]
+      summary: Stripe webhook handler
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Webhook received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +493,614 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        fullName:
+          type: string
+        phoneNumber:
+          type: string
+      required:
+        - email
+        - password
+        - fullName
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+      required:
+        - token
+        - user
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        phoneNumber:
+          type: string
+        kycStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        celoWalletAddress:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - fullName
+        - kycStatus
+        - createdAt
+
+    DashboardSummary:
+      type: object
+      properties:
+        walletBalance:
+          type: number
+        availableBalance:
+          type: number
+        currency:
+          type: string
+        totalIncoming:
+          type: number
+        totalOutgoing:
+          type: number
+        recentTransactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        quickStats:
+          $ref: "#/components/schemas/QuickStats"
+      required:
+        - walletBalance
+        - availableBalance
+        - currency
+        - totalIncoming
+        - totalOutgoing
+        - recentTransactions
+        - quickStats
+
+    QuickStats:
+      type: object
+      properties:
+        transactionsThisMonth:
+          type: integer
+        totalSent:
+          type: number
+        totalReceived:
+          type: number
+      required:
+        - transactionsThisMonth
+        - totalSent
+        - totalReceived
+
+    WalletBalance:
+      type: object
+      properties:
+        balance:
+          type: number
+        availableBalance:
+          type: number
+        currency:
+          type: string
+        celoAddress:
+          type: string
+        usdcBalance:
+          type: number
+        usdtBalance:
+          type: number
+      required:
+        - balance
+        - availableBalance
+        - currency
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [send, receive, withdraw, recharge, payment]
+        amount:
+          type: number
+        currency:
+          type: string
+        description:
+          type: string
+        counterparty:
+          type: string
+        status:
+          type: string
+          enum: [pending, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - amount
+        - currency
+        - description
+        - status
+        - createdAt
+
+    TransactionListResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required:
+        - transactions
+        - total
+        - limit
+        - offset
+
+    SendMoneyRequest:
+      type: object
+      properties:
+        recipientPhone:
+          type: string
+        recipientAddress:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+          default: USDC
+        note:
+          type: string
+      required:
+        - amount
+        - currency
+
+    AddFundsRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+        currency:
+          type: string
+          default: USD
+        method:
+          type: string
+          enum: [bank_transfer, card]
+      required:
+        - amount
+        - currency
+        - method
+
+    AddFundsResponse:
+      type: object
+      properties:
+        depositId:
+          type: string
+        instructions:
+          type: string
+        accountNumber:
+          type: string
+        routingNumber:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+      required:
+        - depositId
+        - instructions
+        - amount
+        - currency
+
+    BankAccount:
+      type: object
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        accountType:
+          type: string
+          enum: [ach, sepa, pix]
+        accountNumber:
+          type: string
+        routingNumber:
+          type: string
+        iban:
+          type: string
+        bankName:
+          type: string
+        availableBalance:
+          type: number
+        status:
+          type: string
+          enum: [active, pending, inactive]
+      required:
+        - id
+        - currency
+        - accountType
+        - bankName
+        - availableBalance
+        - status
+
+    BankingAccountsResponse:
+      type: object
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/BankAccount"
+        totalBalance:
+          type: number
+      required:
+        - accounts
+        - totalBalance
+
+    IncomingPayment:
+      type: object
+      properties:
+        id:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        sender:
+          type: string
+        paymentType:
+          type: string
+          enum: [ach, wire, sepa, pix]
+        status:
+          type: string
+          enum: [pending, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - amount
+        - currency
+        - sender
+        - paymentType
+        - status
+        - createdAt
+
+    IncomingPaymentsResponse:
+      type: object
+      properties:
+        payments:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncomingPayment"
+        total:
+          type: integer
+      required:
+        - payments
+        - total
+
+    WithdrawRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+        sourceCurrency:
+          type: string
+          default: USDC
+        targetCurrency:
+          type: string
+        method:
+          type: string
+          enum: [mpesa, sepa, pix, bank_transfer]
+        recipientPhone:
+          type: string
+        recipientIban:
+          type: string
+        recipientTaxId:
+          type: string
+      required:
+        - amount
+        - sourceCurrency
+        - targetCurrency
+        - method
+
+    WithdrawResponse:
+      type: object
+      properties:
+        withdrawalId:
+          type: string
+        status:
+          type: string
+        estimatedArrival:
+          type: string
+        localAmount:
+          type: number
+        localCurrency:
+          type: string
+        fee:
+          type: number
+      required:
+        - withdrawalId
+        - status
+        - localAmount
+        - localCurrency
+        - fee
+
+    ExchangeRateResponse:
+      type: object
+      properties:
+        source:
+          type: string
+        target:
+          type: string
+        rate:
+          type: number
+        fee:
+          type: number
+        estimatedArrival:
+          type: string
+      required:
+        - source
+        - target
+        - rate
+        - fee
+
+    CardDetailsResponse:
+      type: object
+      properties:
+        hasCard:
+          type: boolean
+        isComingSoon:
+          type: boolean
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/VirtualCard"
+        totalBalance:
+          type: number
+        currency:
+          type: string
+        cardStatus:
+          type: string
+          enum: [active, locked, coming_soon]
+      required:
+        - hasCard
+        - isComingSoon
+        - cards
+        - totalBalance
+        - currency
+        - cardStatus
+
+    VirtualCard:
+      type: object
+      properties:
+        id:
+          type: string
+        last4:
+          type: string
+        network:
+          type: string
+          enum: [visa, mastercard]
+        expiryMonth:
+          type: integer
+        expiryYear:
+          type: integer
+        isPrimary:
+          type: boolean
+        status:
+          type: string
+          enum: [active, locked, cancelled]
+        cardType:
+          type: string
+          enum: [virtual, physical]
+        label:
+          type: string
+      required:
+        - id
+        - last4
+        - network
+        - expiryMonth
+        - expiryYear
+        - isPrimary
+        - status
+        - cardType
+
+    CardTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+        merchantName:
+          type: string
+        merchantLogo:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+          enum: [approved, declined, pending]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - merchantName
+        - amount
+        - currency
+        - category
+        - status
+        - createdAt
+
+    CardTransactionListResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardTransaction"
+        total:
+          type: integer
+      required:
+        - transactions
+        - total
+
+    SpendingCategory:
+      type: object
+      properties:
+        category:
+          type: string
+        amount:
+          type: number
+        percentage:
+          type: number
+        color:
+          type: string
+      required:
+        - category
+        - amount
+        - percentage
+
+    SpendingSummaryResponse:
+      type: object
+      properties:
+        period:
+          type: string
+        totalSpent:
+          type: number
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpendingCategory"
+      required:
+        - period
+        - totalSpent
+        - categories
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        company:
+          type: string
+        companyLogo:
+          type: string
+        salary:
+          type: string
+        location:
+          type: string
+        jobType:
+          type: string
+          enum: [full_time, part_time, contract, freelance]
+        category:
+          type: string
+        description:
+          type: string
+        applyUrl:
+          type: string
+        source:
+          type: string
+          enum: [Himalayas, RemoteOK, Remotive]
+        sourceUrl:
+          type: string
+        isNew:
+          type: boolean
+        affiliateCta:
+          $ref: "#/components/schemas/AffiliateCta"
+        postedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - company
+        - salary
+        - location
+        - jobType
+        - source
+        - isNew
+
+    AffiliateCta:
+      type: object
+      properties:
+        label:
+          type: string
+        url:
+          type: string
+      required:
+        - label
+        - url
+
+    JobsResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+        total:
+          type: integer
+        remoteCom:
+          $ref: "#/components/schemas/AffiliateCta"
+      required:
+        - jobs
+        - total
