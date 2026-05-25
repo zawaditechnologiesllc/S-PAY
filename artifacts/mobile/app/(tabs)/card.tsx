@@ -25,12 +25,14 @@ export default function CardScreen() {
   const { data: cardData, isLoading: loadingCard } = useGetCardDetails({
     query: { queryKey: getGetCardDetailsQueryKey() },
   });
-  const { data: transactions, isLoading: loadingTxns } = useGetCardTransactions({
-    query: { queryKey: getGetCardTransactionsQueryKey() },
-  });
-  const { data: spending } = useGetSpendingSummary({
-    query: { queryKey: getGetSpendingSummaryQueryKey() },
-  });
+  const { data: transactions, isLoading: loadingTxns } = useGetCardTransactions(
+    undefined,
+    { query: { queryKey: getGetCardTransactionsQueryKey() } },
+  );
+  const { data: spending } = useGetSpendingSummary(
+    undefined,
+    { query: { queryKey: getGetSpendingSummaryQueryKey() } },
+  );
   const joinWaitlist = useJoinCardWaitlist();
 
   const handleJoinWaitlist = () => {

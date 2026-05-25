@@ -116,7 +116,7 @@ export default function WalletScreen() {
           <View style={styles.quickActions}>
             {[
               { icon: "send" as const, label: "Send", onPress: () => { Haptics.impactAsync(); setSendVisible(true); } },
-              { icon: "plus-circle" as const, label: "Add", onPress: () => router.push("/add-funds") },
+              { icon: "plus-circle" as const, label: "Add", onPress: () => router.push("/(tabs)/banking") },
               { icon: "arrow-down-circle" as const, label: "Withdraw", onPress: () => router.push("/withdraw") },
               { icon: "more-horizontal" as const, label: "More", onPress: () => {} },
             ].map((a) => (
@@ -133,8 +133,6 @@ export default function WalletScreen() {
         {/* Recent Transactions */}
         <SectionHeader
           title="Recent Transactions"
-          action="See All"
-          onAction={() => router.push("/transactions")}
         />
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           {isLoading ? (

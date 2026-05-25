@@ -26,9 +26,10 @@ export default function BankingScreen() {
   const { data: accounts, isLoading: loadingAccounts } = useGetBankingAccounts({
     query: { queryKey: getGetBankingAccountsQueryKey() },
   });
-  const { data: payments, isLoading: loadingPayments } = useGetIncomingPayments({
-    query: { queryKey: getGetIncomingPaymentsQueryKey() },
-  });
+  const { data: payments, isLoading: loadingPayments } = useGetIncomingPayments(
+    undefined,
+    { query: { queryKey: getGetIncomingPaymentsQueryKey() } },
+  );
 
   const copy = async (text: string, label: string) => {
     await Clipboard.setStringAsync(text);

@@ -94,7 +94,7 @@ export default function JobsScreen() {
       {data?.remoteCom && (
         <TouchableOpacity
           style={[styles.affiliateBanner, { backgroundColor: "#EFF6FF", borderColor: "#BFDBFE" }]}
-          onPress={() => Linking.openURL(data.remoteCom.url)}
+          onPress={() => Linking.openURL(data?.remoteCom?.url ?? "")}
         >
           <Feather name="globe" size={14} color="#3B82F6" />
           <Text style={[styles.affiliateText, { color: "#1E40AF" }]} numberOfLines={1}>{data.remoteCom.label}</Text>
