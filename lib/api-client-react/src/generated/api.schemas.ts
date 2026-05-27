@@ -396,6 +396,54 @@ export interface JobsResponse {
   remoteCom?: AffiliateCta;
 }
 
+export interface AdminStats {
+  totalUsers: number;
+  activeUsers: number;
+  totalTransactionVolume: number;
+  transactionsToday: number;
+  pendingKyc: number;
+  approvedKyc: number;
+  rejectedKyc: number;
+  totalWalletBalance: number;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  fullName: string;
+  kycStatus: string;
+  country?: string;
+  walletBalance?: number;
+  createdAt?: string;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUser[];
+  total: number;
+}
+
+export interface AdminKycResponse {
+  success: boolean;
+  userId: string;
+  kycStatus: string;
+}
+
+export interface AdminTransaction {
+  id: string;
+  type: string;
+  amount: number;
+  currency: string;
+  description: string;
+  counterparty?: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface AdminTransactionsResponse {
+  transactions: AdminTransaction[];
+  total: number;
+}
+
 export type GetWalletTransactionsParams = {
 limit?: number;
 offset?: number;
@@ -437,4 +485,16 @@ limit?: number;
 export type NoahWebhookBody = { [key: string]: unknown };
 
 export type StripeWebhookBody = { [key: string]: unknown };
+
+export type GetAdminUsersParams = {
+kycStatus?: string;
+};
+
+export type AdminUpdateKycBody = {
+  kycStatus: string;
+};
+
+export type GetAdminTransactionsParams = {
+type?: string;
+};
 

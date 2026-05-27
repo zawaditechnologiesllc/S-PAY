@@ -433,3 +433,79 @@ export const StripeWebhookBody = zod.object({
 export const StripeWebhookResponse = zod.object({
   "message": zod.string()
 })
+
+
+/**
+ * @summary Admin platform statistics
+ */
+export const GetAdminStatsResponse = zod.object({
+  "totalUsers": zod.number(),
+  "activeUsers": zod.number(),
+  "totalTransactionVolume": zod.number(),
+  "transactionsToday": zod.number(),
+  "pendingKyc": zod.number(),
+  "approvedKyc": zod.number(),
+  "rejectedKyc": zod.number(),
+  "totalWalletBalance": zod.number()
+})
+
+
+/**
+ * @summary List all users
+ */
+export const GetAdminUsersQueryParams = zod.object({
+  "kycStatus": zod.coerce.string().optional()
+})
+
+export const GetAdminUsersResponse = zod.object({
+  "users": zod.array(zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "fullName": zod.string(),
+  "kycStatus": zod.string(),
+  "country": zod.string().optional(),
+  "walletBalance": zod.number().optional(),
+  "createdAt": zod.string().optional()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Update a user KYC status
+ */
+export const AdminUpdateKycParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const AdminUpdateKycBody = zod.object({
+  "kycStatus": zod.string()
+})
+
+export const AdminUpdateKycResponse = zod.object({
+  "success": zod.boolean(),
+  "userId": zod.string(),
+  "kycStatus": zod.string()
+})
+
+
+/**
+ * @summary List all transactions
+ */
+export const GetAdminTransactionsQueryParams = zod.object({
+  "type": zod.coerce.string().optional()
+})
+
+export const GetAdminTransactionsResponse = zod.object({
+  "transactions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.string(),
+  "amount": zod.number(),
+  "currency": zod.string(),
+  "description": zod.string(),
+  "counterparty": zod.string().optional(),
+  "status": zod.string(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number()
+})

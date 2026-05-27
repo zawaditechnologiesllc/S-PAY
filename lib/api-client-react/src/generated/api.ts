@@ -22,6 +22,11 @@ import type {
 import type {
   AddFundsRequest,
   AddFundsResponse,
+  AdminKycResponse,
+  AdminStats,
+  AdminTransactionsResponse,
+  AdminUpdateKycBody,
+  AdminUsersResponse,
   AuthResponse,
   BankingAccountsResponse,
   CardDetailsResponse,
@@ -29,6 +34,8 @@ import type {
   DashboardSummary,
   ErrorResponse,
   ExchangeRateResponse,
+  GetAdminTransactionsParams,
+  GetAdminUsersParams,
   GetCardTransactionsParams,
   GetExchangeRatesParams,
   GetIncomingPaymentsParams,
@@ -1675,4 +1682,321 @@ export const useStripeWebhook = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getStripeWebhookMutationOptions(options));
     }
+
+export const getGetAdminStatsUrl = () => {
+
+
+
+
+  return `/api/admin/stats`
+}
+
+/**
+ * @summary Admin platform statistics
+ */
+export const getAdminStats = async ( options?: RequestInit): Promise<AdminStats> => {
+
+  return customFetch<AdminStats>(getGetAdminStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminStatsQueryKey = () => {
+    return [
+    `/api/admin/stats`
+    ] as const;
+    }
+
+
+export const getGetAdminStatsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminStats>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminStats>>> = ({ signal }) => getAdminStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminStats>>>
+export type GetAdminStatsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Admin platform statistics
+ */
+
+export function useGetAdminStats<TData = Awaited<ReturnType<typeof getAdminStats>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminUsersUrl = (params?: GetAdminUsersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/users?${stringifiedParams}` : `/api/admin/users`
+}
+
+/**
+ * @summary List all users
+ */
+export const getAdminUsers = async (params?: GetAdminUsersParams, options?: RequestInit): Promise<AdminUsersResponse> => {
+
+  return customFetch<AdminUsersResponse>(getGetAdminUsersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminUsersQueryKey = (params?: GetAdminUsersParams,) => {
+    return [
+    `/api/admin/users`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminUsersQueryOptions = <TData = Awaited<ReturnType<typeof getAdminUsers>>, TError = ErrorType<unknown>>(params?: GetAdminUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminUsersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminUsers>>> = ({ signal }) => getAdminUsers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminUsersQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminUsers>>>
+export type GetAdminUsersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all users
+ */
+
+export function useGetAdminUsers<TData = Awaited<ReturnType<typeof getAdminUsers>>, TError = ErrorType<unknown>>(
+ params?: GetAdminUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminUsersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAdminUpdateKycUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/users/${userId}/kyc`
+}
+
+/**
+ * @summary Update a user KYC status
+ */
+export const adminUpdateKyc = async (userId: string,
+    adminUpdateKycBody: AdminUpdateKycBody, options?: RequestInit): Promise<AdminKycResponse> => {
+
+  return customFetch<AdminKycResponse>(getAdminUpdateKycUrl(userId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminUpdateKycBody,)
+  }
+);}
+
+
+
+
+export const getAdminUpdateKycMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateKyc>>, TError,{userId: string;data: BodyType<AdminUpdateKycBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminUpdateKyc>>, TError,{userId: string;data: BodyType<AdminUpdateKycBody>}, TContext> => {
+
+const mutationKey = ['adminUpdateKyc'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminUpdateKyc>>, {userId: string;data: BodyType<AdminUpdateKycBody>}> = (props) => {
+          const {userId,data} = props ?? {};
+
+          return  adminUpdateKyc(userId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminUpdateKycMutationResult = NonNullable<Awaited<ReturnType<typeof adminUpdateKyc>>>
+    export type AdminUpdateKycMutationBody = BodyType<AdminUpdateKycBody>
+    export type AdminUpdateKycMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a user KYC status
+ */
+export const useAdminUpdateKyc = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateKyc>>, TError,{userId: string;data: BodyType<AdminUpdateKycBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminUpdateKyc>>,
+        TError,
+        {userId: string;data: BodyType<AdminUpdateKycBody>},
+        TContext
+      > => {
+      return useMutation(getAdminUpdateKycMutationOptions(options));
+    }
+
+export const getGetAdminTransactionsUrl = (params?: GetAdminTransactionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/transactions?${stringifiedParams}` : `/api/admin/transactions`
+}
+
+/**
+ * @summary List all transactions
+ */
+export const getAdminTransactions = async (params?: GetAdminTransactionsParams, options?: RequestInit): Promise<AdminTransactionsResponse> => {
+
+  return customFetch<AdminTransactionsResponse>(getGetAdminTransactionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminTransactionsQueryKey = (params?: GetAdminTransactionsParams,) => {
+    return [
+    `/api/admin/transactions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminTransactionsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminTransactions>>, TError = ErrorType<unknown>>(params?: GetAdminTransactionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminTransactions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminTransactionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminTransactions>>> = ({ signal }) => getAdminTransactions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminTransactions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminTransactionsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminTransactions>>>
+export type GetAdminTransactionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all transactions
+ */
+
+export function useGetAdminTransactions<TData = Awaited<ReturnType<typeof getAdminTransactions>>, TError = ErrorType<unknown>>(
+ params?: GetAdminTransactionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminTransactions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminTransactionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

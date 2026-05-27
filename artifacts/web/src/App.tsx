@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { getToken } from "@/lib/auth";
 
 import NotFound from "@/pages/not-found";
+import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
@@ -16,6 +17,9 @@ import Withdraw from "@/pages/withdraw";
 import CardPage from "@/pages/card";
 import Jobs from "@/pages/jobs";
 import JobDetail from "@/pages/job-detail";
+import AdminDashboard from "@/pages/admin/dashboard";
+import AdminUsers from "@/pages/admin/users";
+import AdminTransactions from "@/pages/admin/transactions";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,7 +41,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }, [token, location, setLocation]);
 
   if (!token) return null;
-
   return <Component />;
 }
 
@@ -53,8 +56,12 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public */}
+      <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+
+      {/* User panel */}
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/profile"><ProtectedRoute component={Profile} /></Route>
       <Route path="/wallet"><ProtectedRoute component={Wallet} /></Route>
@@ -63,7 +70,12 @@ function Router() {
       <Route path="/card"><ProtectedRoute component={CardPage} /></Route>
       <Route path="/jobs"><ProtectedRoute component={Jobs} /></Route>
       <Route path="/jobs/:jobId"><ProtectedRoute component={JobDetail} /></Route>
-      <Route path="/"><ProtectedRoute component={Dashboard} /></Route>
+
+      {/* Admin panel */}
+      <Route path="/admin"><ProtectedRoute component={AdminDashboard} /></Route>
+      <Route path="/admin/users"><ProtectedRoute component={AdminUsers} /></Route>
+      <Route path="/admin/transactions"><ProtectedRoute component={AdminTransactions} /></Route>
+
       <Route component={NotFound} />
     </Switch>
   );
