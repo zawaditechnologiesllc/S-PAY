@@ -73,7 +73,7 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="wallet.pass" tintColor={color} size={24} />
             ) : (
-              <Feather name="credit-card" size={22} color={color} />
+              <Feather name="dollar-sign" size={22} color={color} />
             ),
         }}
       />
@@ -85,7 +85,7 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="building.columns" tintColor={color} size={24} />
             ) : (
-              <Feather name="grid" size={22} color={color} />
+              <Feather name="home" size={22} color={color} />
             ),
         }}
       />
@@ -97,7 +97,7 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="creditcard" tintColor={color} size={24} />
             ) : (
-              <Feather name="layers" size={22} color={color} />
+              <Feather name="credit-card" size={22} color={color} />
             ),
         }}
       />

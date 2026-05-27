@@ -3,7 +3,7 @@ import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { User as UserIcon, Mail, Phone, ShieldCheck, CreditCard, LogOut } from "lucide-react";
+import { CircleUser, Mail, Phone, ShieldCheck, CreditCard, LogOut, BadgeCheck } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import { useLocation } from "wouter";
 
@@ -22,7 +22,7 @@ export default function Profile() {
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
           <CardHeader className="bg-gray-50 border-b pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
-              <UserIcon className="text-primary" /> Personal Information
+              <CircleUser className="text-primary" /> Personal Information
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
@@ -93,7 +93,7 @@ export default function Profile() {
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
           <CardHeader className="bg-gray-50 border-b pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
-              <CreditCard className="text-primary" /> Web3 Identity
+              <BadgeCheck className="text-primary" /> Web3 Identity
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">

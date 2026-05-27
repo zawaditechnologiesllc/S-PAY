@@ -6,7 +6,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, ArrowDownLeft, Plus, Landmark, Copy, CheckCircle2 } from "lucide-react";
+import { Landmark, ArrowDownToLine, Plus, Copy, CheckCircle2, CircleDollarSign } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -55,7 +55,7 @@ export default function Banking() {
               bankingData?.accounts.map(account => (
                 <Card key={account.id} className="border-0 shadow-md rounded-2xl overflow-hidden relative group">
                   <div className="absolute top-0 right-0 p-4 opacity-10">
-                    <Landmark size={80} />
+                    <CircleDollarSign size={80} />
                   </div>
                   <CardContent className="p-6 relative z-10">
                     <div className="flex justify-between items-start mb-6">
@@ -129,7 +129,7 @@ export default function Banking() {
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white">
           <CardHeader className="bg-gray-50 border-b pb-4">
             <CardTitle className="text-md flex items-center gap-2 text-gray-800">
-              <ArrowDownLeft className="text-primary" /> Incoming Payments
+              <ArrowDownToLine className="text-primary" /> Incoming Payments
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -156,7 +156,7 @@ export default function Banking() {
                   <div key={payment.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-primary">
-                        <Building2 size={18} />
+                        <Landmark size={18} />
                       </div>
                       <div>
                         <h4 className="font-medium text-gray-900 text-sm">{payment.sender}</h4>

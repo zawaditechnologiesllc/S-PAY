@@ -8,7 +8,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CreditCard, ShoppingBag, Eye, Settings2 } from "lucide-react";
+import { CreditCard, ShoppingCart, ScanEye, SlidersHorizontal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CardPage() {
@@ -86,8 +86,8 @@ export default function CardPage() {
         {/* Quick Actions (Only if active) */}
         {!isComingSoon && !isLoadingDetails && (
            <div className="grid grid-cols-2 gap-4">
-             <Button variant="outline" className="h-12 rounded-xl bg-white"><Eye className="mr-2" size={18} /> Show Details</Button>
-             <Button variant="outline" className="h-12 rounded-xl bg-white"><Settings2 className="mr-2" size={18} /> Manage Card</Button>
+             <Button variant="outline" className="h-12 rounded-xl bg-white"><ScanEye className="mr-2" size={18} /> Show Details</Button>
+             <Button variant="outline" className="h-12 rounded-xl bg-white"><SlidersHorizontal className="mr-2" size={18} /> Manage Card</Button>
            </div>
         )}
 
@@ -95,7 +95,7 @@ export default function CardPage() {
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white">
           <CardHeader className="bg-gray-50 border-b pb-4">
             <CardTitle className="text-md flex items-center gap-2 text-gray-800">
-              <ShoppingBag size={18} className="text-primary" /> Monthly Spending
+              <ShoppingCart size={18} className="text-primary" /> Monthly Spending
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
@@ -167,7 +167,7 @@ export default function CardPage() {
                         {tx.merchantLogo ? (
                           <img src={tx.merchantLogo} alt={tx.merchantName} className="w-full h-full object-cover" />
                         ) : (
-                          <ShoppingBag size={18} className="text-gray-500" />
+                          <ShoppingCart size={18} className="text-gray-500" />
                         )}
                       </div>
                       <div>

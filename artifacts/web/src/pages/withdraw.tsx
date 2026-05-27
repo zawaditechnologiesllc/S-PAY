@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, Building, Smartphone, Landmark, CheckCircle2 } from "lucide-react";
+import { MoveRight, Landmark, Smartphone, BadgeCheck, CheckCircle2 } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function Withdraw() {
@@ -109,7 +109,7 @@ export default function Withdraw() {
                   selected={method === "pix"} onClick={() => setMethod("pix")} 
                 />
                 <MethodOption 
-                  id="bank_transfer" icon={<Building />} label="Bank Wire" 
+                  id="bank_transfer" icon={<Landmark />} label="Bank Wire" 
                   selected={method === "bank_transfer"} onClick={() => setMethod("bank_transfer")} 
                 />
               </div>

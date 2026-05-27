@@ -1,7 +1,7 @@
 import { Layout } from "@/components/layout";
 import { useGetDashboardSummary, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownLeft, Wallet, QrCode, Send, Plus, CreditCard, ChevronRight } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, ScanLine, Send, ArrowDownToLine, ArrowUpFromLine, ChevronRight, ShieldCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 
@@ -31,10 +31,10 @@ export default function Dashboard() {
 
           {/* Quick Actions */}
           <div className="grid grid-cols-4 gap-4 mt-8 pt-6 border-t border-gray-100">
-            <QuickAction icon={<QrCode size={24} />} label="Scan & Pay" />
-            <QuickAction icon={<Send size={24} />} label="Send" />
-            <QuickAction icon={<Plus size={24} />} label="Recharge" />
-            <QuickAction icon={<Wallet size={24} />} label="More" />
+            <QuickAction icon={<ScanLine size={22} />} label="Scan" bgColor="#1677FF" />
+            <QuickAction icon={<Send size={22} />} label="Transfer" bgColor="#FF6900" />
+            <QuickAction icon={<ArrowDownToLine size={22} />} label="Recharge" bgColor="#00B578" />
+            <QuickAction icon={<ArrowUpFromLine size={22} />} label="Withdraw" bgColor="#7B61FF" />
           </div>
         </CardContent>
       </Card>
@@ -43,7 +43,7 @@ export default function Dashboard() {
       <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600">
-            <CreditCard size={20} />
+            <ShieldCheck size={20} />
           </div>
           <div>
             <h4 className="text-sm font-semibold text-gray-900">Verify your identity</h4>
@@ -105,10 +105,13 @@ export default function Dashboard() {
   );
 }
 
-function QuickAction({ icon, label }: { icon: React.ReactNode, label: string }) {
+function QuickAction({ icon, label, bgColor }: { icon: React.ReactNode, label: string, bgColor: string }) {
   return (
     <div className="flex flex-col items-center gap-2 cursor-pointer group">
-      <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-200">
+      <div
+        className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform duration-150"
+        style={{ backgroundColor: bgColor }}
+      >
         {icon}
       </div>
       <span className="text-xs font-medium text-gray-700">{label}</span>

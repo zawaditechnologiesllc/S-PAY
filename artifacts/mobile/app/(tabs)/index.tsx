@@ -115,14 +115,14 @@ export default function WalletScreen() {
           {/* Quick actions */}
           <View style={styles.quickActions}>
             {[
-              { icon: "send" as const, label: "Send", onPress: () => { Haptics.impactAsync(); setSendVisible(true); } },
-              { icon: "plus-circle" as const, label: "Add", onPress: () => router.push("/(tabs)/banking") },
-              { icon: "arrow-down-circle" as const, label: "Withdraw", onPress: () => router.push("/withdraw") },
-              { icon: "more-horizontal" as const, label: "More", onPress: () => {} },
+              { icon: "send" as const, label: "Transfer", color: "#FF6900", onPress: () => { Haptics.impactAsync(); setSendVisible(true); } },
+              { icon: "plus" as const, label: "Recharge", color: "#00B578", onPress: () => router.push("/(tabs)/banking") },
+              { icon: "arrow-up" as const, label: "Withdraw", color: "#7B61FF", onPress: () => router.push("/withdraw") },
+              { icon: "grid" as const, label: "More", color: "#8C8C8C", onPress: () => {} },
             ].map((a) => (
               <TouchableOpacity key={a.label} style={styles.actionBtn} onPress={a.onPress} testID={`button-${a.label.toLowerCase()}`}>
-                <View style={styles.actionIcon}>
-                  <Feather name={a.icon} size={18} color={colors.primary} />
+                <View style={[styles.actionIcon, { backgroundColor: a.color }]}>
+                  <Feather name={a.icon} size={20} color="#fff" />
                 </View>
                 <Text style={styles.actionLabel}>{a.label}</Text>
               </TouchableOpacity>
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   usdcText: { color: "#fff", fontSize: 12, fontFamily: "Inter_500Medium" },
   quickActions: { flexDirection: "row", justifyContent: "space-around" },
   actionBtn: { alignItems: "center", gap: 6 },
-  actionIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
+  actionIcon: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   actionLabel: { color: "#fff", fontSize: 12, fontFamily: "Inter_500Medium" },
   card: { marginHorizontal: 16, borderRadius: 16, borderWidth: 1, overflow: "hidden" },
   empty: { alignItems: "center", padding: 32, gap: 8 },

@@ -1,5 +1,5 @@
 import { Link, useRoute } from "wouter";
-import { Wallet, Building2, CreditCard, Briefcase, User, Bell } from "lucide-react";
+import { Coins, Landmark, CreditCard, Briefcase, CircleUser, Bell } from "lucide-react";
 
 export function Layout({ children, title }: { children: React.ReactNode, title?: string }) {
   return (
@@ -11,8 +11,8 @@ export function Layout({ children, title }: { children: React.ReactNode, title?:
           <h1 className="text-2xl font-bold text-primary tracking-tight">S-PAY</h1>
         </div>
         <nav className="flex-1 px-4 space-y-2">
-          <NavLink href="/dashboard" icon={<Wallet size={20} />} label="Wallet" />
-          <NavLink href="/banking" icon={<Building2 size={20} />} label="Banking" />
+          <NavLink href="/dashboard" icon={<Coins size={20} />} label="Wallet" />
+          <NavLink href="/banking" icon={<Landmark size={20} />} label="Banking" />
           <NavLink href="/card" icon={<CreditCard size={20} />} label="Card" />
           <NavLink href="/jobs" icon={<Briefcase size={20} />} label="Jobs" />
         </nav>
@@ -33,7 +33,7 @@ export function Layout({ children, title }: { children: React.ReactNode, title?:
               </button>
               <Link href="/profile">
                 <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors">
-                  <User size={20} />
+                  <CircleUser size={20} />
                 </button>
               </Link>
             </div>
@@ -45,8 +45,8 @@ export function Layout({ children, title }: { children: React.ReactNode, title?:
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-3 z-50 safe-area-bottom">
-        <MobileNavLink href="/dashboard" icon={<Wallet size={24} />} label="Wallet" />
-        <MobileNavLink href="/banking" icon={<Building2 size={24} />} label="Banking" />
+        <MobileNavLink href="/dashboard" icon={<Coins size={24} />} label="Wallet" />
+        <MobileNavLink href="/banking" icon={<Landmark size={24} />} label="Banking" />
         <MobileNavLink href="/card" icon={<CreditCard size={24} />} label="Card" />
         <MobileNavLink href="/jobs" icon={<Briefcase size={24} />} label="Jobs" />
       </nav>

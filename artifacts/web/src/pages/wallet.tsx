@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { useGetWalletTransactions, getGetWalletTransactionsQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpRight, ArrowDownLeft, Filter } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, SlidersHorizontal } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Wallet() {
@@ -24,7 +24,7 @@ export default function Wallet() {
       <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white mt-4">
         <div className="p-4 border-b flex justify-between items-center bg-gray-50">
           <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-            <Filter size={16} /> Filter
+            <SlidersHorizontal size={16} /> Filter
           </div>
           <Select value={filter} onValueChange={setFilter}>
             <SelectTrigger className="w-[180px] bg-white">
@@ -57,7 +57,7 @@ export default function Wallet() {
           ) : filteredTransactions.length === 0 ? (
             <div className="p-12 text-center text-gray-500">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Filter className="text-gray-400" size={24} />
+                <SlidersHorizontal className="text-gray-400" size={24} />
               </div>
               <h3 className="font-medium text-gray-900 mb-1">No transactions found</h3>
               <p className="text-sm">Try changing your filters.</p>
