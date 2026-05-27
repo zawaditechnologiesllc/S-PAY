@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: spay-api
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: "pnpm install && pnpm run typecheck:libs && pnpm --filter @workspace/api-server run build"
+    startCommand: "pnpm --filter @workspace/api-server run start"
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
