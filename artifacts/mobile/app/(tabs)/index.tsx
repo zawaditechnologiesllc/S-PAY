@@ -115,10 +115,10 @@ export default function WalletScreen() {
           {/* Quick actions */}
           <View style={styles.quickActions}>
             {[
-              { icon: "send" as const, label: "Transfer", color: "#FF6900", onPress: () => { Haptics.impactAsync(); setSendVisible(true); } },
-              { icon: "plus" as const, label: "Recharge", color: "#00B578", onPress: () => router.push("/(tabs)/banking") },
-              { icon: "arrow-up" as const, label: "Withdraw", color: "#7B61FF", onPress: () => router.push("/withdraw") },
-              { icon: "grid" as const, label: "More", color: "#8C8C8C", onPress: () => {} },
+              { icon: "send" as const, label: "Transfer", color: "#F59E0B", onPress: () => { Haptics.impactAsync(); setSendVisible(true); } },
+              { icon: "plus" as const, label: "Recharge", color: "#22C55E", onPress: () => router.push("/(tabs)/banking") },
+              { icon: "arrow-up" as const, label: "Withdraw", color: "#2E8FD6", onPress: () => router.push("/withdraw") },
+              { icon: "grid" as const, label: "More", color: "#64748B", onPress: () => {} },
             ].map((a) => (
               <TouchableOpacity key={a.label} style={styles.actionBtn} onPress={a.onPress} testID={`button-${a.label.toLowerCase()}`}>
                 <View style={[styles.actionIcon, { backgroundColor: a.color }]}>

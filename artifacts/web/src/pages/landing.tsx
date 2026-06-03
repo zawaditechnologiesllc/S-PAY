@@ -1,42 +1,42 @@
 import { Link } from "wouter";
 import {
-  Coins, Landmark, CreditCard, Briefcase, ArrowRight,
-  Globe, Shield, Zap, ChevronRight, CheckCircle,
+  Wallet, Landmark, CreditCard, Briefcase, ArrowRight,
+  Globe, Shield, Zap, CheckCircle,
   ScanLine, ArrowUpFromLine, ArrowDownToLine, Send,
 } from "lucide-react";
 
 const FEATURES = [
   {
-    icon: <Coins size={28} />,
-    color: "#1677FF",
+    icon: <Wallet size={28} />,
+    color: "#4DC9EE",
     title: "USDC Wallet",
     desc: "Hold and send USDC on Celo instantly, anywhere in the world with near-zero fees.",
   },
   {
     icon: <Landmark size={28} />,
-    color: "#00B578",
+    color: "#22C55E",
     title: "Virtual Banking",
     desc: "Get a US (ACH) and EU (IBAN) virtual account. Receive client payments like a local.",
   },
   {
     icon: <CreditCard size={28} />,
-    color: "#7B61FF",
+    color: "#1A2B4A",
     title: "Virtual Card",
     desc: "Spend your balance anywhere Visa is accepted — online or in-store. Coming soon.",
   },
   {
     icon: <Briefcase size={28} />,
-    color: "#FF6900",
+    color: "#F59E0B",
     title: "Remote Jobs",
     desc: "Discover top remote roles from Himalayas, RemoteOK and Remotive — all in one feed.",
   },
 ];
 
 const QUICK_ACTIONS = [
-  { icon: <ScanLine size={20} />, label: "Scan & Pay", color: "#1677FF" },
-  { icon: <Send size={20} />, label: "Transfer", color: "#FF6900" },
-  { icon: <ArrowDownToLine size={20} />, label: "Recharge", color: "#00B578" },
-  { icon: <ArrowUpFromLine size={20} />, label: "Withdraw", color: "#7B61FF" },
+  { icon: <ScanLine size={20} />, label: "Scan & Pay", color: "#4DC9EE" },
+  { icon: <Send size={20} />, label: "Transfer", color: "#F59E0B" },
+  { icon: <ArrowDownToLine size={20} />, label: "Recharge", color: "#22C55E" },
+  { icon: <ArrowUpFromLine size={20} />, label: "Withdraw", color: "#2E8FD6" },
 ];
 
 const STEPS = [
@@ -46,12 +46,12 @@ const STEPS = [
 ];
 
 const MARKETS = [
-  { flag: "🇰🇪", country: "Kenya", method: "M-Pesa", color: "#00B578" },
-  { flag: "🇧🇷", country: "Brazil", method: "PIX", color: "#1677FF" },
-  { flag: "🇩🇪", country: "Europe", method: "SEPA", color: "#7B61FF" },
-  { flag: "🇵🇭", country: "Philippines", method: "Wire", color: "#FF6900" },
-  { flag: "🇳🇬", country: "Nigeria", method: "Bank", color: "#00B578" },
-  { flag: "🇮🇩", country: "Indonesia", method: "Wire", color: "#1677FF" },
+  { flag: "🇰🇪", country: "Kenya", method: "M-Pesa", color: "#22C55E" },
+  { flag: "🇧🇷", country: "Brazil", method: "PIX", color: "#4DC9EE" },
+  { flag: "🇩🇪", country: "Europe", method: "SEPA", color: "#2E8FD6" },
+  { flag: "🇵🇭", country: "Philippines", method: "Wire", color: "#F59E0B" },
+  { flag: "🇳🇬", country: "Nigeria", method: "Bank", color: "#22C55E" },
+  { flag: "🇮🇩", country: "Indonesia", method: "Wire", color: "#4DC9EE" },
 ];
 
 const STATS = [

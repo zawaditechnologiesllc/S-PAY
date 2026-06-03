@@ -85,7 +85,7 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="building.columns" tintColor={color} size={24} />
             ) : (
-              <Feather name="home" size={22} color={color} />
+              <Feather name="layers" size={22} color={color} />
             ),
         }}
       />

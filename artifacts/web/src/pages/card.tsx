@@ -38,19 +38,19 @@ export default function CardPage() {
         {isLoadingDetails ? (
           <Skeleton className="w-full h-56 rounded-2xl" />
         ) : isComingSoon ? (
-           <Card className="border-0 shadow-lg rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-center">
+           <Card className="border-0 shadow-lg rounded-2xl overflow-hidden bg-gradient-to-br from-[#1A2B4A] to-[#2E8FD6] text-white text-center">
             <CardContent className="p-10 space-y-6">
               <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto backdrop-blur-sm">
                 <CreditCard size={40} className="text-white" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold mb-2">Global Virtual Cards</h2>
-                <p className="text-indigo-100 max-w-sm mx-auto">Spend your stablecoin balance anywhere Visa or Mastercard is accepted. Coming very soon.</p>
+                <p className="text-blue-200 max-w-sm mx-auto">Spend your stablecoin balance anywhere Visa or Mastercard is accepted. Coming very soon.</p>
               </div>
-              <Button 
-                onClick={handleJoinWaitlist} 
+              <Button
+                onClick={handleJoinWaitlist}
                 disabled={joinWaitlist.isPending}
-                className="bg-white text-indigo-600 hover:bg-indigo-50 font-semibold px-8 py-6 rounded-xl text-md"
+                className="bg-white text-[#1A2B4A] hover:bg-[#A8DEFF] font-semibold px-8 py-6 rounded-xl text-md"
               >
                 {joinWaitlist.isPending ? "Joining..." : "Join the Waitlist"}
               </Button>

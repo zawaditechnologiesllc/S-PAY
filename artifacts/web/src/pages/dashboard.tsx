@@ -31,10 +31,10 @@ export default function Dashboard() {
 
           {/* Quick Actions */}
           <div className="grid grid-cols-4 gap-4 mt-8 pt-6 border-t border-gray-100">
-            <QuickAction icon={<ScanLine size={22} />} label="Scan" bgColor="#1677FF" />
-            <QuickAction icon={<Send size={22} />} label="Transfer" bgColor="#FF6900" />
-            <QuickAction icon={<ArrowDownToLine size={22} />} label="Recharge" bgColor="#00B578" />
-            <QuickAction icon={<ArrowUpFromLine size={22} />} label="Withdraw" bgColor="#7B61FF" />
+            <QuickAction icon={<ScanLine size={22} />} label="Scan" bgColor="#4DC9EE" />
+            <QuickAction icon={<Send size={22} />} label="Transfer" bgColor="#F59E0B" />
+            <QuickAction icon={<ArrowDownToLine size={22} />} label="Recharge" bgColor="#22C55E" />
+            <QuickAction icon={<ArrowUpFromLine size={22} />} label="Withdraw" bgColor="#2E8FD6" />
           </div>
         </CardContent>
       </Card>
