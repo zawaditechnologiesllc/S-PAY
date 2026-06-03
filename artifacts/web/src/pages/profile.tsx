@@ -3,7 +3,7 @@ import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CircleUser, Mail, Phone, ShieldCheck, CreditCard, LogOut, BadgeCheck } from "lucide-react";
+import { CircleUser, Mail, Phone, ShieldCheck, LogOut, BadgeCheck, Wallet, Globe, HelpCircle } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import { useLocation } from "wouter";
 
@@ -93,20 +93,85 @@ export default function Profile() {
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
           <CardHeader className="bg-gray-50 border-b pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
-              <BadgeCheck className="text-primary" /> Web3 Identity
+              <Wallet className="text-primary" /> Account & Limits
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-             {isLoading ? (
-              <Skeleton className="h-6 w-full" />
-            ) : (
-              <div>
-                <p className="text-sm text-gray-500 mb-2">Celo Wallet Address</p>
-                <div className="bg-gray-50 p-3 rounded-lg border font-mono text-xs text-gray-600 break-all">
-                  {user?.celoWalletAddress || "Not connected"}
-                </div>
+          <CardContent className="p-6 space-y-4">
+            {isLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gray-50 rounded-xl p-4 border">
+                    <p className="text-xs text-gray-500 mb-1">Account Tier</p>
+                    <p className="font-bold text-[#1A2B4A]">
+                      {user?.kycStatus === "approved" ? "Standard" : "Basic"}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-4 border">
+                    <p className="text-xs text-gray-500 mb-1">Daily Limit</p>
+                    <p className="font-bold text-[#1A2B4A]">
+                      {user?.kycStatus === "approved" ? "$1,000" : "$200"}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-4 border">
+                    <p className="text-xs text-gray-500 mb-1">Monthly Limit</p>
+                    <p className="font-bold text-[#1A2B4A]">
+                      {user?.kycStatus === "approved" ? "$10,000" : "$1,000"}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-4 border">
+                    <p className="text-xs text-gray-500 mb-1">Status</p>
+                    <p className="font-bold text-green-600">Active</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-4 bg-[#4DC9EE]/8 rounded-xl border border-[#4DC9EE]/20">
+                  <Globe size={18} className="text-[#4DC9EE] flex-shrink-0" />
+                  <p className="text-sm text-gray-600">
+                    {user?.kycStatus === "approved"
+                      ? "Your identity is verified. You have access to full transfer limits."
+                      : "Complete identity verification to unlock higher limits and all features."}
+                  </p>
+                </div>
+              </>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gray-50 border-b pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <HelpCircle className="text-primary" /> Support
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-3">
+            <a
+              href="mailto:support@spayewallet.com"
+              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border hover:bg-gray-100 transition-colors"
+            >
+              <div>
+                <p className="font-medium text-gray-900 text-sm">Contact Support</p>
+                <p className="text-xs text-gray-500 mt-0.5">support@spayewallet.com</p>
+              </div>
+              <BadgeCheck size={18} className="text-gray-400" />
+            </a>
+            <a
+              href="/privacy"
+              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border hover:bg-gray-100 transition-colors"
+            >
+              <p className="font-medium text-gray-900 text-sm">Privacy Policy</p>
+              <BadgeCheck size={18} className="text-gray-400" />
+            </a>
+            <a
+              href="/terms"
+              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border hover:bg-gray-100 transition-colors"
+            >
+              <p className="font-medium text-gray-900 text-sm">Terms of Service</p>
+              <BadgeCheck size={18} className="text-gray-400" />
+            </a>
           </CardContent>
         </Card>
 

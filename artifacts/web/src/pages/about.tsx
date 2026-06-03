@@ -3,6 +3,7 @@ import {
   Globe, ArrowRight, Landmark, Wallet, ArrowDownToLine,
   Shield, Zap, Clock, HeartHandshake, Users, DollarSign,
 } from "lucide-react";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 const HOW_IT_WORKS = [
   {
@@ -76,8 +77,8 @@ export default function About() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4DC9EE] to-[#1A2B4A] flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
+              <div className="w-8 h-8 rounded-xl bg-[#4DC9EE] overflow-hidden flex-shrink-0">
+                <img src={spayLogo} alt="S-PAY" className="w-full h-full object-cover" />
               </div>
               <span className="font-bold text-[#1A2B4A] text-lg tracking-tight">S-PAY</span>
             </div>

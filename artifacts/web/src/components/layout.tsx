@@ -23,7 +23,7 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
         <div className="px-5 py-5 border-b border-white/10">
           <Link href="/dashboard">
             <div className="flex items-center gap-3 cursor-pointer">
-              <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#4DC9EE] overflow-hidden flex-shrink-0">
                 <img src={spayLogo} alt="S-PAY" className="w-full h-full object-cover" />
               </div>
               <div>
