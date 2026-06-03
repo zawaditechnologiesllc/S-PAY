@@ -303,24 +303,47 @@ Expo builds the app in the cloud and gives you a direct download link. No termin
 ### Option 2 — GitHub Codespaces (run in the cloud, scan QR on phone)
 
 1. Go to your GitHub repo → click **Code → Codespaces → New codespace**
-2. In the Codespace terminal:
-   ```bash
-   cd artifacts/mobile
-   npx expo start --tunnel
-   ```
-3. A QR code appears — scan it with the **Expo Go** app on your phone
-4. The app loads over the internet tunnel — no local network needed
+2. Wait for the Codespace to start, then run these commands **in order**:
 
-> **Note:** Codespaces gives you 60 free hours/month on the free plan.
+```bash
+# Step 1 — Install pnpm (the package manager this repo uses)
+npm install -g pnpm
+
+# Step 2 — Install ALL workspace dependencies from the repo root
+#           (This is required — Codespaces does NOT auto-install deps)
+cd /workspaces/S-PAY
+pnpm install
+
+# Step 3 — Start the mobile app with a public tunnel
+cd artifacts/mobile
+npx expo start --tunnel
+```
+
+3. A QR code appears in the terminal
+4. On your phone, open the **Expo Go** app → scan the QR code
+5. The S-PAY app opens on your phone instantly
+
+> **Why `--tunnel`?** Codespaces runs in the cloud, not on your local network. The `--tunnel` flag routes traffic through Expo's servers so your phone can reach the Codespace over the internet.
+
+> **Note:** Codespaces gives you 60 free core-hours/month on the free GitHub plan. The Codespace goes to sleep after 30 minutes of inactivity but your phone app keeps working until the tunnel closes.
+
+**Common errors in Codespaces:**
+
+| Error | Fix |
+|---|---|
+| `expo module is not installed` | You skipped `pnpm install` — run it from `/workspaces/S-PAY` |
+| `command not found: pnpm` | Run `npm install -g pnpm` first |
+| QR code appears but app won't load | Make sure you used `--tunnel` not just `npx expo start` |
+| Port forwarding popup | Ignore it — `--tunnel` bypasses Codespaces port forwarding |
 
 ### Option 3 — Expo Web (instant browser preview, limited)
 
-If the API is deployed, you can run the mobile app as a web page:
+After running `pnpm install` from the repo root:
 ```bash
 cd artifacts/mobile
 npx expo start --web
 ```
-This opens the app in a browser using React Native Web. Works for most screens (wallet, jobs, profile) but native features (camera, haptics) won't work.
+Codespaces will offer to open a browser tab with the app running as a web page via React Native Web. Works for most screens (wallet, jobs, profile) but native features (camera, haptics, biometrics) won't work in the browser.
 
 ---
 
