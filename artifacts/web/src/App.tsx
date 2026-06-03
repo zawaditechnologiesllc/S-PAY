@@ -20,6 +20,9 @@ import JobDetail from "@/pages/job-detail";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminUsers from "@/pages/admin/users";
 import AdminTransactions from "@/pages/admin/transactions";
+import About from "@/pages/about";
+import Privacy from "@/pages/privacy";
+import Terms from "@/pages/terms";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,6 +61,9 @@ function Router() {
     <Switch>
       {/* Public */}
       <Route path="/" component={Landing} />
+      <Route path="/about" component={About} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
 

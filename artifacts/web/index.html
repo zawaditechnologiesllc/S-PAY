@@ -2,22 +2,86 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>S-PAY — Digital Wallet for Remote Workers</title>
-    <meta name="description" content="S-PAY is a digital wallet super app for remote workers — earn in USDC on Celo, manage virtual bank accounts, withdraw to M-Pesa/SEPA/PIX, and discover remote jobs." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+
+    <!-- Primary meta -->
+    <title>S-PAY — Receive Global Payments. Cash Out Locally.</title>
+    <meta name="description" content="S-PAY gives remote workers a virtual USD & EUR bank account, a digital dollar wallet, and instant cash-out to M-Pesa, MTN Mobile Money, PIX, SEPA, and local banks worldwide." />
+    <meta name="keywords" content="remittance app, digital wallet, virtual bank account, M-Pesa, mobile money, receive dollars abroad, remote work payments, send money Africa, PIX Brazil, SEPA" />
     <meta name="robots" content="index, follow" />
-    <meta property="og:title" content="S-PAY — Digital Wallet for Remote Workers" />
-    <meta property="og:description" content="Earn globally in USDC, manage virtual USD/EUR accounts, withdraw to local currency, and find remote jobs — all in one app." />
+    <meta name="author" content="Zawadi Technologies LLC" />
+    <link rel="canonical" href="https://spayewallet.com/" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://spayewallet.com/" />
     <meta property="og:site_name" content="S-PAY" />
+    <meta property="og:title" content="S-PAY — Receive Global Payments. Cash Out Locally." />
+    <meta property="og:description" content="Virtual USD & EUR bank account + digital wallet for remote workers. Withdraw to M-Pesa, MTN, PIX, SEPA and more." />
+    <meta property="og:image" content="https://spayewallet.com/opengraph.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="S-PAY — Digital Wallet for Remote Workers" />
-    <meta name="twitter:description" content="Earn globally in USDC, manage virtual USD/EUR accounts, withdraw to local currency, and find remote jobs." />
+    <meta name="twitter:site" content="@spayewallet" />
+    <meta name="twitter:title" content="S-PAY — Receive Global Payments. Cash Out Locally." />
+    <meta name="twitter:description" content="Virtual USD & EUR bank account + digital wallet for remote workers in Africa, LatAm & Southeast Asia." />
+    <meta name="twitter:image" content="https://spayewallet.com/opengraph.jpg" />
+
+    <!-- App & theme -->
     <meta name="theme-color" content="#1A2B4A" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="S-PAY" />
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Structured data: Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "S-PAY",
+      "url": "https://spayewallet.com",
+      "logo": "https://spayewallet.com/favicon.svg",
+      "description": "S-PAY is a digital wallet and remittance platform for remote workers. Receive payments into a virtual USD or EUR bank account and cash out to M-Pesa, MTN, PIX, SEPA and more.",
+      "foundingDate": "2024",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "support@spayewallet.com",
+        "contactType": "customer support"
+      },
+      "sameAs": []
+    }
+    </script>
+
+    <!-- Structured data: WebSite with SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "S-PAY",
+      "url": "https://spayewallet.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://spayewallet.com/jobs?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

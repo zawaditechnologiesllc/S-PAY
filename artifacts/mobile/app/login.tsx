@@ -52,11 +52,13 @@ export default function LoginScreen() {
         colors={[colors.gradientStart, colors.gradientEnd]}
         style={styles.logoCard}
       >
-        <View style={styles.logoInner}>
-          <Text style={styles.logoS}>S</Text>
-        </View>
+        <Image
+          source={require("../assets/images/icon.png")}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <Text style={styles.logoName}>S-PAY</Text>
-        <Text style={styles.logoTagline}>Your global digital wallet</Text>
+        <Text style={styles.logoTagline}>Receive globally. Cash out locally.</Text>
       </LinearGradient>
 
       <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -128,8 +130,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { alignItems: "center", paddingHorizontal: 20, gap: 20 },
   logoCard: { width: "100%", borderRadius: 24, alignItems: "center", padding: 32, gap: 10 },
-  logoInner: { width: 64, height: 64, borderRadius: 18, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
-  logoS: { fontSize: 36, fontFamily: "Inter_700Bold", color: "#4DC9EE" },
+  logoImage: { width: 72, height: 72, borderRadius: 18 },
   logoName: { color: "#fff", fontSize: 28, fontFamily: "Inter_700Bold" },
   logoTagline: { color: "rgba(255,255,255,0.8)", fontSize: 14, fontFamily: "Inter_400Regular" },
   formCard: { width: "100%", borderRadius: 20, borderWidth: 1, padding: 24, gap: 16 },

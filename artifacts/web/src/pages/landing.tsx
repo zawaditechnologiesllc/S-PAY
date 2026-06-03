@@ -4,61 +4,70 @@ import {
   Globe, Shield, Zap, CheckCircle,
   ScanLine, ArrowUpFromLine, ArrowDownToLine, Send,
 } from "lucide-react";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 const FEATURES = [
   {
     icon: <Wallet size={28} />,
     color: "#4DC9EE",
-    title: "USDC Wallet",
-    desc: "Hold and send USDC on Celo instantly, anywhere in the world with near-zero fees.",
+    title: "Digital Dollar Wallet",
+    desc: "Hold and send digital dollars instantly. Access your money anywhere with near-zero transfer fees.",
   },
   {
     icon: <Landmark size={28} />,
     color: "#22C55E",
-    title: "Virtual Banking",
-    desc: "Get a US (ACH) and EU (IBAN) virtual account. Receive client payments like a local.",
+    title: "Virtual Bank Account",
+    desc: "Get a US (ACH) and EU (IBAN) virtual account number. Let clients pay you like a local.",
   },
   {
     icon: <CreditCard size={28} />,
     color: "#1A2B4A",
-    title: "Virtual Card",
-    desc: "Spend your balance anywhere Visa is accepted — online or in-store. Coming soon.",
+    title: "S-PAY Virtual Card",
+    desc: "Spend your balance anywhere Visa is accepted — online and in stores. Coming soon.",
   },
   {
     icon: <Briefcase size={28} />,
     color: "#F59E0B",
-    title: "Remote Jobs",
-    desc: "Discover top remote roles from Himalayas, RemoteOK and Remotive — all in one feed.",
+    title: "Remote Jobs Board",
+    desc: "Discover top remote roles from leading job platforms — all in one feed.",
   },
 ];
 
 const QUICK_ACTIONS = [
   { icon: <ScanLine size={20} />, label: "Scan & Pay", color: "#4DC9EE" },
   { icon: <Send size={20} />, label: "Transfer", color: "#F59E0B" },
-  { icon: <ArrowDownToLine size={20} />, label: "Recharge", color: "#22C55E" },
+  { icon: <ArrowDownToLine size={20} />, label: "Deposit", color: "#22C55E" },
   { icon: <ArrowUpFromLine size={20} />, label: "Withdraw", color: "#2E8FD6" },
 ];
 
 const STEPS = [
-  { num: "01", title: "Create your account", desc: "Sign up in 2 minutes with just your email and a password." },
-  { num: "02", title: "Verify your identity", desc: "Complete a quick KYC check to unlock full limits and transfers." },
-  { num: "03", title: "Send, receive & earn", desc: "Use your wallet, virtual accounts, and job board from day one." },
+  { num: "01", title: "Create your account", desc: "Sign up in 2 minutes with just your email and a password. No branch visit needed." },
+  { num: "02", title: "Verify your identity", desc: "Complete a quick identity check to unlock full limits and instant transfers." },
+  { num: "03", title: "Send, receive & earn", desc: "Use your digital wallet, virtual accounts, and job board from day one." },
 ];
 
 const MARKETS = [
   { flag: "🇰🇪", country: "Kenya", method: "M-Pesa", color: "#22C55E" },
-  { flag: "🇧🇷", country: "Brazil", method: "PIX", color: "#4DC9EE" },
-  { flag: "🇩🇪", country: "Europe", method: "SEPA", color: "#2E8FD6" },
-  { flag: "🇵🇭", country: "Philippines", method: "Wire", color: "#F59E0B" },
   { flag: "🇳🇬", country: "Nigeria", method: "Bank", color: "#22C55E" },
-  { flag: "🇮🇩", country: "Indonesia", method: "Wire", color: "#4DC9EE" },
+  { flag: "🇬🇭", country: "Ghana", method: "MTN", color: "#F59E0B" },
+  { flag: "🇺🇬", country: "Uganda", method: "Mobile Money", color: "#4DC9EE" },
+  { flag: "🇹🇿", country: "Tanzania", method: "M-Pesa", color: "#22C55E" },
+  { flag: "🇷🇼", country: "Rwanda", method: "MoMo", color: "#4DC9EE" },
+  { flag: "🇵🇭", country: "Philippines", method: "GCash", color: "#2E8FD6" },
+  { flag: "🇧🇷", country: "Brazil", method: "PIX", color: "#4DC9EE" },
+  { flag: "🇨🇴", country: "Colombia", method: "Nequi", color: "#F59E0B" },
+  { flag: "🇮🇩", country: "Indonesia", method: "GoPay", color: "#22C55E" },
+  { flag: "🇲🇽", country: "Mexico", method: "SPEI", color: "#4DC9EE" },
+  { flag: "🇪🇺", country: "EU", method: "SEPA", color: "#2E8FD6" },
+  { flag: "🇺🇸", country: "USA", method: "ACH", color: "#1A2B4A" },
+  { flag: "🇿🇦", country: "South Africa", method: "Bank", color: "#F59E0B" },
 ];
 
 const STATS = [
-  { value: "180+", label: "Countries supported" },
+  { value: "500K+", label: "Users worldwide" },
   { value: "$0", label: "Monthly fee" },
-  { value: "~0s", label: "Celo settlement" },
-  { value: "3", label: "Withdrawal methods" },
+  { value: "180+", label: "Countries supported" },
+  { value: "<1 min", label: "Withdrawals" },
 ];
 
 export default function Landing() {
@@ -68,10 +77,12 @@ export default function Landing() {
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4DC9EE] to-[#1A2B4A] flex items-center justify-center">
-              <span className="text-white font-bold text-sm">S</span>
-            </div>
+          <div className="flex items-center gap-2.5">
+            <img
+              src={spayLogo}
+              alt="S-PAY"
+              className="w-8 h-8 rounded-lg object-cover shadow-sm"
+            />
             <span className="font-bold text-[#1A2B4A] text-lg tracking-tight">S-PAY</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
@@ -103,11 +114,11 @@ export default function Landing() {
               <Globe size={12} /> Built for remote workers worldwide
             </div>
             <h1 className="text-5xl md:text-6xl font-black text-white leading-tight mb-6">
-              Bank global.<br />
-              <span className="text-[#4DC9EE]">Live local.</span>
+              Get paid globally.<br />
+              <span className="text-[#4DC9EE]">Cash out locally.</span>
             </h1>
             <p className="text-xl text-blue-200 mb-10 max-w-2xl leading-relaxed">
-              Earn in USDC on Celo, hold virtual USD &amp; EUR accounts, withdraw to M-Pesa, SEPA or PIX — and find your next remote job. One app.
+              Your virtual USD &amp; EUR bank account, digital wallet, and cash-out tool — all in one app. Built for remote workers everywhere.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link href="/register">
@@ -115,12 +126,18 @@ export default function Landing() {
                   Open Free Account <ArrowRight size={18} />
                 </button>
               </Link>
-              <Link href="/login">
+              <a href="#how">
                 <button className="flex items-center gap-2 bg-white/10 text-white font-semibold px-8 py-4 rounded-2xl hover:bg-white/20 transition-all text-base border border-white/20">
-                  Sign In
+                  See How It Works
                 </button>
-              </Link>
+              </a>
             </div>
+            <p className="text-blue-300 text-sm mt-5">
+              Or sign in with{" "}
+              <Link href="/login" className="text-[#4DC9EE] font-medium hover:underline">
+                your existing account
+              </Link>
+            </p>
             {/* Stats row */}
             <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-6">
               {STATS.map((s) => (
@@ -142,7 +159,7 @@ export default function Landing() {
                   <p className="text-blue-300 text-xs">Total Balance</p>
                   <p className="text-white text-3xl font-black mt-1">$1,245.60</p>
                 </div>
-                <div className="bg-[#4DC9EE]/20 text-[#4DC9EE] text-xs font-semibold px-3 py-1 rounded-full border border-[#4DC9EE]/30">USDC on Celo</div>
+                <div className="bg-[#4DC9EE]/20 text-[#4DC9EE] text-xs font-semibold px-3 py-1 rounded-full border border-[#4DC9EE]/30">Digital Dollars</div>
               </div>
               <div className="grid grid-cols-4 gap-3 mt-6 pt-4 border-t border-white/10">
                 {QUICK_ACTIONS.map((a) => (
@@ -211,9 +228,9 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8 text-white">
             {[
-              { icon: <Shield size={28} />, title: "Non-custodial Wallet", desc: "Your keys, your crypto. Built on Celo with Privy embedded wallets." },
-              { icon: <Zap size={28} />, title: "Instant Settlement", desc: "USDC transfers settle in seconds, not days. Powered by the Celo blockchain." },
-              { icon: <CheckCircle size={28} />, title: "KYC Verified", desc: "Full KYC verification protects you and keeps the platform compliant." },
+              { icon: <Shield size={28} />, title: "You Control Your Money", desc: "Your funds, your access. We use a secure network so only you can authorize transfers." },
+              { icon: <Zap size={28} />, title: "Instant Transfers", desc: "Send and receive digital money in seconds, not days. Available around the clock." },
+              { icon: <CheckCircle size={28} />, title: "Identity Verified", desc: "Full identity verification protects you and keeps the platform safe for everyone." },
             ].map((t) => (
               <div key={t.title} className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-[#4DC9EE] flex-shrink-0">
@@ -234,14 +251,14 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-black text-[#1A2B4A] mb-4">Withdraw to your local currency</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">Live FX rates. Multiple payout rails. Money where you need it.</p>
+            <p className="text-gray-500 text-lg max-w-xl mx-auto">Live FX rates. Multiple payout methods. Money where you need it.</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             {MARKETS.map((m) => (
-              <div key={m.country} className="bg-white rounded-2xl p-5 text-center shadow-sm border border-gray-100 hover:shadow-md transition-all">
-                <div className="text-4xl mb-3">{m.flag}</div>
-                <div className="font-semibold text-[#1A2B4A] text-sm">{m.country}</div>
-                <div className="text-xs font-bold mt-1 px-2 py-0.5 rounded-full inline-block text-white" style={{ backgroundColor: m.color }}>
+              <div key={m.country} className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                <div className="text-3xl mb-2">{m.flag}</div>
+                <div className="font-semibold text-[#1A2B4A] text-xs">{m.country}</div>
+                <div className="text-[10px] font-bold mt-1.5 px-2 py-0.5 rounded-full inline-block text-white" style={{ backgroundColor: m.color }}>
                   {m.method}
                 </div>
               </div>
@@ -253,11 +270,11 @@ export default function Landing() {
       {/* CTA */}
       <section className="py-24 px-6 bg-[#4DC9EE]">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-4xl font-black text-white mb-6">Start earning globally today</h2>
-          <p className="text-blue-100 text-lg mb-10">Join thousands of remote workers who use S-PAY to manage their global income.</p>
+          <h2 className="text-4xl font-black text-white mb-6">Start receiving money today</h2>
+          <p className="text-blue-100 text-lg mb-10">Join hundreds of thousands of remote workers who use S-PAY to manage their global income.</p>
           <Link href="/register">
             <button className="inline-flex items-center gap-2 bg-[#1A2B4A] text-white font-bold px-10 py-5 rounded-2xl hover:bg-[#0d1f38] transition-colors text-lg shadow-xl">
-              Create Free Account <ArrowRight size={20} />
+              Open Free Account <ArrowRight size={20} />
             </button>
           </Link>
           <p className="text-blue-100 text-sm mt-6">No credit card required · Free to open · Cancel anytime</p>
@@ -270,27 +287,41 @@ export default function Landing() {
           <div className="grid md:grid-cols-4 gap-8 mb-10">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-7 h-7 rounded-lg bg-[#4DC9EE] flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">S</span>
-                </div>
+                <img
+                  src={spayLogo}
+                  alt="S-PAY"
+                  className="w-7 h-7 rounded-lg object-cover"
+                />
                 <span className="font-bold text-white text-base">S-PAY</span>
               </div>
-              <p className="text-blue-300 text-sm leading-relaxed">Digital wallet super app for remote workers worldwide.</p>
+              <p className="text-blue-300 text-sm leading-relaxed">Digital money super app for remote workers worldwide.</p>
             </div>
-            {[
-              { title: "Product", links: ["Wallet", "Banking", "Card", "Jobs"] },
-              { title: "Company", links: ["About", "Blog", "Careers", "Press"] },
-              { title: "Legal", links: ["Privacy Policy", "Terms of Service", "Cookie Policy"] },
-            ].map((col) => (
-              <div key={col.title}>
-                <h5 className="text-white font-semibold mb-4">{col.title}</h5>
-                <ul className="space-y-2">
-                  {col.links.map((link) => (
-                    <li key={link}><a href="#" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">{link}</a></li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <div>
+              <h5 className="text-white font-semibold mb-4">Product</h5>
+              <ul className="space-y-2">
+                <li><a href="#features" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Digital Wallet</a></li>
+                <li><a href="#features" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Virtual Banking</a></li>
+                <li><a href="#features" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Virtual Card</a></li>
+                <li><a href="#features" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Remote Jobs</a></li>
+              </ul>
+            </div>
+            <div>
+              <h5 className="text-white font-semibold mb-4">Company</h5>
+              <ul className="space-y-2">
+                <li><Link href="/about" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">About Us</Link></li>
+                <li><a href="#" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Blog</a></li>
+                <li><a href="#" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Careers</a></li>
+                <li><a href="#" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Press</a></li>
+              </ul>
+            </div>
+            <div>
+              <h5 className="text-white font-semibold mb-4">Legal</h5>
+              <ul className="space-y-2">
+                <li><Link href="/privacy" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Terms of Service</Link></li>
+                <li><a href="#" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Cookie Policy</a></li>
+              </ul>
+            </div>
           </div>
           <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-blue-400 text-sm">© 2026 S-PAY · spayewallet.com · All rights reserved</p>

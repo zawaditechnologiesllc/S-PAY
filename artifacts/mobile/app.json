@@ -8,26 +8,59 @@
     "scheme": "spay",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+
+    "updates": {
+      "url": "https://u.expo.dev/spay",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#1A2B4A"
     },
+
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.zawaditechnologies.spay"
+      "bundleIdentifier": "com.zawaditechnologies.spay",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "S-PAY uses the camera for identity verification (KYC).",
+        "NSPhotoLibraryUsageDescription": "S-PAY accesses your photos to upload identity documents.",
+        "NSFaceIDUsageDescription": "S-PAY uses Face ID to protect your account.",
+        "NSLocationWhenInUseUsageDescription": "S-PAY uses your location to comply with financial regulations."
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": []
+      }
     },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#1A2B4A"
       },
-      "package": "com.zawaditechnologies.spay"
+      "package": "com.zawaditechnologies.spay",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.INTERNET",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ]
     },
+
     "web": {
       "favicon": "./assets/images/icon.png",
       "bundler": "metro"
     },
+
     "plugins": [
       [
         "expo-router",
@@ -36,11 +69,31 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.0"
+          },
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24
+          }
+        }
+      ]
     ],
+
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+
+    "extra": {
+      "eas": {
+        "projectId": "spay"
+      }
     }
   }
 }

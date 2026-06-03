@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  ActivityIndicator, Alert, ScrollView, Platform,
+  ActivityIndicator, Alert, ScrollView, Image, Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -58,11 +58,13 @@ export default function RegisterScreen() {
         colors={[colors.gradientStart, colors.gradientEnd]}
         style={styles.hero}
       >
-        <View style={styles.logoInner}>
-          <Text style={styles.logoS}>S</Text>
-        </View>
+        <Image
+          source={require("../assets/images/icon.png")}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <Text style={styles.heroTitle}>Create Account</Text>
-        <Text style={styles.heroSub}>Join thousands earning globally with S-PAY</Text>
+        <Text style={styles.heroSub}>Receive globally. Cash out locally.</Text>
       </LinearGradient>
 
       <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
