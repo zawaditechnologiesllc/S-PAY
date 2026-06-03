@@ -23,9 +23,7 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
         <div className="px-5 py-5 border-b border-white/10">
           <Link href="/dashboard">
             <div className="flex items-center gap-3 cursor-pointer">
-              <div className="w-9 h-9 rounded-xl bg-[#4DC9EE] overflow-hidden flex-shrink-0">
-                <img src={spayLogo} alt="S-PAY" className="w-full h-full object-cover" />
-              </div>
+              <img src={spayLogo} alt="S-PAY" className="w-9 h-9 rounded-[22%] flex-shrink-0" />
               <div>
                 <span className="font-black text-white text-lg tracking-tight leading-none block">S-PAY</span>
                 <span className="text-[10px] text-[#A8DEFF] font-medium">Digital Wallet</span>

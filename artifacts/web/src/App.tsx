@@ -68,6 +68,8 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/jobs" component={Jobs} />
+      <Route path="/jobs/:jobId" component={JobDetail} />
 
       {/* User panel */}
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
@@ -76,8 +78,6 @@ function Router() {
       <Route path="/banking"><ProtectedRoute component={Banking} /></Route>
       <Route path="/banking/withdraw"><ProtectedRoute component={Withdraw} /></Route>
       <Route path="/card"><ProtectedRoute component={CardPage} /></Route>
-      <Route path="/jobs"><ProtectedRoute component={Jobs} /></Route>
-      <Route path="/jobs/:jobId"><ProtectedRoute component={JobDetail} /></Route>
 
       {/* Admin panel */}
       <Route path="/admin"><ProtectedRoute component={AdminDashboard} /></Route>

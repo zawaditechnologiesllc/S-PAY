@@ -93,9 +93,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Left: logo + wordmark */}
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#4DC9EE] overflow-hidden flex-shrink-0 shadow-sm">
-              <img src={spayLogo} alt="S-PAY" className="w-full h-full object-cover" />
-            </div>
+            <img src={spayLogo} alt="S-PAY" className="w-8 h-8 rounded-[22%] flex-shrink-0 shadow-sm" />
             <span className="font-bold text-[#1A2B4A] text-lg tracking-tight">S-PAY</span>
           </div>
 
@@ -437,9 +435,7 @@ export default function Landing() {
             {/* Brand */}
             <div>
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-[#4DC9EE] overflow-hidden flex-shrink-0">
-                  <img src={spayLogo} alt="S-PAY" className="w-full h-full object-cover" />
-                </div>
+                <img src={spayLogo} alt="S-PAY" className="w-8 h-8 rounded-[22%] flex-shrink-0" />
                 <span className="font-bold text-white text-base">S-PAY</span>
               </div>
               <p className="text-blue-300 text-sm leading-relaxed">
