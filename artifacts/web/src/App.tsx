@@ -23,6 +23,7 @@ import AdminTransactions from "@/pages/admin/transactions";
 import About from "@/pages/about";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
+import ForgotPassword from "@/pages/forgot-password";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/forgot-password" component={ForgotPassword} />
 
       {/* User panel */}
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
