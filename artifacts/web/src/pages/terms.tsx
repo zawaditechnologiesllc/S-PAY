@@ -1,13 +1,8 @@
-import { Link } from "wouter";
 import { ArrowLeft, FileText } from "lucide-react";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import { Link } from "wouter";
+import { PublicLayout } from "@/components/public-layout";
 
-interface SectionProps {
-  num: string;
-  title: string;
-  children: React.ReactNode;
-}
-
+interface SectionProps { num: string; title: string; children: React.ReactNode; }
 function Section({ num, title, children }: SectionProps) {
   return (
     <div className="mb-10">
@@ -21,32 +16,7 @@ function Section({ num, title, children }: SectionProps) {
 
 export default function Terms() {
   return (
-    <div className="min-h-screen bg-white font-sans">
-
-      {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <img src={spayLogo} alt="S-PAY" className="w-8 h-8 rounded-[22%] flex-shrink-0" />
-              <span className="font-bold text-[#1A2B4A] text-lg tracking-tight">S-PAY</span>
-            </div>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/login">
-              <button className="text-sm font-medium text-gray-700 hover:text-[#1A2B4A] transition-colors px-4 py-2">
-                Sign in
-              </button>
-            </Link>
-            <Link href="/register">
-              <button className="text-sm font-semibold bg-[#4DC9EE] text-white px-5 py-2.5 rounded-full hover:bg-[#1A2B4A] transition-colors">
-                Get Started
-              </button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
+    <PublicLayout>
       {/* Hero banner */}
       <div className="pt-16 bg-gradient-to-br from-[#1A2B4A] to-[#0d1f38]">
         <div className="max-w-3xl mx-auto px-6 py-14">
@@ -66,8 +36,6 @@ export default function Terms() {
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-6 py-14">
-
-        {/* Back link */}
         <Link href="/">
           <div className="inline-flex items-center gap-2 text-[#4DC9EE] text-sm font-semibold mb-10 hover:text-[#1A2B4A] transition-colors cursor-pointer">
             <ArrowLeft size={16} /> Back to home
@@ -83,10 +51,10 @@ export default function Terms() {
             <p>To create an S-PAY account and use the Services, you must:</p>
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
               <li>Be at least <strong>18 years of age</strong>.</li>
-              <li>Hold a valid, government-issued photo ID (passport, national ID, or driver's license).</li>
+              <li>Hold a valid, government-issued photo ID (passport, national ID, or driver's licence).</li>
               <li>Reside in a country where S-PAY Services are available.</li>
               <li>Have the legal capacity to enter into a binding agreement.</li>
-              <li>Not be a person or entity that is subject to international sanctions or on any prohibited persons list maintained by the United States OFAC, United Nations, European Union, or equivalent body.</li>
+              <li>Not be a person or entity subject to international sanctions or on any prohibited persons list maintained by the US OFAC, United Nations, European Union, or equivalent body.</li>
             </ul>
             <p className="mt-3">By using the Services, you represent and warrant that you meet all of the above eligibility requirements.</p>
           </Section>
@@ -106,11 +74,11 @@ export default function Terms() {
           <Section num="3" title="Acceptable Use">
             <p>You agree to use the Services only for lawful purposes and in accordance with these Terms. You expressly agree not to:</p>
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
-              <li>Use the Services for any illegal activity, including but not limited to fraud, money laundering, terrorist financing, or tax evasion.</li>
+              <li>Use the Services for any illegal activity, including fraud, money laundering, terrorist financing, or tax evasion.</li>
               <li>Send or receive funds derived from criminal activity.</li>
               <li>Circumvent, disable, or interfere with security features of the Services.</li>
               <li>Use the Services to make payments for prohibited goods or services as defined by applicable law or our Acceptable Use Policy.</li>
-              <li>Attempt to gain unauthorized access to any portion of the Services or any related systems.</li>
+              <li>Attempt to gain unauthorized access to any portion of the Services or related systems.</li>
               <li>Use automated scripts, bots, or other means to access the Services in an unauthorized manner.</li>
               <li>Engage in any conduct that restricts or inhibits anyone's use or enjoyment of the Services.</li>
             </ul>
@@ -120,8 +88,8 @@ export default function Terms() {
           <Section num="4" title="Wallet & Transactions">
             <p>Your S-PAY wallet allows you to receive, hold, and withdraw funds. The following terms apply to all wallet activity:</p>
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
-              <li><strong>Transaction limits:</strong> daily, weekly, and monthly transaction limits apply based on your account verification level (Tier 1, 2, or 3). Limits are displayed in your account dashboard.</li>
-              <li><strong>Processing times:</strong> incoming transfers are typically credited within minutes to 1 business day, depending on the originating payment method. Withdrawals are processed within 1 minute to 1 business day, depending on the payout corridor and local network conditions.</li>
+              <li><strong>Transaction limits:</strong> daily, weekly, and monthly limits apply based on your account verification level (Tier 1, 2, or 3). Limits are displayed in your account dashboard.</li>
+              <li><strong>Processing times:</strong> incoming transfers are typically credited within minutes to 1 business day, depending on the originating payment method. Withdrawals are processed within 1 minute to 1 business day, depending on the payout corridor.</li>
               <li><strong>Finality:</strong> once a transaction is submitted and confirmed, it cannot be reversed or cancelled. Please verify all transaction details before submitting.</li>
               <li><strong>Errors:</strong> if you believe a transaction was processed in error, contact support within 30 days of the transaction date.</li>
               <li><strong>Dormant accounts:</strong> accounts with no activity for 12 consecutive months may be subject to dormancy procedures under applicable law.</li>
@@ -132,9 +100,9 @@ export default function Terms() {
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
               <li><strong>Monthly fee:</strong> S-PAY charges no monthly account maintenance fee.</li>
               <li><strong>Receiving payments:</strong> receiving funds into your virtual USD or EUR account is free of charge.</li>
-              <li><strong>Withdrawal fees:</strong> a fee may apply when you withdraw funds to mobile money, a local bank account, or via other payout rails. The exact fee depends on the destination country and payout corridor and is disclosed to you before you confirm any withdrawal.</li>
-              <li><strong>Currency conversion:</strong> when converting between currencies (e.g., USD to KES), an exchange rate spread may apply. The rate and any applicable fee are displayed prior to confirmation.</li>
-              <li><strong>Fee changes:</strong> we reserve the right to modify our fee schedule with at least 14 days' advance notice. Continued use of the Services after notice constitutes acceptance of the updated fees.</li>
+              <li><strong>Withdrawal fees:</strong> a fee may apply when you withdraw funds to mobile money, a local bank account, or via other payout rails. The exact fee is disclosed to you before you confirm any withdrawal.</li>
+              <li><strong>Currency conversion:</strong> when converting between currencies, an exchange rate spread may apply. The rate and any applicable fee are displayed prior to confirmation.</li>
+              <li><strong>Fee changes:</strong> we reserve the right to modify our fee schedule with at least 14 days' advance notice. Continued use after notice constitutes acceptance of the updated fees.</li>
             </ul>
           </Section>
 
@@ -150,10 +118,15 @@ export default function Terms() {
 
           <Section num="7" title="Intellectual Property">
             <p>All content, trademarks, logos, graphics, and software included in or made available through the Services are the exclusive property of Zawadi Technologies LLC or its licensors and are protected by applicable intellectual property laws.</p>
-            <p className="mt-3">You are granted a limited, non-exclusive, non-transferable, revocable license to access and use the Services for personal, non-commercial purposes in accordance with these Terms. You may not copy, modify, distribute, sell, or lease any part of the Services, nor may you reverse-engineer or attempt to extract the source code of our software.</p>
+            <p className="mt-3">You are granted a limited, non-exclusive, non-transferable, revocable licence to access and use the Services for personal, non-commercial purposes in accordance with these Terms. You may not copy, modify, distribute, sell, or lease any part of the Services, nor may you reverse-engineer or attempt to extract the source code of our software.</p>
           </Section>
 
-          <Section num="8" title="Limitation of Liability">
+          <Section num="8" title="Disclaimer of Warranties">
+            <p>The Services are provided "as is" and "as available" without warranty of any kind. To the fullest extent permitted by law, S-PAY expressly disclaims all warranties, whether express, implied, or statutory, including warranties of merchantability, fitness for a particular purpose, and non-infringement.</p>
+            <p className="mt-3">We do not warrant that the Services will be uninterrupted, error-free, or free of viruses or other harmful components. Financial market fluctuations, exchange rate movements, and third-party network issues are beyond our control.</p>
+          </Section>
+
+          <Section num="9" title="Limitation of Liability">
             <p>To the fullest extent permitted by applicable law, S-PAY and its affiliates, officers, employees, agents, and licensors shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, data, or goodwill, arising out of or in connection with:</p>
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
               <li>Your use of, or inability to use, the Services.</li>
@@ -161,24 +134,24 @@ export default function Terms() {
               <li>Unauthorized access to or alteration of your data.</li>
               <li>Conduct or content of any third party in connection with the Services.</li>
             </ul>
-            <p className="mt-3">Our total liability to you for any claim arising from or related to these Terms or the Services shall not exceed the greater of (a) the fees paid by you to S-PAY in the three months preceding the event giving rise to liability, or (b) USD $100.</p>
+            <p className="mt-3">Our total liability to you for any claim shall not exceed the greater of (a) the fees paid by you to S-PAY in the three months preceding the event giving rise to liability, or (b) USD $100.</p>
           </Section>
 
-          <Section num="9" title="Termination">
+          <Section num="10" title="Termination">
             <p>Either party may terminate the agreement formed by these Terms at any time:</p>
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
-              <li><strong>By you:</strong> you may close your account at any time by contacting support. Any pending transactions will be processed before closure. Funds remaining in your wallet will be returned to you via your verified withdrawal method, subject to applicable laws and regulations.</li>
-              <li><strong>By us:</strong> we may suspend or terminate your account immediately, without notice, if we determine that you have violated these Terms, engaged in fraudulent activity, or if we are required to do so by law or regulatory order.</li>
+              <li><strong>By you:</strong> you may close your account at any time by contacting support. Funds remaining in your wallet will be returned to you via your verified withdrawal method, subject to applicable laws and regulations.</li>
+              <li><strong>By us:</strong> we may suspend or terminate your account immediately, without notice, if you have violated these Terms, engaged in fraudulent activity, or if we are required to do so by law or regulatory order.</li>
             </ul>
-            <p className="mt-3">Termination does not affect any rights or obligations accrued prior to the date of termination. Sections 6, 7, 8, and 10 of these Terms survive termination.</p>
+            <p className="mt-3">Sections 6, 7, 8, 9, and 11 of these Terms survive termination.</p>
           </Section>
 
-          <Section num="10" title="Governing Law">
+          <Section num="11" title="Governing Law">
             <p>These Terms and any dispute arising out of or related to the Services shall be governed by and construed in accordance with the laws of the <strong>State of Delaware, United States of America</strong>, without regard to its conflict of law provisions.</p>
             <p className="mt-3">Any legal action or proceeding arising under these Terms shall be brought exclusively in the state or federal courts located in Delaware, and you hereby consent to the personal jurisdiction of such courts.</p>
           </Section>
 
-          <Section num="11" title="Contact Us">
+          <Section num="12" title="Contact Us">
             <p>For questions, legal notices, or concerns regarding these Terms of Service, please contact our legal team:</p>
             <div className="mt-3 bg-gray-50 rounded-xl p-5 border border-gray-100 not-italic">
               <p className="font-semibold text-[#1A2B4A]">S-PAY Legal Team</p>
@@ -188,19 +161,18 @@ export default function Terms() {
           </Section>
         </div>
 
-        {/* Footer links */}
         <div className="mt-14 pt-8 border-t border-gray-100 flex flex-col sm:flex-row gap-4 justify-between items-center">
-          <p className="text-gray-400 text-sm">© 2026 S-PAY · Zawadi Technologies LLC</p>
+          <p className="text-gray-400 text-sm">© {new Date().getFullYear()} S-PAY · Zawadi Technologies LLC</p>
           <div className="flex items-center gap-6 text-sm">
             <Link href="/privacy">
               <span className="text-[#4DC9EE] font-medium hover:text-[#1A2B4A] transition-colors cursor-pointer">Privacy Policy</span>
             </Link>
-            <Link href="/">
-              <span className="text-gray-500 hover:text-[#1A2B4A] transition-colors cursor-pointer">Home</span>
+            <Link href="/cookies">
+              <span className="text-gray-500 hover:text-[#1A2B4A] transition-colors cursor-pointer">Cookies</span>
             </Link>
           </div>
         </div>
       </div>
-    </div>
+    </PublicLayout>
   );
 }

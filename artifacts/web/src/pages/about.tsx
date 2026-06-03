@@ -1,44 +1,23 @@
 import { Link } from "wouter";
 import {
-  Globe, ArrowRight, Landmark, Wallet, ArrowDownToLine,
-  Shield, Zap, Clock, HeartHandshake, Users, DollarSign,
+  Globe, ArrowRight, Landmark, Wallet, CreditCard, Briefcase,
+  Shield, Zap, Users, DollarSign, Clock, HeartHandshake,
 } from "lucide-react";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
-
-const HOW_IT_WORKS = [
-  {
-    icon: <Landmark size={28} />,
-    color: "#4DC9EE",
-    title: "Receive Like a Local",
-    desc: "Get a real virtual USD or EUR bank account. Share your routing number, IBAN, or PIX key with any employer or client and receive payments exactly like a local business would — via ACH, SEPA, or PIX.",
-  },
-  {
-    icon: <Wallet size={28} />,
-    color: "#1A2B4A",
-    title: "Hold & Manage",
-    desc: "Your Digital Dollars sit safely in your S-PAY wallet, accessible 24 hours a day, 7 days a week. Convert between USD and EUR, track every transaction, and always know your balance in real time.",
-  },
-  {
-    icon: <ArrowDownToLine size={28} />,
-    color: "#22C55E",
-    title: "Cash Out Instantly",
-    desc: "Withdraw to M-Pesa, MTN Mobile Money, your local bank account, or via SEPA and PIX — often within minutes. Competitive exchange rates with no hidden markups.",
-  },
-];
+import { PublicLayout } from "@/components/public-layout";
 
 const MARKETS = [
   { flag: "🇰🇪", country: "Kenya", method: "M-Pesa", color: "#22C55E" },
   { flag: "🇳🇬", country: "Nigeria", method: "Bank Transfer", color: "#4DC9EE" },
   { flag: "🇬🇭", country: "Ghana", method: "Mobile Money", color: "#F59E0B" },
-  { flag: "🇺🇬", country: "Uganda", method: "MTN Mobile Money", color: "#F59E0B" },
+  { flag: "🇺🇬", country: "Uganda", method: "MTN MoMo", color: "#F59E0B" },
   { flag: "🇹🇿", country: "Tanzania", method: "M-Pesa", color: "#22C55E" },
   { flag: "🇷🇼", country: "Rwanda", method: "Mobile Money", color: "#4DC9EE" },
   { flag: "🇿🇦", country: "South Africa", method: "Bank Transfer", color: "#2E8FD6" },
-  { flag: "🇵🇭", country: "Philippines", method: "Bank / GCash", color: "#F59E0B" },
+  { flag: "🇵🇭", country: "Philippines", method: "GCash", color: "#F59E0B" },
   { flag: "🇧🇷", country: "Brazil", method: "PIX", color: "#4DC9EE" },
   { flag: "🇮🇩", country: "Indonesia", method: "Bank Transfer", color: "#22C55E" },
   { flag: "🇨🇴", country: "Colombia", method: "Bank Transfer", color: "#F59E0B" },
-  { flag: "🇲🇽", country: "Mexico", method: "SPEI / Bank", color: "#22C55E" },
+  { flag: "🇲🇽", country: "Mexico", method: "SPEI", color: "#22C55E" },
   { flag: "🇪🇺", country: "EU / SEPA", method: "SEPA", color: "#2E8FD6" },
   { flag: "🇺🇸", country: "USA", method: "ACH / Wire", color: "#1A2B4A" },
 ];
@@ -68,60 +47,75 @@ const VALUES = [
   },
 ];
 
+const PRODUCTS = [
+  {
+    icon: <Wallet size={22} />,
+    color: "#4DC9EE",
+    title: "Digital Dollar Wallet",
+    desc: "Hold and send USD globally with near-zero fees.",
+  },
+  {
+    icon: <Landmark size={22} />,
+    color: "#22C55E",
+    title: "Virtual Bank Account",
+    desc: "Real US ACH routing number and EU IBAN, issued instantly.",
+  },
+  {
+    icon: <CreditCard size={22} />,
+    color: "#1A2B4A",
+    title: "S-PAY Card",
+    desc: "Virtual card for online payments. Coming soon.",
+    badge: "Coming soon",
+  },
+  {
+    icon: <Briefcase size={22} />,
+    color: "#F59E0B",
+    title: "Remote Jobs Board",
+    desc: "Thousands of remote-only roles, free for all members.",
+  },
+];
+
+const TIMELINE = [
+  {
+    year: "2024",
+    title: "Founded",
+    desc: "Zawadi Technologies LLC incorporated in the United States. A small team of fintech engineers and remittance experts begins building S-PAY.",
+  },
+  {
+    year: "2024",
+    title: "First corridors live",
+    desc: "Kenya, Nigeria, and Ghana go live. Remote workers cash out to M-Pesa and mobile money networks within minutes of signing up.",
+  },
+  {
+    year: "2025",
+    title: "500K+ users",
+    desc: "S-PAY reaches over 500,000 registered users across Africa, Southeast Asia, and Latin America.",
+  },
+  {
+    year: "2025",
+    title: "Virtual bank accounts",
+    desc: "Full virtual US ACH and EU IBAN accounts launch. Clients and employers now pay S-PAY users like a local.",
+  },
+];
+
 export default function About() {
   return (
-    <div className="min-h-screen bg-white font-sans">
-
-      {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
-              <img src={spayLogo} alt="S-PAY" className="w-8 h-8 rounded-[22%] flex-shrink-0" />
-              <span className="font-bold text-[#1A2B4A] text-lg tracking-tight">S-PAY</span>
-            </div>
-          </Link>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
-            <Link href="/#features">
-              <span className="hover:text-[#4DC9EE] transition-colors cursor-pointer">Features</span>
-            </Link>
-            <Link href="/about">
-              <span className="text-[#4DC9EE] font-semibold cursor-pointer">About</span>
-            </Link>
-            <Link href="/#markets">
-              <span className="hover:text-[#4DC9EE] transition-colors cursor-pointer">Markets</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/login">
-              <button className="text-sm font-medium text-gray-700 hover:text-[#1A2B4A] transition-colors px-4 py-2">
-                Sign in
-              </button>
-            </Link>
-            <Link href="/register">
-              <button className="text-sm font-semibold bg-[#4DC9EE] text-white px-5 py-2.5 rounded-full hover:bg-[#1A2B4A] transition-colors">
-                Get Started
-              </button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section className="pt-32 pb-24 px-6 relative overflow-hidden bg-gradient-to-br from-[#1A2B4A] via-[#1e3560] to-[#0d1f38]">
+    <PublicLayout active="about">
+      {/* ─── HERO ─── */}
+      <section className="pt-16 pb-24 relative overflow-hidden bg-gradient-to-br from-[#1A2B4A] via-[#1e3560] to-[#0d1f38]">
         <div
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-20 pointer-events-none"
           style={{
             backgroundImage:
               "radial-gradient(circle at 15% 60%, #4DC9EE 0%, transparent 50%), radial-gradient(circle at 85% 15%, #A8DEFF 0%, transparent 50%)",
           }}
         />
-        <div className="relative max-w-4xl mx-auto text-center">
+        <div className="relative max-w-4xl mx-auto px-6 pt-16 text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 text-[#A8DEFF] text-xs font-semibold px-4 py-1.5 rounded-full mb-8 border border-white/20">
             <Globe size={12} /> Our story
           </div>
           <h1 className="text-5xl md:text-6xl font-black text-white leading-tight mb-6">
-            We believe everyone deserves<br />
+            We believe everyone deserves{" "}
             <span className="text-[#4DC9EE]">access to global financial tools.</span>
           </h1>
           <p className="text-xl text-blue-200 max-w-2xl mx-auto leading-relaxed">
@@ -130,7 +124,7 @@ export default function About() {
         </div>
       </section>
 
-      {/* Mission */}
+      {/* ─── MISSION ─── */}
       <section className="py-24 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 gap-16 items-center">
@@ -139,8 +133,11 @@ export default function About() {
               <h2 className="text-4xl font-black text-[#1A2B4A] mt-3 mb-6 leading-tight">
                 Eliminate the gap between where remote workers live and where they get paid.
               </h2>
-              <p className="text-gray-500 text-lg leading-relaxed mb-6">
+              <p className="text-gray-500 text-lg leading-relaxed mb-5">
                 The global remote work economy has created incredible opportunity — but the financial plumbing hasn't kept up. A developer in Nairobi, a designer in Lagos, or a marketer in Manila should be able to get paid just as easily as someone sitting in San Francisco.
+              </p>
+              <p className="text-gray-500 text-lg leading-relaxed mb-5">
+                Every year, cross-border workers lose billions of dollars to fees and delays. The average remittance cost globally is still above 6%. Wire transfers can take 3–5 business days. Many workers are locked out entirely because they don't have a US or European bank account.
               </p>
               <p className="text-gray-500 text-lg leading-relaxed">
                 S-PAY bridges that gap: a single platform that gives you a real US or European bank account, lets you hold your earnings in Digital Dollars, and moves money to your mobile wallet or local bank in minutes — not days.
@@ -166,45 +163,68 @@ export default function About() {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="py-24 px-6 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <span className="text-[#4DC9EE] font-bold text-sm uppercase tracking-widest">How It Works</span>
-            <h2 className="text-4xl font-black text-[#1A2B4A] mt-3 mb-4">
-              Three steps to financial freedom.
-            </h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">
-              No paperwork. No branch visits. No waiting.
+      {/* ─── OUR STORY / TIMELINE ─── */}
+      <section className="py-20 px-6 bg-gray-50">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-14">
+            <span className="text-[#4DC9EE] font-bold text-sm uppercase tracking-widest">Our Story</span>
+            <h2 className="text-4xl font-black text-[#1A2B4A] mt-3 mb-4">How S-PAY came to be.</h2>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto leading-relaxed">
+              Founded in 2024 by fintech engineers and remittance experts, Zawadi Technologies LLC was born from years of watching talented remote workers lose 5–10% of every payment to fees and wait days for transfers. We decided to build something better.
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {HOW_IT_WORKS.map((step, i) => (
-              <div
-                key={step.title}
-                className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-200 group"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <div
-                    className="w-14 h-14 rounded-2xl flex items-center justify-center text-white group-hover:scale-110 transition-transform"
-                    style={{ backgroundColor: step.color }}
-                  >
-                    {step.icon}
+          <div className="relative">
+            <div className="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-[#4DC9EE] via-[#4DC9EE]/50 to-transparent" />
+            <div className="space-y-10">
+              {TIMELINE.map((t, i) => (
+                <div key={i} className="flex gap-8 relative">
+                  <div className="flex-shrink-0 w-16 flex flex-col items-center">
+                    <div className="w-4 h-4 rounded-full bg-[#4DC9EE] border-2 border-white shadow-md mt-1.5 relative z-10" />
                   </div>
-                  <span className="text-5xl font-black text-gray-100 select-none">
-                    0{i + 1}
-                  </span>
+                  <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex-1 -mt-1">
+                    <span className="text-[#4DC9EE] text-xs font-bold uppercase tracking-widest">{t.year}</span>
+                    <h4 className="font-bold text-[#1A2B4A] text-lg mt-1 mb-2">{t.title}</h4>
+                    <p className="text-gray-500 text-sm leading-relaxed">{t.desc}</p>
+                  </div>
                 </div>
-                <h3 className="font-bold text-[#1A2B4A] text-xl mb-3">{step.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{step.desc}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── WHAT WE BUILD ─── */}
+      <section className="py-16 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="text-[#4DC9EE] font-bold text-sm uppercase tracking-widest">What We Build</span>
+            <h2 className="text-3xl font-black text-[#1A2B4A] mt-3 mb-3">The S-PAY platform</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">One super app covering everything a remote worker needs financially.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {PRODUCTS.map((p) => (
+              <div key={p.title} className="bg-gray-50 rounded-2xl p-6 border border-gray-100 relative overflow-hidden group hover:shadow-md hover:-translate-y-0.5 transition-all">
+                {p.badge && (
+                  <span className="absolute top-4 right-4 text-[9px] font-bold bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                    {p.badge}
+                  </span>
+                )}
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform shadow-sm"
+                  style={{ backgroundColor: p.color }}
+                >
+                  {p.icon}
+                </div>
+                <h4 className="font-bold text-[#1A2B4A] mb-2">{p.title}</h4>
+                <p className="text-gray-500 text-sm leading-relaxed">{p.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="py-20 px-6 bg-gradient-to-r from-[#1A2B4A] to-[#0d1f38]">
+      {/* ─── STATS ─── */}
+      <section className="py-16 px-6 bg-gradient-to-r from-[#1A2B4A] to-[#0d1f38]">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {STATS.map((s) => (
@@ -220,10 +240,10 @@ export default function About() {
         </div>
       </section>
 
-      {/* Markets */}
-      <section className="py-24 px-6 bg-white">
+      {/* ─── GLOBAL COVERAGE ─── */}
+      <section className="py-20 px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-14">
             <span className="text-[#4DC9EE] font-bold text-sm uppercase tracking-widest">Global Coverage</span>
             <h2 className="text-4xl font-black text-[#1A2B4A] mt-3 mb-4">
               Built for the world's fastest-growing economies.
@@ -236,7 +256,7 @@ export default function About() {
             {MARKETS.map((m) => (
               <div
                 key={m.country}
-                className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-200"
+                className="bg-white rounded-2xl p-4 text-center border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-200"
               >
                 <div className="text-3xl mb-2">{m.flag}</div>
                 <div className="font-semibold text-[#1A2B4A] text-xs leading-tight mb-1.5">
@@ -254,33 +274,31 @@ export default function About() {
         </div>
       </section>
 
-      {/* Company */}
-      <section className="py-24 px-6 bg-gray-50">
+      {/* ─── TEAM ─── */}
+      <section className="py-20 px-6 bg-white">
         <div className="max-w-4xl mx-auto text-center">
-          <span className="text-[#4DC9EE] font-bold text-sm uppercase tracking-widest">The Company</span>
-          <h2 className="text-4xl font-black text-[#1A2B4A] mt-3 mb-6">
-            Who we are.
-          </h2>
-          <p className="text-gray-500 text-lg leading-relaxed mb-6">
-            Founded in 2024 by a team of fintech engineers and remittance experts, S-PAY (Zawadi Technologies LLC) is on a mission to make global payments simple, fast, and affordable for the 1 billion+ people earning income across borders.
+          <span className="text-[#4DC9EE] font-bold text-sm uppercase tracking-widest">Our Team</span>
+          <h2 className="text-4xl font-black text-[#1A2B4A] mt-3 mb-6">A remote-first team.</h2>
+          <p className="text-gray-500 text-lg leading-relaxed mb-6 max-w-2xl mx-auto">
+            We are a distributed team of engineers, product designers, compliance specialists, and operations professionals spread across three continents. We work remotely by default — because we are building for remote workers, and we live the same reality.
           </p>
-          <p className="text-gray-500 text-lg leading-relaxed mb-10">
-            Our team has deep roots in financial services, mobile money networks, and cross-border payments. We've spent our careers watching talented people lose money to sky-high fees and slow transfers — and we built S-PAY to fix that.
+          <p className="text-gray-500 text-lg leading-relaxed mb-10 max-w-2xl mx-auto">
+            The team brings deep expertise in fintech, mobile money networks, cross-border payment rails, and regulatory compliance across Africa, Southeast Asia, and Latin America. We have spent our careers inside banks, mobile operators, and payments startups — and we built S-PAY because we knew it could be done better.
           </p>
           <div className="inline-flex items-center gap-3 bg-[#4DC9EE]/10 text-[#1A2B4A] rounded-2xl px-6 py-4 border border-[#4DC9EE]/20">
             <Globe size={20} className="text-[#4DC9EE]" />
             <span className="font-semibold text-sm">
-              Headquartered in the United States · Serving remote workers in 180+ countries
+              Headquartered in the United States · Team members across 3 continents
             </span>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-24 px-6 bg-[#4DC9EE]">
+      {/* ─── CTA ─── */}
+      <section className="py-20 px-6 bg-[#4DC9EE]">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl font-black text-white mb-6">Join us on the mission.</h2>
-          <p className="text-blue-100 text-lg mb-10">
+          <p className="text-blue-100 text-lg mb-10 leading-relaxed">
             Open your free S-PAY account in minutes and start receiving global payments today.
           </p>
           <Link href="/register">
@@ -291,68 +309,6 @@ export default function About() {
           <p className="text-blue-100 text-sm mt-6">No credit card required · Free to open · Cancel anytime</p>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-[#1A2B4A] py-12 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-10">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-7 h-7 rounded-lg bg-[#4DC9EE] flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">S</span>
-                </div>
-                <span className="font-bold text-white text-base">S-PAY</span>
-              </div>
-              <p className="text-blue-300 text-sm leading-relaxed max-w-xs">
-                Digital wallet for remote workers worldwide. Receive, hold, and withdraw with ease.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-16">
-              <div>
-                <h5 className="text-white font-semibold mb-4">Product</h5>
-                <ul className="space-y-2">
-                  {["Wallet", "Banking", "Withdraw", "Jobs"].map((l) => (
-                    <li key={l}>
-                      <a href="#" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">{l}</a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h5 className="text-white font-semibold mb-4">Company</h5>
-                <ul className="space-y-2">
-                  <li>
-                    <Link href="/about">
-                      <span className="text-[#4DC9EE] text-sm cursor-pointer">About</span>
-                    </Link>
-                  </li>
-                  <li><a href="#" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Blog</a></li>
-                  <li><a href="#" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Careers</a></li>
-                </ul>
-              </div>
-              <div>
-                <h5 className="text-white font-semibold mb-4">Legal</h5>
-                <ul className="space-y-2">
-                  <li>
-                    <Link href="/privacy">
-                      <span className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors cursor-pointer">Privacy Policy</span>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/terms">
-                      <span className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors cursor-pointer">Terms of Service</span>
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-blue-400 text-sm">© 2026 S-PAY · Zawadi Technologies LLC · All rights reserved</p>
-            <p className="text-blue-400 text-xs">Built for remote workers in Africa, Southeast Asia &amp; Latin America</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </PublicLayout>
   );
 }

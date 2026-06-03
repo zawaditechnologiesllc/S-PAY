@@ -24,6 +24,10 @@ import AdminSettings from "@/pages/admin/settings";
 import About from "@/pages/about";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
+import Contact from "@/pages/contact";
+import Careers from "@/pages/careers";
+import Blog from "@/pages/blog";
+import Cookies from "@/pages/cookies";
 import ForgotPassword from "@/pages/forgot-password";
 import AuthCallback from "@/pages/auth-callback";
 
@@ -67,6 +71,10 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/contact" component={Contact} />
+      <Route path="/careers" component={Careers} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/cookies" component={Cookies} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />

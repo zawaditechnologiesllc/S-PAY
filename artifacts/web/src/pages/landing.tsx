@@ -3,8 +3,9 @@ import {
   Wallet, Landmark, CreditCard, Briefcase, ArrowRight,
   Globe, Shield, Zap, CheckCircle,
   ScanLine, ArrowUpFromLine, ArrowDownToLine, Send,
+  Star,
 } from "lucide-react";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import { PublicLayout } from "@/components/public-layout";
 
 const FEATURES = [
   {
@@ -42,7 +43,7 @@ const QUICK_ACTIONS = [
 ];
 
 const STEPS = [
-  { num: "01", title: "Create your account", desc: "Sign up in 2 minutes with just your email and a password. No branch visit, no paperwork." },
+  { num: "01", title: "Create your account", desc: "Sign up in 2 minutes with just your email. No branch visit, no paperwork required." },
   { num: "02", title: "Get your account number", desc: "Receive a real US ACH account number and European IBAN instantly after sign-up." },
   { num: "03", title: "Cash out instantly", desc: "Withdraw to M-Pesa, MTN, PIX and 50+ local payout methods in seconds." },
 ];
@@ -84,46 +85,48 @@ const MOCK_JOBS = [
   { title: "Customer Success Manager", company: "Remote", tag: "Operations", color: "#2E8FD6", isNew: false },
 ];
 
+const TESTIMONIALS = [
+  {
+    quote: "I moved from PayPal to S-PAY. My clients pay in USD, I withdraw to M-Pesa in minutes. No more 3–5 day waits.",
+    name: "James O.",
+    role: "Full-Stack Developer",
+    location: "Nairobi",
+    flag: "🇰🇪",
+    initials: "JO",
+    color: "#4DC9EE",
+  },
+  {
+    quote: "I got a real US account number in minutes. Now my US startup clients pay me like a local — zero friction.",
+    name: "Amara D.",
+    role: "Product Designer",
+    location: "Lagos",
+    flag: "🇳🇬",
+    initials: "AD",
+    color: "#22C55E",
+  },
+  {
+    quote: "The jobs board is how I found my current contract. I get paid straight into my wallet. It's effortless.",
+    name: "Maria F.",
+    role: "Marketing Manager",
+    location: "São Paulo",
+    flag: "🇧🇷",
+    initials: "MF",
+    color: "#F59E0B",
+  },
+];
+
+const TRUST_BADGES = [
+  { icon: <Shield size={22} />, label: "No monthly fee" },
+  { icon: <Globe size={22} />, label: "180+ countries" },
+  { icon: <Zap size={22} />, label: "Instant withdrawals" },
+  { icon: <CheckCircle size={22} />, label: "Verified & Secure" },
+];
+
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-white font-sans">
-
-      {/* ─── NAV ─── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          {/* Left: logo + wordmark */}
-          <div className="flex items-center gap-2.5">
-            <img src={spayLogo} alt="S-PAY" className="w-8 h-8 rounded-[22%] flex-shrink-0 shadow-sm" />
-            <span className="font-bold text-[#1A2B4A] text-lg tracking-tight">S-PAY</span>
-          </div>
-
-          {/* Center: nav links */}
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
-            <a href="#features" className="hover:text-[#4DC9EE] transition-colors">Features</a>
-            <a href="#how" className="hover:text-[#4DC9EE] transition-colors">How it Works</a>
-            <a href="#markets" className="hover:text-[#4DC9EE] transition-colors">Markets</a>
-            <a href="#jobs" className="hover:text-[#4DC9EE] transition-colors">Jobs</a>
-          </div>
-
-          {/* Right: CTA buttons */}
-          <div className="flex items-center gap-3">
-            <Link href="/login">
-              <button className="text-sm font-medium text-gray-700 hover:text-[#1A2B4A] transition-colors px-4 py-2 border border-gray-200 rounded-full hover:border-gray-300">
-                Sign in
-              </button>
-            </Link>
-            <Link href="/register">
-              <button className="text-sm font-semibold bg-[#4DC9EE] text-white px-5 py-2.5 rounded-full hover:bg-[#2E8FD6] transition-colors shadow-sm">
-                Get Started
-              </button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
+    <PublicLayout>
       {/* ─── HERO ─── */}
-      <section className="pt-24 pb-0 relative overflow-hidden bg-gradient-to-br from-[#1A2B4A] via-[#1e3560] to-[#0d1f38]">
-        {/* Radial glow overlays */}
+      <section className="pt-16 pb-0 relative overflow-hidden bg-gradient-to-br from-[#1A2B4A] via-[#1e3560] to-[#0d1f38]">
         <div className="absolute inset-0 pointer-events-none" style={{
           backgroundImage: "radial-gradient(circle at 15% 60%, rgba(77,201,238,0.25) 0%, transparent 45%), radial-gradient(circle at 85% 15%, rgba(168,222,255,0.15) 0%, transparent 45%)",
         }} />
@@ -240,6 +243,22 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ─── TRUST STRIP ─── */}
+      <section className="py-10 px-6 bg-white border-b border-gray-100">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {TRUST_BADGES.map((b) => (
+              <div key={b.label} className="flex items-center gap-3 justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#4DC9EE]/10 flex items-center justify-center text-[#4DC9EE] flex-shrink-0">
+                  {b.icon}
+                </div>
+                <span className="text-sm font-semibold text-[#1A2B4A]">{b.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ─── HOW IT WORKS ─── */}
       <section id="how" className="py-24 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
@@ -289,6 +308,40 @@ export default function Landing() {
                 </div>
                 <h3 className="font-bold text-[#1A2B4A] text-xl mb-3">{f.title}</h3>
                 <p className="text-gray-500 leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── TESTIMONIALS ─── */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-black text-[#1A2B4A] mb-4">Trusted by remote workers worldwide</h2>
+            <p className="text-gray-500 text-lg max-w-xl mx-auto">Real people. Real withdrawals. Real freedom.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((t) => (
+              <div key={t.name} className="bg-gray-50 rounded-3xl p-7 border border-gray-100 hover:shadow-md transition-all duration-200 flex flex-col">
+                <div className="flex gap-1 mb-5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={14} className="text-[#F59E0B] fill-[#F59E0B]" />
+                  ))}
+                </div>
+                <p className="text-gray-700 leading-relaxed mb-6 flex-1">"{t.quote}"</p>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+                    style={{ backgroundColor: t.color }}
+                  >
+                    {t.initials}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#1A2B4A] text-sm">{t.name}</p>
+                    <p className="text-gray-500 text-xs">{t.role} · {t.flag} {t.location}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -387,14 +440,14 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── TRUST STRIP ─── */}
+      {/* ─── SECURITY STRIP ─── */}
       <section className="py-16 px-6 bg-gradient-to-r from-[#1A2B4A] to-[#0d1f38]">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-3 gap-8 text-white">
             {[
-              { icon: <Shield size={28} />, title: "Your money, your control", desc: "Your funds, your access. We use a secure network so only you can authorize transfers." },
-              { icon: <Zap size={28} />, title: "Instant transfers", desc: "Send and receive money in seconds, not days. Available around the clock." },
-              { icon: <CheckCircle size={28} />, title: "Identity verified", desc: "Full identity verification protects you and keeps the platform safe for everyone." },
+              { icon: <Shield size={28} />, title: "Bank-grade security", desc: "AES-256 encryption at rest, TLS 1.2+ in transit, and multi-factor authentication protect every account." },
+              { icon: <Zap size={28} />, title: "Instant transfers", desc: "Send and receive money in seconds, not days. Available around the clock, every day of the year." },
+              { icon: <CheckCircle size={28} />, title: "Identity verified", desc: "Full KYC verification protects you and keeps the platform safe for everyone on it." },
             ].map((t) => (
               <div key={t.title} className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-[#4DC9EE] flex-shrink-0">
@@ -427,61 +480,6 @@ export default function Landing() {
           <p className="text-blue-100 text-sm mt-6">No credit card · No monthly fee · Cancel anytime</p>
         </div>
       </section>
-
-      {/* ─── FOOTER ─── */}
-      <footer className="bg-[#1A2B4A] py-16 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-10 mb-12">
-            {/* Brand */}
-            <div>
-              <div className="flex items-center gap-2.5 mb-4">
-                <img src={spayLogo} alt="S-PAY" className="w-8 h-8 rounded-[22%] flex-shrink-0" />
-                <span className="font-bold text-white text-base">S-PAY</span>
-              </div>
-              <p className="text-blue-300 text-sm leading-relaxed">
-                Digital money super app for remote workers worldwide.
-              </p>
-            </div>
-
-            {/* Product */}
-            <div>
-              <h5 className="text-white font-semibold mb-5">Product</h5>
-              <ul className="space-y-3">
-                <li><a href="#features" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Digital Wallet</a></li>
-                <li><a href="#features" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Virtual Banking</a></li>
-                <li><a href="#features" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Virtual Card</a></li>
-                <li><a href="#jobs" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Remote Jobs</a></li>
-              </ul>
-            </div>
-
-            {/* Company */}
-            <div>
-              <h5 className="text-white font-semibold mb-5">Company</h5>
-              <ul className="space-y-3">
-                <li><Link href="/about" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">About Us</Link></li>
-                <li><Link href="/about" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Careers</Link></li>
-                <li><Link href="/about" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Press</Link></li>
-                <li><Link href="/about" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Blog</Link></li>
-              </ul>
-            </div>
-
-            {/* Legal */}
-            <div>
-              <h5 className="text-white font-semibold mb-5">Legal</h5>
-              <ul className="space-y-3">
-                <li><Link href="/privacy" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Terms of Service</Link></li>
-                <li><Link href="/privacy" className="text-blue-300 text-sm hover:text-[#4DC9EE] transition-colors">Cookie Policy</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-blue-400 text-sm">© 2026 S-PAY · Zawadi Technologies LLC · All rights reserved</p>
-            <p className="text-blue-400 text-xs">For remote workers in Africa, Southeast Asia &amp; Latin America</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </PublicLayout>
   );
 }
