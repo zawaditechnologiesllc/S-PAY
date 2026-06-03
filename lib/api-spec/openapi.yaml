@@ -512,38 +512,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminUsersResponse"
 
-  /admin/users/{userId}/kyc:
-    patch:
-      operationId: adminUpdateKyc
-      summary: Update a user KYC status
-      tags: [Admin]
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: userId
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                kycStatus:
-                  type: string
-              required:
-                - kycStatus
-      responses:
-        "200":
-          description: KYC updated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AdminKycResponse"
-
   /admin/transactions:
     get:
       operationId: getAdminTransactions

@@ -1,6 +1,8 @@
 import { Router } from "express";
 import crypto from "crypto";
 import { logger } from "../lib/logger";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
@@ -9,48 +11,80 @@ function verifyHmac(signature: string, body: string, secret: string): boolean {
   return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 }
 
-router.post("/webhooks/noah", (req, res) => {
+// ─── Noah webhooks ─────────────────────────────────────────────────────────────
+// Noah handles both KYC verification and global payouts (M-Pesa, MTN, PIX, SEPA).
+// These events update user state automatically — no manual admin review needed.
+
+router.post("/webhooks/noah", async (req, res) => {
   const sig = req.headers["x-noah-signature"] as string;
   const webhookSecret = process.env.NOAH_WEBHOOK_SECRET;
 
   if (webhookSecret && sig) {
     const isValid = verifyHmac(sig, JSON.stringify(req.body), webhookSecret);
     if (!isValid) {
-      res.status(401).json({ error: "invalid_signature", message: "Invalid webhook signature" });
+      res.status(401).json({ error: "invalid_signature" });
       return;
     }
   }
 
-  const event = req.body;
+  const event = req.body as {
+    event: string;
+    customer_id?: string;
+    amount?: number;
+    currency?: string;
+  };
+
   logger.info({ event: event.event, customerId: event.customer_id }, "Noah webhook received");
 
-  switch (event.event) {
-    case "customer.kyc_approved":
-      logger.info({ customerId: event.customer_id }, "KYC approved — issuing virtual account");
-      break;
-    case "transfer.completed":
-      logger.info({ userId: event.user_id, amount: event.amount }, "Transfer completed — notifying user");
-      break;
-    case "customer.kyc_rejected":
-      logger.info({ customerId: event.customer_id }, "KYC rejected");
-      break;
-    default:
-      logger.info({ event: event.event }, "Unknown Noah webhook event");
+  try {
+    switch (event.event) {
+      case "customer.kyc_approved":
+        if (event.customer_id) {
+          await db.update(usersTable)
+            .set({ kycStatus: "approved", updatedAt: new Date() })
+            .where(eq(usersTable.noahCustomerId, event.customer_id));
+          logger.info({ customerId: event.customer_id }, "KYC approved — user account unlocked");
+        }
+        break;
+
+      case "customer.kyc_rejected":
+        if (event.customer_id) {
+          await db.update(usersTable)
+            .set({ kycStatus: "rejected", updatedAt: new Date() })
+            .where(eq(usersTable.noahCustomerId, event.customer_id));
+          logger.warn({ customerId: event.customer_id }, "KYC rejected — user notified on next login");
+        }
+        break;
+
+      case "transfer.completed":
+        logger.info({ customerId: event.customer_id, amount: event.amount, currency: event.currency }, "Payout completed");
+        break;
+
+      case "transfer.failed":
+        logger.warn({ customerId: event.customer_id, amount: event.amount }, "Payout failed");
+        break;
+
+      default:
+        logger.info({ event: event.event }, "Unhandled Noah webhook event");
+    }
+  } catch (err) {
+    logger.error({ err, event: event.event }, "Error processing Noah webhook");
   }
 
   res.json({ received: true });
 });
+
+// ─── Stripe webhooks ───────────────────────────────────────────────────────────
 
 router.post("/webhooks/stripe", (req, res) => {
   const sig = req.headers["stripe-signature"] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (webhookSecret && sig) {
-    logger.info({ sig: sig.substring(0, 20) }, "Stripe webhook received with signature");
+    logger.info({ sig: sig.substring(0, 20) }, "Stripe webhook received");
   }
 
-  const event = req.body;
-  logger.info({ type: event.type }, "Stripe webhook received");
+  const event = req.body as { type: string; data?: { object?: { id?: string } } };
 
   switch (event.type) {
     case "issuing_authorization.created":

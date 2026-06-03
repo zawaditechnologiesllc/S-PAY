@@ -84,26 +84,6 @@ router.get("/admin/users", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.patch("/admin/users/:userId/kyc", requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const userId = String(req.params["userId"]);
-    const kycStatus = String((req.body as { kycStatus: string }).kycStatus);
-    if (!["approved", "rejected", "pending"].includes(kycStatus)) {
-      res.status(400).json({ error: "validation_error", message: "Invalid kycStatus" });
-      return;
-    }
-    const [updated] = await db.update(usersTable)
-      .set({ kycStatus: kycStatus as "pending" | "approved" | "rejected", updatedAt: new Date() })
-      .where(eq(usersTable.id, userId))
-      .returning({ id: usersTable.id, kycStatus: usersTable.kycStatus });
-    if (!updated) { res.status(404).json({ error: "not_found" }); return; }
-    res.json({ success: true, userId: updated.id, kycStatus: updated.kycStatus });
-  } catch (err) {
-    req.log.error({ err }, "Admin KYC update error");
-    res.status(500).json({ error: "internal_error", message: "Failed to update KYC" });
-  }
-});
-
 router.get("/admin/transactions", requireAuth, requireAdmin, async (req, res) => {
   try {
     const type = typeof req.query["type"] === "string" ? req.query["type"] : undefined;
@@ -139,12 +119,13 @@ router.get("/admin/settings", requireAuth, requireAdmin, (req, res) => {
       jwtConfigured: check("JWT_SECRET"),
       googleConfigured: check("GOOGLE_CLIENT_ID") && check("GOOGLE_CLIENT_SECRET"),
     },
-    payments: {
-      stripeConfigured: check("STRIPE_SECRET_KEY"),
-      noahConfigured: check("NOAH_API_KEY"),
+    noah: {
+      configured: check("NOAH_API_KEY"),
+      webhookConfigured: check("NOAH_WEBHOOK_SECRET"),
     },
-    kyc: {
-      smileIdConfigured: check("SMILE_ID_PARTNER_ID") && check("SMILE_ID_API_KEY"),
+    stripe: {
+      configured: check("STRIPE_SECRET_KEY"),
+      webhookConfigured: check("STRIPE_WEBHOOK_SECRET"),
     },
     cors: {
       origin: process.env.CORS_ORIGIN ?? "(not set)",

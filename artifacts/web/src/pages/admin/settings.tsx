@@ -67,24 +67,22 @@ export default function AdminSettings() {
           </div>
         </Section>
 
-        <Section icon={<CreditCard size={16} />} title="Payments (Virtual Card)">
-          <StatusRow label="Stripe" ok={s?.payments?.stripeConfigured} note="STRIPE_SECRET_KEY — for virtual card issuance" />
+        <Section icon={<CreditCard size={16} />} title="Virtual Card (Stripe)">
+          <StatusRow label="Stripe API Key" ok={s?.stripe?.configured} note="STRIPE_SECRET_KEY — for virtual card issuance" />
+          <StatusRow label="Stripe Webhook" ok={s?.stripe?.webhookConfigured} note="STRIPE_WEBHOOK_SECRET — for card authorization events" />
           <div className="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 leading-relaxed">
-            <strong>To enable Stripe:</strong> Sign up at stripe.com → Developers → API keys → copy Secret key. Add STRIPE_SECRET_KEY on Render. Also enable Stripe Issuing in your dashboard for virtual cards.
+            <strong>To enable Stripe:</strong> stripe.com → Developers → API keys → copy Secret key → set STRIPE_SECRET_KEY on Render. Enable Stripe Issuing in your dashboard for virtual cards. Add the webhook endpoint and set STRIPE_WEBHOOK_SECRET.
           </div>
         </Section>
 
-        <Section icon={<Landmark size={16} />} title="Banking (Virtual Accounts)">
-          <StatusRow label="Noah API" ok={s?.payments?.noahConfigured} note="NOAH_API_KEY — for USD/EUR virtual bank accounts" />
-          <div className="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 leading-relaxed">
-            <strong>To enable Noah:</strong> Apply at noah.com for a partner account. Once approved, get your API key and set NOAH_API_KEY on Render.
-          </div>
-        </Section>
-
-        <Section icon={<Shield size={16} />} title="Identity Verification (KYC)">
-          <StatusRow label="Smile Identity" ok={s?.kyc?.smileIdConfigured} note="SMILE_ID_PARTNER_ID + SMILE_ID_API_KEY" />
-          <div className="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 leading-relaxed">
-            <strong>To enable KYC:</strong> Sign up at smileidentity.com → Portal → get Partner ID and API Key. Set SMILE_ID_PARTNER_ID and SMILE_ID_API_KEY on Render. Smile ID covers Kenya, Nigeria, Ghana, Uganda, South Africa, and more.
+        <Section icon={<Landmark size={16} />} title="KYC & Global Payouts (Noah)">
+          <StatusRow label="Noah API Key" ok={s?.noah?.configured} note="NOAH_API_KEY — covers KYC, virtual accounts, and global payouts" />
+          <StatusRow label="Noah Webhook Secret" ok={s?.noah?.webhookConfigured} note="NOAH_WEBHOOK_SECRET — verifies incoming webhook events" />
+          <div className="mt-3 p-3 bg-blue-50 rounded-xl text-xs text-blue-700 leading-relaxed space-y-1.5">
+            <p><strong>Noah handles everything in one integration:</strong></p>
+            <p>• <strong>KYC</strong> — automated identity verification. Noah triggers <code className="bg-blue-100 px-1 rounded">customer.kyc_approved</code> or <code className="bg-blue-100 px-1 rounded">customer.kyc_rejected</code> webhooks automatically. No manual review needed.</p>
+            <p>• <strong>Global Payouts</strong> — send money via M-Pesa, MTN Mobile Money, PIX (Brazil), SEPA (Europe), and local bank transfers across 100+ countries.</p>
+            <p><strong>To enable:</strong> Apply at noah.com for a partner account → get API key → set NOAH_API_KEY on Render. Register your webhook URL (<code className="bg-blue-100 px-1 rounded">/webhooks/noah</code>) in the Noah dashboard and set NOAH_WEBHOOK_SECRET on Render.</p>
           </div>
         </Section>
 

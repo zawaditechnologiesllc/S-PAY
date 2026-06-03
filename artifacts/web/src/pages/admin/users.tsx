@@ -2,13 +2,9 @@ import { useState } from "react";
 import { AdminLayout } from "./layout";
 import {
   useGetAdminUsers, getGetAdminUsersQueryKey,
-  useAdminUpdateKyc,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { Search, CheckCircle2, XCircle, Clock, Filter, Users } from "lucide-react";
 
 const KYC_BADGE: Record<string, string> = {
@@ -26,31 +22,15 @@ const KYC_ICON: Record<string, React.ReactNode> = {
 export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [kycFilter, setKycFilter] = useState("all");
-  const { toast } = useToast();
-  const qc = useQueryClient();
 
   const { data, isLoading } = useGetAdminUsers(
     { kycStatus: kycFilter !== "all" ? kycFilter : undefined },
     { query: { queryKey: getGetAdminUsersQueryKey() } }
   );
-  const updateKyc = useAdminUpdateKyc();
 
   const users = (data?.users ?? []).filter((u: any) =>
     !search || u.fullName?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
   );
-
-  const handleKyc = (userId: string, action: "approved" | "rejected") => {
-    updateKyc.mutate(
-      { userId, data: { kycStatus: action } },
-      {
-        onSuccess: () => {
-          toast({ title: `KYC ${action}`, description: "User status updated." });
-          qc.invalidateQueries({ queryKey: getGetAdminUsersQueryKey() });
-        },
-        onError: () => toast({ title: "Error", description: "Failed to update KYC.", variant: "destructive" }),
-      }
-    );
-  };
 
   return (
     <AdminLayout title="User Management">
@@ -98,7 +78,7 @@ export default function AdminUsers() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  {["User", "Email", "Country", "KYC Status", "Balance", "Joined", "Actions"].map((h) => (
+                  {["User", "Email", "Country", "KYC Status", "Balance", "Joined"].map((h) => (
                     <th key={h} className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -107,14 +87,14 @@ export default function AdminUsers() {
                 {isLoading ? (
                   Array.from({ length: 8 }).map((_, i) => (
                     <tr key={i} className="border-b border-gray-50">
-                      {Array.from({ length: 7 }).map((_, j) => (
+                      {Array.from({ length: 6 }).map((_, j) => (
                         <td key={j} className="px-5 py-3.5"><Skeleton className="h-4 w-full" /></td>
                       ))}
                     </tr>
                   ))
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-16 text-gray-400">
+                    <td colSpan={6} className="text-center py-16 text-gray-400">
                       <Filter size={32} className="mx-auto mb-3 opacity-40" />
                       No users match your filter.
                     </td>
@@ -139,30 +119,6 @@ export default function AdminUsers() {
                       </td>
                       <td className="px-5 py-3.5 font-semibold text-gray-900">${(u.walletBalance ?? 0).toFixed(2)}</td>
                       <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}</td>
-                      <td className="px-5 py-3.5">
-                        {u.kycStatus === "pending" && (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50"
-                              onClick={() => handleKyc(u.id, "approved")}
-                              disabled={updateKyc.isPending}
-                            >
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
-                              onClick={() => handleKyc(u.id, "rejected")}
-                              disabled={updateKyc.isPending}
-                            >
-                              Reject
-                            </Button>
-                          </div>
-                        )}
-                      </td>
                     </tr>
                   ))
                 )}

@@ -472,24 +472,6 @@ export const GetAdminUsersResponse = zod.object({
 
 
 /**
- * @summary Update a user KYC status
- */
-export const AdminUpdateKycParams = zod.object({
-  "userId": zod.coerce.string()
-})
-
-export const AdminUpdateKycBody = zod.object({
-  "kycStatus": zod.string()
-})
-
-export const AdminUpdateKycResponse = zod.object({
-  "success": zod.boolean(),
-  "userId": zod.string(),
-  "kycStatus": zod.string()
-})
-
-
-/**
  * @summary List all transactions
  */
 export const GetAdminTransactionsQueryParams = zod.object({

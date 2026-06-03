@@ -22,10 +22,8 @@ import type {
 import type {
   AddFundsRequest,
   AddFundsResponse,
-  AdminKycResponse,
   AdminStats,
   AdminTransactionsResponse,
-  AdminUpdateKycBody,
   AdminUsersResponse,
   AuthResponse,
   BankingAccountsResponse,
@@ -1844,78 +1842,6 @@ export function useGetAdminUsers<TData = Awaited<ReturnType<typeof getAdminUsers
 
 
 
-
-export const getAdminUpdateKycUrl = (userId: string,) => {
-
-
-
-
-  return `/api/admin/users/${userId}/kyc`
-}
-
-/**
- * @summary Update a user KYC status
- */
-export const adminUpdateKyc = async (userId: string,
-    adminUpdateKycBody: AdminUpdateKycBody, options?: RequestInit): Promise<AdminKycResponse> => {
-
-  return customFetch<AdminKycResponse>(getAdminUpdateKycUrl(userId),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      adminUpdateKycBody,)
-  }
-);}
-
-
-
-
-export const getAdminUpdateKycMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateKyc>>, TError,{userId: string;data: BodyType<AdminUpdateKycBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof adminUpdateKyc>>, TError,{userId: string;data: BodyType<AdminUpdateKycBody>}, TContext> => {
-
-const mutationKey = ['adminUpdateKyc'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminUpdateKyc>>, {userId: string;data: BodyType<AdminUpdateKycBody>}> = (props) => {
-          const {userId,data} = props ?? {};
-
-          return  adminUpdateKyc(userId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type AdminUpdateKycMutationResult = NonNullable<Awaited<ReturnType<typeof adminUpdateKyc>>>
-    export type AdminUpdateKycMutationBody = BodyType<AdminUpdateKycBody>
-    export type AdminUpdateKycMutationError = ErrorType<unknown>
-
-    /**
- * @summary Update a user KYC status
- */
-export const useAdminUpdateKyc = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateKyc>>, TError,{userId: string;data: BodyType<AdminUpdateKycBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof adminUpdateKyc>>,
-        TError,
-        {userId: string;data: BodyType<AdminUpdateKycBody>},
-        TContext
-      > => {
-      return useMutation(getAdminUpdateKycMutationOptions(options));
-    }
 
 export const getGetAdminTransactionsUrl = (params?: GetAdminTransactionsParams,) => {
   const normalizedParams = new URLSearchParams();

@@ -493,10 +493,6 @@ export type GetAdminUsersParams = {
 kycStatus?: string;
 };
 
-export type AdminUpdateKycBody = {
-  kycStatus: string;
-};
-
 export type GetAdminTransactionsParams = {
 type?: string;
 };
