@@ -98,23 +98,43 @@ S-PAY/
 
 ## Admin Panel
 
-### How to access it
+### Do I need a password?
 
-1. Register a normal user account at `/register`
-2. On Render, add your email to the `ADMIN_EMAILS` environment variable:
+**Yes.** You register with your own email and password at `/register` — that's a normal account with its own password that you choose. The `ADMIN_EMAILS` environment variable doesn't create an account or bypass any password — it only tells the system *which already-registered accounts* have admin rights.
+
+### How to get admin access (step by step)
+
+**Step 1 — Register your account first**
+
+Go to `https://your-app.vercel.app/register` and sign up with:
+- Your real email address (e.g. `you@gmail.com`)
+- A strong password of your choice
+
+This creates your user account in the database.
+
+**Step 2 — Grant admin rights on Render**
+
+1. Go to [render.com](https://render.com) → your API service → **Environment**
+2. Find the `ADMIN_EMAILS` variable (or add it if it doesn't exist)
+3. Set the value to your email:
    ```
-   ADMIN_EMAILS=your@email.com,other@email.com
+   ADMIN_EMAILS=you@gmail.com
    ```
-3. Restart the API service on Render (env var change → "Manual Deploy")
-4. Navigate to `https://your-web-url.vercel.app/admin`
-5. You will see the Admin Dashboard — users, transactions, system settings
+   Multiple admins: `ADMIN_EMAILS=you@gmail.com,colleague@gmail.com`
+4. Click **Save Changes** → then click **Manual Deploy → Deploy latest commit**
+
+**Step 3 — Access the admin panel**
+
+Navigate to `https://your-app.vercel.app/admin` while logged in with that email. You'll see the full Admin Dashboard.
+
+> **Important:** If you skip Step 1 and only set `ADMIN_EMAILS`, you won't be able to log in — there's no account yet. Always register first.
 
 ### What the admin panel shows
 
 - **Dashboard** — Total users, KYC breakdown (pending/approved/rejected), transactions today, total volume
-- **Users** — Full user list, searchable, filterable by KYC status. Read-only — KYC is handled automatically by Noah webhooks.
+- **Users** — Full user list, searchable, filterable by KYC status. KYC is handled automatically by Noah webhooks — no manual approve/reject needed.
 - **Transactions** — All transactions, filterable by type
-- **Settings** — Which environment variables are configured (never shows values)
+- **Settings** — Which environment variables are configured (never shows the actual values, just whether they're set)
 
 ---
 
@@ -181,12 +201,39 @@ Set these on **Render** (API server) and **Vercel** (web app):
 |---|---|---|
 | `VITE_API_URL` | ✅ | Your Render API URL: `https://your-api.onrender.com` |
 
-### Mobile App (EAS / app.json)
+### Mobile App (EAS)
 
-Set `EXPO_PUBLIC_API_URL` in `eas.json` or as an EAS secret:
+`EXPO_PUBLIC_API_URL` must point to your live Render API. There are two ways to set it:
+
+**Option A — EAS Secret (recommended for production, set once in the dashboard)**
+
+1. Go to [expo.dev](https://expo.dev) → your project → **Settings → Secrets**
+2. Click **Add a new secret**
+3. Name: `EXPO_PUBLIC_API_URL`
+4. Value: `https://your-api.onrender.com`
+5. Click **Save**. Every subsequent `eas build` will inject this automatically.
+
+**Option B — `eas.json` env section (visible in repo, fine for non-sensitive values)**
+
 ```json
-{ "EXPO_PUBLIC_API_URL": "https://your-api.onrender.com" }
+{
+  "build": {
+    "preview": {
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://your-api.onrender.com"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://your-api.onrender.com"
+      }
+    }
+  }
+}
 ```
+
+> **Note:** `EXPO_PUBLIC_API_URL` is not sensitive (it's a public URL), so putting it in `eas.json` is fine. Use EAS Secrets for things like API keys that should never appear in the repo.
 
 ---
 
@@ -219,33 +266,39 @@ cd artifacts/mobile && npx expo start  # Mobile
 
 Since the codebase is on GitHub, there are two zero-setup options:
 
-### Option 1 — EAS Build (Recommended — get a real APK)
+### Option 1 — EAS Build (Recommended — get a real APK/IPA, no local setup)
 
-This builds the app in Expo's cloud and gives you a download link. No terminal needed.
+Expo builds the app in the cloud and gives you a direct download link. No terminal, no local tooling needed.
 
-1. Go to **[expo.dev](https://expo.dev)** and create a free account
-2. Click **"Create new project"** → link to your GitHub repo (`zawaditechnologiesllc/s-pay`)
-3. In the project, go to **Builds → New Build**
-4. Select profile: `preview` (Android APK — no signing key needed)
-5. Wait ~5–10 minutes for the build to complete
-6. Download the `.apk` file → send to your Android phone → install it
-7. For iPhone: select `simulator` build, or set up TestFlight (requires Apple Developer account)
+**One-time setup:**
 
-**What to add to `eas.json` to enable this:**
+1. Go to **[expo.dev](https://expo.dev)** → create a free account
+2. Click **"Create new project"** → link your GitHub repo (`zawaditechnologiesllc/s-pay`) and set root directory to `artifacts/mobile`
+3. Go to **Settings → Secrets** → Add secret:
+   - Name: `EXPO_PUBLIC_API_URL`
+   - Value: `https://your-api.onrender.com` *(your Render API URL)*
 
+**Trigger a build:**
+
+4. Go to **Builds → New Build** in the Expo dashboard
+5. Select platform: **Android**, profile: **preview** (gives a downloadable `.apk` — no Play Store needed)
+6. Wait 5–10 minutes → download the `.apk`
+7. Send the `.apk` to your Android phone (via WhatsApp, email, Google Drive) → open it → tap Install
+
+**For iPhone:**
+
+8. Select platform: **iOS**, profile: **preview** → requires an Apple Developer account ($99/year) for TestFlight distribution. Without one, use Option 2 (Codespaces) instead.
+
+`eas.json` in `artifacts/mobile/` should have at minimum:
 ```json
 {
   "build": {
     "preview": {
-      "android": {
-        "buildType": "apk"
-      }
+      "android": { "buildType": "apk" }
     }
   }
 }
 ```
-
-Then in the Expo dashboard, set your `EXPO_PUBLIC_API_URL` as an **EAS Secret** so the app points to your production API.
 
 ### Option 2 — GitHub Codespaces (run in the cloud, scan QR on phone)
 
