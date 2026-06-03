@@ -29,7 +29,7 @@ const FEATURES = [
     icon: <Briefcase size={28} />,
     color: "#F59E0B",
     title: "Remote Jobs Board",
-    desc: "Discover top remote roles from leading job platforms — all in one feed.",
+    desc: "Browse thousands of remote roles — engineering, design, marketing and more — aggregated daily from top global job platforms. Free for all S-PAY members.",
   },
 ];
 
@@ -219,6 +219,71 @@ export default function Landing() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Jobs highlight */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-gradient-to-br from-[#1A2B4A] to-[#0d1f38] rounded-3xl overflow-hidden">
+            <div className="grid md:grid-cols-2 gap-0">
+              {/* Left copy */}
+              <div className="p-10 md:p-14 flex flex-col justify-center">
+                <div className="inline-flex items-center gap-2 bg-[#F59E0B]/20 text-[#F59E0B] text-xs font-bold px-3 py-1.5 rounded-full mb-6 w-fit border border-[#F59E0B]/30">
+                  <Briefcase size={12} /> Live Now
+                </div>
+                <h2 className="text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
+                  Find your next<br />remote job — free
+                </h2>
+                <p className="text-blue-200 leading-relaxed mb-8">
+                  Thousands of fully remote roles updated daily. Engineering, design, marketing, finance and more — sourced from the best global platforms. All in one place inside your S-PAY account.
+                </p>
+                <ul className="space-y-3 mb-10">
+                  {[
+                    "Curated remote-only listings",
+                    "Search by keyword or category",
+                    "Apply directly on the company site",
+                    "Free for all S-PAY members",
+                  ].map((item) => (
+                    <li key={item} className="flex items-center gap-3 text-sm text-blue-100">
+                      <CheckCircle size={16} className="text-[#4DC9EE] flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/register">
+                  <button className="w-fit flex items-center gap-2 bg-[#F59E0B] text-white font-bold px-7 py-3.5 rounded-2xl hover:bg-[#d97706] transition-colors text-sm">
+                    Browse Jobs <ArrowRight size={16} />
+                  </button>
+                </Link>
+              </div>
+              {/* Right mock job cards */}
+              <div className="p-8 md:p-10 flex items-center justify-center">
+                <div className="w-full max-w-sm space-y-3">
+                  {[
+                    { title: "Senior Frontend Engineer", company: "Remote", tag: "Engineering", color: "#4DC9EE", isNew: true },
+                    { title: "Product Designer", company: "Global", tag: "Design", color: "#22C55E", isNew: false },
+                    { title: "Growth Marketing Lead", company: "Worldwide", tag: "Marketing", color: "#F59E0B", isNew: true },
+                    { title: "Customer Success Manager", company: "Remote", tag: "Operations", color: "#2E8FD6", isNew: false },
+                  ].map((job) => (
+                    <div key={job.title} className="bg-white/10 backdrop-blur border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/15 transition-colors cursor-default">
+                      <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-black text-sm" style={{ backgroundColor: job.color }}>
+                        {job.title[0]}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="text-white text-sm font-semibold truncate">{job.title}</p>
+                          {job.isNew && <span className="text-[10px] bg-[#4DC9EE]/30 text-[#4DC9EE] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">New</span>}
+                        </div>
+                        <p className="text-blue-300 text-xs">{job.company} · {job.tag}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-blue-400 text-xs text-center pt-1">+ thousands more inside the app</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
