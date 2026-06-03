@@ -14,3 +14,33 @@ services:
         generateValue: true
       - key: SESSION_SECRET
         generateValue: true
+      # Set CORS_ORIGIN to your Vercel domain(s), comma-separated.
+      # Example: https://spayewallet.com,https://spayewallet.vercel.app
+      - key: CORS_ORIGIN
+        sync: false
+      # Optional: Supabase PostgreSQL connection string
+      - key: DATABASE_URL
+        sync: false
+      # Optional: Noah API for virtual banking and FX payouts
+      - key: NOAH_API_KEY
+        sync: false
+      - key: NOAH_WEBHOOK_SECRET
+        sync: false
+      # Optional: Stripe for virtual card issuing
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      # Optional: Privy for Celo embedded wallets
+      - key: PRIVY_APP_ID
+        sync: false
+      - key: PRIVY_APP_SECRET
+        sync: false
+      # Optional: Firebase push notifications
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      # Optional: Affiliate URLs for the jobs section
+      - key: REMOTIVE_AFFILIATE_URL
+        sync: false
+      - key: REMOTE_COM_AFFILIATE_URL
+        sync: false

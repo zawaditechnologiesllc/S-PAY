@@ -1,114 +1,206 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { useGetJobs, getGetJobsQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, MapPin, DollarSign, Building, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Search, MapPin, DollarSign, Building, ExternalLink, RefreshCw, Briefcase } from "lucide-react";
 import { Link } from "wouter";
+
+const CATEGORIES = ["All", "Engineering", "Design", "Marketing", "Product", "Sales", "Finance", "Operations"];
+
+const CATEGORY_MAP: Record<string, string> = {
+  Engineering: "software-dev",
+  Design: "design",
+  Marketing: "marketing",
+  Product: "product",
+  Sales: "sales",
+  Finance: "finance",
+  Operations: "all-others",
+};
 
 export default function Jobs() {
   const [keyword, setKeyword] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
-  
-  // Simple debounce for search
-  useState(() => {
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  useEffect(() => {
     const timer = setTimeout(() => setDebouncedKeyword(keyword), 500);
     return () => clearTimeout(timer);
-  });
+  }, [keyword]);
 
-  const { data: jobsData, isLoading } = useGetJobs(
-    { keyword: debouncedKeyword },
-    { query: { queryKey: getGetJobsQueryKey({ keyword: debouncedKeyword }) } }
+  const queryParams = {
+    keyword: debouncedKeyword || undefined,
+    category: selectedCategory !== "All" ? CATEGORY_MAP[selectedCategory] : undefined,
+    limit: 50,
+  };
+
+  const { data: jobsData, isLoading, isError, refetch } = useGetJobs(
+    queryParams,
+    { query: { queryKey: getGetJobsQueryKey(queryParams) } }
   );
+
+  const SOURCE_COLORS: Record<string, string> = {
+    Himalayas: "bg-purple-50 text-purple-700 border-purple-100",
+    RemoteOK: "bg-green-50 text-green-700 border-green-100",
+    Remotive: "bg-blue-50 text-blue-700 border-blue-100",
+  };
 
   return (
     <Layout title="Remote Jobs">
-      <div className="space-y-6 mt-4">
-        
+      <div className="space-y-5 mt-4">
+
         {/* Search Bar */}
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="text-gray-400" size={20} />
           </div>
-          <Input 
+          <Input
             type="text"
             className="pl-11 h-14 rounded-2xl bg-white border-0 shadow-md text-base"
-            placeholder="Search remote jobs, roles, companies..."
+            placeholder="Search jobs, roles, companies..."
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
+          {keyword && (
+            <button
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+              onClick={() => { setKeyword(""); setDebouncedKeyword(""); }}
+            >
+              ✕
+            </button>
+          )}
         </div>
 
-        {/* Categories (Static for now) */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {["All", "Engineering", "Design", "Marketing", "Product", "Sales"].map((cat) => (
-             <Button key={cat} variant={cat === "All" ? "default" : "outline"} className="rounded-full flex-shrink-0" size="sm">
-               {cat}
-             </Button>
+        {/* Category Filter */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {CATEGORIES.map((cat) => (
+            <Button
+              key={cat}
+              variant={cat === selectedCategory ? "default" : "outline"}
+              className="rounded-full flex-shrink-0"
+              size="sm"
+              onClick={() => setSelectedCategory(cat)}
+            >
+              {cat}
+            </Button>
           ))}
         </div>
 
+        {/* Result count + affiliate banner */}
+        {!isLoading && !isError && jobsData && (
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-sm text-gray-500">
+              {jobsData.total > 0
+                ? `Showing ${jobsData.jobs.length} of ${jobsData.total} remote jobs`
+                : "No jobs found"}
+              {selectedCategory !== "All" && ` in ${selectedCategory}`}
+              {debouncedKeyword && ` for "${debouncedKeyword}"`}
+            </p>
+            {jobsData.remoteCom && (
+              <a href={jobsData.remoteCom.url} target="_blank" rel="noopener noreferrer"
+                 className="text-xs text-primary underline flex items-center gap-1 hover:opacity-80">
+                {jobsData.remoteCom.label} <ExternalLink size={11} />
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Error State */}
+        {isError && (
+          <Alert variant="destructive">
+            <AlertDescription className="flex items-center justify-between">
+              <span>Failed to load jobs. Check your connection and try again.</span>
+              <Button size="sm" variant="outline" onClick={() => refetch()} className="ml-4">
+                <RefreshCw size={14} className="mr-1" /> Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Job Listings */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {isLoading ? (
-             Array.from({ length: 4 }).map((_, i) => (
+            Array.from({ length: 5 }).map((_, i) => (
               <Card key={i} className="border-0 shadow-sm rounded-xl">
                 <CardContent className="p-5 flex gap-4">
-                  <Skeleton className="w-12 h-12 rounded-lg" />
+                  <Skeleton className="w-12 h-12 rounded-lg flex-shrink-0" />
                   <div className="flex-1 space-y-3">
                     <Skeleton className="h-5 w-1/2" />
                     <Skeleton className="h-4 w-1/3" />
                     <div className="flex gap-2">
-                       <Skeleton className="h-6 w-20 rounded-full" />
-                       <Skeleton className="h-6 w-20 rounded-full" />
+                      <Skeleton className="h-6 w-24 rounded-full" />
+                      <Skeleton className="h-6 w-20 rounded-full" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))
           ) : jobsData?.jobs.length === 0 ? (
-             <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-gray-50">
-                <Search size={40} className="mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900">No jobs found</h3>
-                <p className="text-gray-500 mt-1">Try adjusting your search criteria</p>
-             </div>
+            <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-50">
+              <Briefcase size={40} className="mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900">No jobs found</h3>
+              <p className="text-gray-500 mt-1 text-sm">
+                {debouncedKeyword
+                  ? `No results for "${debouncedKeyword}" — try different keywords`
+                  : "Try a different category or check back later"}
+              </p>
+              {(debouncedKeyword || selectedCategory !== "All") && (
+                <Button variant="outline" size="sm" className="mt-4"
+                  onClick={() => { setKeyword(""); setDebouncedKeyword(""); setSelectedCategory("All"); }}>
+                  Clear filters
+                </Button>
+              )}
+            </div>
           ) : (
             jobsData?.jobs.map((job) => (
               <Link key={job.id} href={`/jobs/${job.id}`}>
-                <Card className="border border-gray-100 shadow-sm rounded-xl hover:shadow-md transition-shadow cursor-pointer bg-white overflow-hidden group">
-                  <CardContent className="p-5">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-gray-50 border flex items-center justify-center overflow-hidden">
-                           {job.companyLogo ? (
-                             <img src={job.companyLogo} alt={job.company} className="w-full h-full object-cover" />
-                           ) : (
-                             <Building size={24} className="text-gray-400" />
-                           )}
+                <Card className="border border-gray-100 shadow-sm rounded-xl hover:shadow-md transition-all cursor-pointer bg-white overflow-hidden group">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-11 h-11 rounded-lg bg-gray-50 border flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {job.companyLogo ? (
+                          <img
+                            src={job.companyLogo}
+                            alt={job.company}
+                            className="w-full h-full object-contain p-1"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        ) : (
+                          <Building size={20} className="text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-gray-900 group-hover:text-primary transition-colors text-sm leading-tight truncate">
+                              {job.title}
+                            </h3>
+                            <p className="text-xs text-gray-500 mt-0.5">{job.company}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {job.isNew && (
+                              <span className="bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                New
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 group-hover:text-primary transition-colors">{job.title}</h3>
-                          <p className="text-sm text-gray-600">{job.company}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
+                            <MapPin size={10} /> {job.location}
+                          </span>
+                          {job.salary && job.salary !== "Competitive" && (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
+                              <DollarSign size={10} /> {job.salary}
+                            </span>
+                          )}
+                          <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border ${SOURCE_COLORS[job.source] ?? "bg-gray-50 text-gray-500 border-gray-100"}`}>
+                            {job.source}
+                          </span>
                         </div>
-                      </div>
-                      {job.isNew && (
-                        <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
-                          New
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-y-2 mt-4 ml-15">
-                      <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2.5 py-1 rounded-md mr-2 border border-gray-100">
-                        <MapPin size={12} /> {job.location}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2.5 py-1 rounded-md mr-2 border border-gray-100">
-                        <DollarSign size={12} /> {job.salary}
-                      </div>
-                      <div className="flex items-center gap-1 text-[10px] text-gray-400 ml-auto pt-1">
-                         via {job.source}
                       </div>
                     </div>
                   </CardContent>
@@ -117,19 +209,21 @@ export default function Jobs() {
             ))
           )}
         </div>
-        
-        {/* Affiliate CTA */}
-        {jobsData?.remoteCom && (
-          <Card className="border border-blue-100 bg-blue-50/50 rounded-xl overflow-hidden mt-8">
-             <CardContent className="p-6 flex flex-col items-center text-center space-y-3">
-                <h4 className="font-semibold text-gray-900">Looking for international hiring?</h4>
-                <p className="text-sm text-gray-600">Hire and pay remote workers globally with full compliance.</p>
-                <a href={jobsData.remoteCom.url} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" className="mt-2 bg-white flex items-center gap-2">
-                    {jobsData.remoteCom.label} <ExternalLink size={16} />
-                  </Button>
-                </a>
-             </CardContent>
+
+        {/* Bottom affiliate CTA */}
+        {jobsData?.remoteCom && jobsData.jobs.length > 0 && (
+          <Card className="border border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 rounded-xl overflow-hidden mt-6">
+            <CardContent className="p-5 flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex-1 text-center sm:text-left">
+                <h4 className="font-semibold text-gray-900 text-sm">Hire globally with compliance</h4>
+                <p className="text-xs text-gray-500 mt-0.5">Manage international teams, payroll, and benefits in one place.</p>
+              </div>
+              <a href={jobsData.remoteCom.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                <Button variant="outline" size="sm" className="bg-white flex items-center gap-2 shadow-sm">
+                  Remote.com <ExternalLink size={13} />
+                </Button>
+              </a>
+            </CardContent>
           </Card>
         )}
 
