@@ -9,12 +9,23 @@ import { setToken } from "@/lib/auth";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 export default function Login() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const loginMutation = useLogin();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Redirect to ?next= param after login, or dashboard by default.
+  const nextUrl = (() => {
+    try {
+      const params = new URLSearchParams(location.split("?")[1] ?? "");
+      const next = params.get("next");
+      return next && next.startsWith("/") ? next : "/dashboard";
+    } catch {
+      return "/dashboard";
+    }
+  })();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +34,7 @@ export default function Login() {
       {
         onSuccess: (data) => {
           setToken(data.token);
-          setLocation("/dashboard");
+          setLocation(nextUrl);
         },
         onError: (error) => {
           toast({

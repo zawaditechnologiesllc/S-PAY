@@ -46,7 +46,8 @@ export interface User {
   fullName: string;
   phoneNumber?: string;
   kycStatus: UserKycStatus;
-  celoWalletAddress?: string;
+  isAdmin: boolean;
+  avatarUrl?: string;
   createdAt: string;
 }
 

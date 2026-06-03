@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, MapPin, DollarSign, Building, Clock, Briefcase, ExternalLink } from "lucide-react";
 
+function sanitizeDescription(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, "")
+    .replace(/javascript\s*:/gi, "");
+}
+
 export default function JobDetail() {
   const params = useParams<{ jobId: string }>();
   const jobId = params.jobId || "";
@@ -93,7 +100,7 @@ export default function JobDetail() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">About the Role</h3>
               <div className="prose prose-blue max-w-none text-gray-600">
                 {job.description ? (
-                  <div dangerouslySetInnerHTML={{ __html: job.description }} />
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeDescription(job.description) }} />
                 ) : (
                   <p>No detailed description provided. Please view the original posting for more details.</p>
                 )}

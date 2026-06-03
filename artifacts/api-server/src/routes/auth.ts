@@ -10,10 +10,11 @@ const router = Router();
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
-// Where the browser lands after Google auth succeeds
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:5173";
-// The public URL of this API server, used to build the Google redirect URI
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:5000";
+
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "admin@spayewallet.com")
+  .split(",").map((e) => e.trim().toLowerCase());
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,7 @@ function userResponse(u: typeof usersTable.$inferSelect) {
     phoneNumber: u.phoneNumber ?? null,
     avatarUrl: u.avatarUrl ?? null,
     kycStatus: u.kycStatus,
+    isAdmin: ADMIN_EMAILS.includes(u.email.toLowerCase()),
     createdAt: u.createdAt.toISOString(),
   };
 }

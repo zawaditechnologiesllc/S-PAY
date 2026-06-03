@@ -638,7 +638,9 @@ components:
         kycStatus:
           type: string
           enum: [pending, approved, rejected]
-        celoWalletAddress:
+        isAdmin:
+          type: boolean
+        avatarUrl:
           type: string
         createdAt:
           type: string
@@ -648,6 +650,7 @@ components:
         - email
         - fullName
         - kycStatus
+        - isAdmin
         - createdAt
 
     DashboardSummary:

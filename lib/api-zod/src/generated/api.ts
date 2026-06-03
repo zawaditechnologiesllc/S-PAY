@@ -46,7 +46,8 @@ export const LoginResponse = zod.object({
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
-  "celoWalletAddress": zod.string().optional(),
+  "isAdmin": zod.boolean(),
+  "avatarUrl": zod.string().optional(),
   "createdAt": zod.coerce.date()
 })
 })
@@ -61,7 +62,8 @@ export const GetMeResponse = zod.object({
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
-  "celoWalletAddress": zod.string().optional(),
+  "isAdmin": zod.boolean(),
+  "avatarUrl": zod.string().optional(),
   "createdAt": zod.coerce.date()
 })
 

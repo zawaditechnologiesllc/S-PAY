@@ -17,6 +17,8 @@ import Withdraw from "@/pages/withdraw";
 import CardPage from "@/pages/card";
 import Jobs from "@/pages/jobs";
 import JobDetail from "@/pages/job-detail";
+import PublicJobs from "@/pages/public-jobs";
+import PublicJobDetail from "@/pages/public-job-detail";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminUsers from "@/pages/admin/users";
 import AdminTransactions from "@/pages/admin/transactions";
@@ -40,13 +42,14 @@ const queryClient = new QueryClient({
   },
 });
 
+// Redirects to /login, storing the intended destination so we can return after auth.
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [location, setLocation] = useLocation();
   const token = getToken();
 
   useEffect(() => {
     if (!token) {
-      setLocation("/login");
+      setLocation(`/login?next=${encodeURIComponent(location)}`);
     }
   }, [token, location, setLocation]);
 
@@ -54,10 +57,22 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Component />;
 }
 
+// Jobs: public browsers see the public page; logged-in users see the app version.
+function JobsRoute() {
+  const token = getToken();
+  return token ? <Jobs /> : <PublicJobs />;
+}
+
+function JobDetailRoute() {
+  const token = getToken();
+  return token ? <JobDetail /> : <PublicJobDetail />;
+}
+
 function Router() {
   const [location, setLocation] = useLocation();
   const token = getToken();
 
+  // Already logged in — bounce away from auth pages.
   useEffect(() => {
     if (token && (location === "/login" || location === "/register")) {
       setLocation("/dashboard");
@@ -66,7 +81,7 @@ function Router() {
 
   return (
     <Switch>
-      {/* Public */}
+      {/* ── Public marketing pages ── */}
       <Route path="/" component={Landing} />
       <Route path="/about" component={About} />
       <Route path="/privacy" component={Privacy} />
@@ -75,14 +90,18 @@ function Router() {
       <Route path="/careers" component={Careers} />
       <Route path="/blog" component={Blog} />
       <Route path="/cookies" component={Cookies} />
+
+      {/* ── Auth pages ── */}
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/auth/callback" component={AuthCallback} />
-      <Route path="/jobs" component={Jobs} />
-      <Route path="/jobs/:jobId" component={JobDetail} />
 
-      {/* User panel */}
+      {/* ── Jobs: public browse, auth required to apply ── */}
+      <Route path="/jobs" component={JobsRoute} />
+      <Route path="/jobs/:jobId" component={JobDetailRoute} />
+
+      {/* ── User panel (auth required) ── */}
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/profile"><ProtectedRoute component={Profile} /></Route>
       <Route path="/wallet"><ProtectedRoute component={Wallet} /></Route>
@@ -90,7 +109,7 @@ function Router() {
       <Route path="/banking/withdraw"><ProtectedRoute component={Withdraw} /></Route>
       <Route path="/card"><ProtectedRoute component={CardPage} /></Route>
 
-      {/* Admin panel */}
+      {/* ── Admin panel (auth + server-enforced admin-email check) ── */}
       <Route path="/admin"><ProtectedRoute component={AdminDashboard} /></Route>
       <Route path="/admin/users"><ProtectedRoute component={AdminUsers} /></Route>
       <Route path="/admin/transactions"><ProtectedRoute component={AdminTransactions} /></Route>

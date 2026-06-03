@@ -37,7 +37,7 @@ router.post("/wallet/send", requireAuth, (req, res) => {
     id: `tx-${crypto.randomUUID()}`,
     type: "send" as const,
     amount,
-    currency: currency ?? "USDC",
+    currency: currency ?? "USD",
     description: note ?? `Sent to ${recipientPhone ?? recipientAddress ?? "recipient"}`,
     counterparty: recipientPhone ?? recipientAddress ?? "Unknown",
     status: "completed" as const,
