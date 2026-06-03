@@ -1,11 +1,10 @@
 services:
   - type: web
     name: spay-api
-    runtime: node
+    runtime: docker
     region: oregon
     plan: free
-    buildCommand: "pnpm install && pnpm run typecheck:libs && pnpm --filter @workspace/api-server run build"
-    startCommand: "pnpm --filter @workspace/api-server run start"
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /api/healthz
     envVars:
       - key: NODE_ENV
