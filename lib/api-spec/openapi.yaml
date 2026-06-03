@@ -1146,7 +1146,7 @@ components:
           type: string
         source:
           type: string
-          enum: [Himalayas, RemoteOK, Remotive]
+          enum: [Himalayas, RemoteOK, Remotive, Arbeitnow, TheMuse, WeWorkRemotely]
         sourceUrl:
           type: string
         isNew:

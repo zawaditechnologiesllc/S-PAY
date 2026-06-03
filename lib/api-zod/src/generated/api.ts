@@ -365,7 +365,7 @@ export const GetJobsResponse = zod.object({
   "category": zod.string().optional(),
   "description": zod.string().optional(),
   "applyUrl": zod.string().optional(),
-  "source": zod.enum(['Himalayas', 'RemoteOK', 'Remotive']),
+  "source": zod.enum(['Himalayas', 'RemoteOK', 'Remotive', 'Arbeitnow', 'TheMuse', 'WeWorkRemotely']),
   "sourceUrl": zod.string().optional(),
   "isNew": zod.boolean(),
   "affiliateCta": zod.object({
@@ -400,7 +400,7 @@ export const GetJobByIdResponse = zod.object({
   "category": zod.string().optional(),
   "description": zod.string().optional(),
   "applyUrl": zod.string().optional(),
-  "source": zod.enum(['Himalayas', 'RemoteOK', 'Remotive']),
+  "source": zod.enum(['Himalayas', 'RemoteOK', 'Remotive', 'Arbeitnow', 'TheMuse', 'WeWorkRemotely']),
   "sourceUrl": zod.string().optional(),
   "isNew": zod.boolean(),
   "affiliateCta": zod.object({

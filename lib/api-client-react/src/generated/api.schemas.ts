@@ -365,6 +365,9 @@ export const JobSource = {
   Himalayas: 'Himalayas',
   RemoteOK: 'RemoteOK',
   Remotive: 'Remotive',
+  Arbeitnow: 'Arbeitnow',
+  TheMuse: 'TheMuse',
+  WeWorkRemotely: 'WeWorkRemotely',
 } as const;
 
 export interface AffiliateCta {
