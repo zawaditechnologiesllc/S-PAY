@@ -42,9 +42,7 @@ export default function Login() {
 
         {/* Logo + brand block */}
         <div className="text-center mb-8">
-          <div className="mx-auto w-20 h-20 rounded-2xl bg-[#4DC9EE] overflow-hidden shadow-xl mb-4">
-            <img src={spayLogo} alt="S-PAY" className="w-full h-full object-cover" />
-          </div>
+          <img src={spayLogo} alt="S-PAY" className="mx-auto w-20 h-20 rounded-[22%] shadow-xl mb-4 block" />
           <h1 className="text-2xl font-black text-[#1A2B4A] tracking-tight">S-PAY</h1>
           <p className="text-sm text-gray-500 mt-1">Your global digital wallet</p>
         </div>

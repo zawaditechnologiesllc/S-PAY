@@ -86,9 +86,7 @@ export default function Register() {
         {/* Top: logo + app name */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-12">
-            <div className="w-12 h-12 rounded-2xl bg-[#4DC9EE] overflow-hidden flex-shrink-0 shadow-lg">
-              <img src={spayLogo} alt="S-PAY" className="w-full h-full object-cover" />
-            </div>
+            <img src={spayLogo} alt="S-PAY" className="w-12 h-12 rounded-[22%] flex-shrink-0 shadow-lg" />
             <div>
               <div className="text-white font-black text-xl tracking-tight">S-PAY</div>
               <div className="text-blue-300 text-xs">Your digital money account</div>
@@ -136,9 +134,7 @@ export default function Register() {
 
           {/* Mobile-only logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-[#4DC9EE] overflow-hidden shadow-xl mb-3 inline-flex">
-              <img src={spayLogo} alt="S-PAY" className="w-full h-full object-cover" />
-            </div>
+            <img src={spayLogo} alt="S-PAY" className="mx-auto w-14 h-14 rounded-[22%] shadow-xl mb-3 block" />
             <h1 className="text-xl font-black text-[#1A2B4A] tracking-tight">S-PAY</h1>
           </div>
 

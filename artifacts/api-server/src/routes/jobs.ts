@@ -1,12 +1,11 @@
 import { Router } from "express";
-import { requireAuth } from "../middlewares/auth";
 import { fetchJobs } from "../lib/jobs";
 
 const router = Router();
 
 const jobDetailCache = new Map<string, unknown>();
 
-router.get("/jobs", requireAuth, async (req, res) => {
+router.get("/jobs", async (req, res) => {
   try {
     const keyword = req.query.keyword as string | undefined;
     const category = req.query.category as string | undefined;
@@ -20,7 +19,7 @@ router.get("/jobs", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/jobs/:jobId", requireAuth, async (req, res) => {
+router.get("/jobs/:jobId", async (req, res) => {
   const jobId = req.params.jobId as string;
   const cached = jobDetailCache.get(jobId);
   if (cached) {
