@@ -30,7 +30,7 @@ export default function Dashboard() {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-4 gap-4 mt-8 pt-6 border-t border-gray-100">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-gray-100">
             <QuickAction icon={<ScanLine size={22} />} label="Scan" bgColor="#4DC9EE" />
             <QuickAction icon={<Send size={22} />} label="Transfer" bgColor="#F59E0B" />
             <QuickAction icon={<ArrowDownToLine size={22} />} label="Recharge" bgColor="#22C55E" />
@@ -109,7 +109,7 @@ function QuickAction({ icon, label, bgColor }: { icon: React.ReactNode, label: s
   return (
     <div className="flex flex-col items-center gap-2 cursor-pointer group">
       <div
-        className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform duration-150"
+        className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform duration-150"
         style={{ backgroundColor: bgColor }}
       >
         {icon}

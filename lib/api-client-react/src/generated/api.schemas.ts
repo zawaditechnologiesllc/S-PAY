@@ -501,3 +501,5 @@ export type GetAdminTransactionsParams = {
 type?: string;
 };
 
+export type GetAdminSettings200 = { [key: string]: unknown };
+

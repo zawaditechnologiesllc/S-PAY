@@ -1,24 +1,27 @@
+import { useState } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, ArrowLeftRight, LogOut,
-  Shield, Bell, ChevronRight,
+  Shield, Bell, ChevronRight, Settings, Menu, X,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 const NAV = [
   { href: "/admin", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
-  { href: "/admin/users", icon: <Users size={18} />, label: "Users" },
+  { href: "/admin/users", icon: <Users size={18} />, label: "Users & KYC" },
   { href: "/admin/transactions", icon: <ArrowLeftRight size={18} />, label: "Transactions" },
+  { href: "/admin/settings", icon: <Settings size={18} />, label: "Settings" },
 ];
 
-function NavItem({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+function NavItem({ href, icon, label, onClick }: { href: string; icon: React.ReactNode; label: string; onClick?: () => void }) {
   const [active] = useRoute(href === "/admin" ? "/admin" : `${href}*`);
   return (
-    <Link href={href}>
+    <Link href={href} onClick={onClick}>
       <div className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all font-medium text-sm ${
         active
-          ? "bg-[#4DC9EE] text-white shadow-md shadow-[#4DC9EE]/30"
-          : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+          ? "bg-[#4DC9EE]/20 text-[#4DC9EE] font-semibold"
+          : "text-white/70 hover:bg-white/10 hover:text-white"
       }`}>
         {icon}
         {label}
@@ -28,51 +31,96 @@ function NavItem({ href, icon, label }: { href: string; icon: React.ReactNode; l
   );
 }
 
-export function AdminLayout({ children, title }: { children: React.ReactNode; title?: string }) {
+function Sidebar({ onClose }: { onClose?: () => void }) {
   const [, setLocation] = useLocation();
   const handleLogout = () => { clearToken(); setLocation("/login"); };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-60 bg-white border-r border-gray-100 flex flex-col fixed top-0 bottom-0 left-0 z-40 shadow-sm">
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4DC9EE] to-[#1A2B4A] flex items-center justify-center">
-              <span className="text-white font-bold text-sm">S</span>
+    <div className="flex flex-col h-full bg-[#1A2B4A]">
+      {/* Brand */}
+      <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
+        <Link href="/admin" onClick={onClose}>
+          <div className="flex items-center gap-3 cursor-pointer">
+            <img src={spayLogo} alt="S-PAY" className="w-9 h-9 rounded-[22%] flex-shrink-0" />
+            <div>
+              <span className="font-black text-white text-base tracking-tight leading-none block">S-PAY</span>
+              <span className="text-[10px] text-[#4DC9EE] font-semibold uppercase tracking-widest">Admin Console</span>
             </div>
-            <span className="font-bold text-[#1A2B4A]">S-PAY</span>
           </div>
-          <div className="flex items-center gap-1.5 mt-2">
-            <Shield size={12} className="text-[#4DC9EE]" />
-            <span className="text-xs font-semibold text-[#4DC9EE] uppercase tracking-wider">Admin Console</span>
-          </div>
-        </div>
-        <nav className="flex-1 p-4 space-y-1">
-          {NAV.map((n) => <NavItem key={n.href} {...n} />)}
-        </nav>
-        <div className="p-4 border-t border-gray-100 space-y-1">
-          <Link href="/dashboard">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-900 text-sm font-medium transition-all">
-              <LayoutDashboard size={16} /> User Dashboard
-            </div>
-          </Link>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 text-sm font-medium transition-all">
-            <LogOut size={16} /> Sign Out
+        </Link>
+        {onClose && (
+          <button onClick={onClose} className="text-white/60 hover:text-white md:hidden p-1">
+            <X size={20} />
           </button>
-        </div>
+        )}
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-3 pb-2 pt-1">Management</p>
+        {NAV.map((n) => <NavItem key={n.href} {...n} onClick={onClose} />)}
+      </nav>
+
+      {/* Bottom */}
+      <div className="px-3 py-4 border-t border-white/10 space-y-0.5">
+        <Link href="/dashboard" onClick={onClose}>
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer text-white/60 hover:bg-white/10 hover:text-white text-sm font-medium transition-colors">
+            <LayoutDashboard size={16} /> User Dashboard
+          </div>
+        </Link>
+        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:bg-red-500/10 hover:text-red-400 text-sm font-medium transition-colors">
+          <LogOut size={16} /> Sign Out
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function AdminLayout({ children, title }: { children: React.ReactNode; title?: string }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Desktop sidebar — always visible */}
+      <aside className="hidden md:flex w-64 flex-col fixed top-0 bottom-0 left-0 z-40 shadow-xl">
+        <Sidebar />
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 ml-60 flex flex-col min-h-screen">
-        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-30 shadow-sm">
-          <h1 className="text-lg font-bold text-gray-900">{title || "Admin"}</h1>
+      {/* Mobile sidebar — slide in */}
+      <aside className={`fixed top-0 bottom-0 left-0 w-72 z-40 flex flex-col shadow-xl transition-transform duration-300 md:hidden ${
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      }`}>
+        <Sidebar onClose={() => setSidebarOpen(false)} />
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 md:ml-64 flex flex-col min-h-screen">
+        {/* Top header */}
+        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm">
           <div className="flex items-center gap-3">
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+            >
+              <Menu size={22} />
+            </button>
+            <h1 className="text-base md:text-lg font-bold text-gray-900">{title || "Admin"}</h1>
+          </div>
+          <div className="flex items-center gap-2">
             <button className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors relative">
               <Bell size={16} />
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center">3</span>
             </button>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5">
+            <div className="hidden sm:flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5">
               <div className="w-6 h-6 bg-[#1A2B4A] rounded-full flex items-center justify-center">
                 <Shield size={12} className="text-white" />
               </div>
@@ -80,7 +128,8 @@ export function AdminLayout({ children, title }: { children: React.ReactNode; ti
             </div>
           </div>
         </header>
-        <div className="flex-1 p-8">{children}</div>
+
+        <div className="flex-1 p-4 md:p-8">{children}</div>
       </main>
     </div>
   );

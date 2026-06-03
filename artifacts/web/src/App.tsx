@@ -20,6 +20,7 @@ import JobDetail from "@/pages/job-detail";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminUsers from "@/pages/admin/users";
 import AdminTransactions from "@/pages/admin/transactions";
+import AdminSettings from "@/pages/admin/settings";
 import About from "@/pages/about";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
@@ -85,6 +86,7 @@ function Router() {
       <Route path="/admin"><ProtectedRoute component={AdminDashboard} /></Route>
       <Route path="/admin/users"><ProtectedRoute component={AdminUsers} /></Route>
       <Route path="/admin/transactions"><ProtectedRoute component={AdminTransactions} /></Route>
+      <Route path="/admin/settings"><ProtectedRoute component={AdminSettings} /></Route>
 
       <Route component={NotFound} />
     </Switch>

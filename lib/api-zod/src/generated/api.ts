@@ -509,3 +509,9 @@ export const GetAdminTransactionsResponse = zod.object({
 })),
   "total": zod.number()
 })
+
+
+/**
+ * @summary System configuration status
+ */
+export const GetAdminSettingsResponse = zod.record(zod.string(), zod.unknown())
