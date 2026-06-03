@@ -24,6 +24,7 @@ import About from "@/pages/about";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import ForgotPassword from "@/pages/forgot-password";
+import AuthCallback from "@/pages/auth-callback";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,6 +69,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/auth/callback" component={AuthCallback} />
       <Route path="/jobs" component={Jobs} />
       <Route path="/jobs/:jobId" component={JobDetail} />
 
