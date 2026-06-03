@@ -29,8 +29,8 @@ export default function WithdrawScreen() {
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const { data: rateData } = useGetExchangeRates(
-    { source: "USDC", target: method.currency },
-    { query: { queryKey: getGetExchangeRatesQueryKey({ source: "USDC", target: method.currency }) } }
+    { source: "USD", target: method.currency },
+    { query: { queryKey: getGetExchangeRatesQueryKey({ source: "USD", target: method.currency }) } }
   );
 
   const withdraw = useInitiateWithdraw();
@@ -48,7 +48,7 @@ export default function WithdrawScreen() {
       {
         data: {
           amount: Number(amount),
-          sourceCurrency: "USDC",
+          sourceCurrency: "USD",
           targetCurrency: method.currency,
           method: method.id as any,
           recipientPhone: method.id === "mpesa" ? recipient : undefined,
@@ -106,7 +106,7 @@ export default function WithdrawScreen() {
 
       {/* Amount */}
       <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Amount (USDC)</Text>
+        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Amount (USD)</Text>
         <View style={[styles.amountBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
           <Text style={[styles.amtPrefix, { color: colors.mutedForeground }]}>$</Text>
           <TextInput
@@ -118,13 +118,13 @@ export default function WithdrawScreen() {
             keyboardType="decimal-pad"
             testID="input-amount"
           />
-          <Text style={[styles.amtSuffix, { color: colors.mutedForeground }]}>USDC</Text>
+          <Text style={[styles.amtSuffix, { color: colors.mutedForeground }]}>USD</Text>
         </View>
         {rateData && amount ? (
           <View style={[styles.rateBox, { backgroundColor: colors.muted }]}>
             <Feather name="trending-up" size={14} color={colors.primary} />
             <Text style={[styles.rateText, { color: colors.mutedForeground }]}>
-              Rate: 1 USDC = {rateData.rate} {method.currency} · Fee: {((rateData.fee ?? 0.005) * 100).toFixed(1)}%
+              Rate: 1 USD = {rateData.rate} {method.currency} · Fee: {((rateData.fee ?? 0.005) * 100).toFixed(1)}%
             </Text>
           </View>
         ) : null}

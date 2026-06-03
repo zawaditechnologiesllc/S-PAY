@@ -55,7 +55,7 @@ export default function WalletScreen() {
       return;
     }
     sendMoney.mutate(
-      { data: { recipientPhone: recipient, amount: Number(amount), currency: "USDC", note } },
+      { data: { recipientPhone: recipient, amount: Number(amount), currency: "USD", note } },
       {
         onSuccess: () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -108,7 +108,7 @@ export default function WalletScreen() {
               </Text>
             )}
             <View style={styles.usdcBadge}>
-              <Text style={styles.usdcText}>USDC on Celo</Text>
+              <Text style={styles.usdcText}>Digital Dollars</Text>
             </View>
           </View>
 

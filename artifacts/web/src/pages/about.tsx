@@ -77,24 +77,29 @@ const PRODUCTS = [
 
 const TIMELINE = [
   {
-    year: "2024",
-    title: "Founded",
-    desc: "Zawadi Technologies LLC incorporated in the United States. A small team of fintech engineers and remittance experts begins building S-PAY.",
+    year: "2016",
+    title: "The Breaking Point",
+    desc: "PayPal begins systematically blocking and freezing accounts belonging to remote workers in Africa and Southeast Asia — legitimate freelancers earning real income. A team of full-stack fintech and crypto engineers decides to build the alternative.",
+  },
+  {
+    year: "2018",
+    title: "Early Prototypes",
+    desc: "The team builds early cross-border payment prototypes, testing mobile money rails in Kenya and Nigeria and exploring crypto-based settlement to make transfers borderless and uncensorable.",
+  },
+  {
+    year: "2021",
+    title: "Architecture Refined",
+    desc: "After deep research across 40+ countries, the team converges on a hybrid model: established local rails (M-Pesa, MTN, ACH, SEPA) combined with a modern payments infrastructure that doesn't rely on any single gatekeeper.",
   },
   {
     year: "2024",
-    title: "First corridors live",
-    desc: "Kenya, Nigeria, and Ghana go live. Remote workers cash out to M-Pesa and mobile money networks within minutes of signing up.",
+    title: "S-PAY Launches",
+    desc: "Zawadi Technologies LLC is formally incorporated in the United States. S-PAY launches publicly with virtual USD/EUR bank accounts, instant mobile money withdrawals, and a remote jobs board — everything PayPal never gave you.",
   },
   {
     year: "2025",
-    title: "500K+ users",
-    desc: "S-PAY reaches over 500,000 registered users across Africa, Southeast Asia, and Latin America.",
-  },
-  {
-    year: "2025",
-    title: "Virtual bank accounts",
-    desc: "Full virtual US ACH and EU IBAN accounts launch. Clients and employers now pay S-PAY users like a local.",
+    title: "500K+ Users · 180+ Countries",
+    desc: "S-PAY reaches half a million registered users. Virtual US ACH and EU IBAN accounts go live. The S-PAY Card enters closed beta. The mission continues.",
   },
 ];
 
@@ -170,7 +175,7 @@ export default function About() {
             <span className="text-[#4DC9EE] font-bold text-sm uppercase tracking-widest">Our Story</span>
             <h2 className="text-4xl font-black text-[#1A2B4A] mt-3 mb-4">How S-PAY came to be.</h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto leading-relaxed">
-              Founded in 2024 by fintech engineers and remittance experts, Zawadi Technologies LLC was born from years of watching talented remote workers lose 5–10% of every payment to fees and wait days for transfers. We decided to build something better.
+              S-PAY was born in 2016 — built by a team of full-stack fintech and crypto engineers who were tired of watching PayPal block legitimate remote workers and watching talented people lose 5–10% of every payment to fees. We built the alternative.
             </p>
           </div>
           <div className="relative">
