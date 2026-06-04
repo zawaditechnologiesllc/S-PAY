@@ -22,6 +22,28 @@ export interface NormalizedJob {
 const REMOTIVE_AFFILIATE = process.env.REMOTIVE_AFFILIATE_URL ?? "https://remotive.com";
 const REMOTE_COM_AFFILIATE = process.env.REMOTE_COM_AFFILIATE_URL ?? "https://remote.com";
 
+const REMOTIVE_ID_TO_LABEL: Record<string, string> = {
+  "software-dev": "Engineering",
+  "design": "Design",
+  "marketing": "Marketing",
+  "product": "Product",
+  "sales": "Sales",
+  "finance": "Finance",
+  "all-others": "Operations",
+};
+
+function normalizeCategory(raw: string): string {
+  const s = raw.toLowerCase();
+  if (/engineer|software|develop|programm|tech|cloud|devops|backend|frontend|fullstack|data\s*(science|eng)|machine\s*learn|artificial|ml\b|ai\b|platform|infra|architect|security|cyber|database|qa\b|testing|mobile\s*dev/.test(s)) return "Engineering";
+  if (/design|ux\b|ui\b|creative|visual|graphic|brand|illustrat|animat/.test(s)) return "Design";
+  if (/market|growth|content|seo\b|social\s*media|copywrite|communicat|public\s*relat|\bpr\b|demand\s*gen/.test(s)) return "Marketing";
+  if (/product\s*manag|program\s*manag|\bpm\b|product\s*owner|scrum|agile\s*coach/.test(s)) return "Product";
+  if (/\bsales\b|account\s*exec|business\s*dev|\bbdr\b|\bsdr\b|revenue\s*ops|partnership/.test(s)) return "Sales";
+  if (/financ|accounting|\btax\b|payroll|audit|bookkeep|controller|treasury/.test(s)) return "Finance";
+  if (/operat|support|customer\s*(success|service)|hr\b|human\s*resourc|recruit|talent|admin|legal|compliance|logistics/.test(s)) return "Operations";
+  return "Engineering";
+}
+
 const jobsCache = new Map<string, { data: NormalizedJob[]; cachedAt: number }>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -65,12 +87,20 @@ export async function fetchJobs(keyword?: string, category?: string, limit = 30)
   const all = interleave([himalayas, remoteok, remotive, arbeitnow, themuse, weworkremotely]);
 
   const seen = new Set<string>();
-  const deduped = all.filter((j) => {
-    const key = `${j.title}-${j.company}`.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  let deduped = all
+    .map((j) => ({ ...j, category: normalizeCategory(j.category) }))
+    .filter((j) => {
+      const key = `${j.title}-${j.company}`.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  // Post-filter by category so all sources (not just Remotive) are category-aware
+  if (category) {
+    const target = REMOTIVE_ID_TO_LABEL[category] ?? null;
+    if (target) deduped = deduped.filter((j) => j.category === target);
+  }
 
   jobsCache.set(cacheKey, { data: deduped, cachedAt: Date.now() });
 

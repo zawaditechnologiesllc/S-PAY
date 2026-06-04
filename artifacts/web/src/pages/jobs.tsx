@@ -21,6 +21,16 @@ const CATEGORY_MAP: Record<string, string> = {
   Operations: "all-others",
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  Engineering: "bg-sky-50 text-sky-700 border-sky-100",
+  Design: "bg-violet-50 text-violet-700 border-violet-100",
+  Marketing: "bg-rose-50 text-rose-700 border-rose-100",
+  Product: "bg-amber-50 text-amber-700 border-amber-100",
+  Sales: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  Finance: "bg-blue-50 text-blue-700 border-blue-100",
+  Operations: "bg-orange-50 text-orange-700 border-orange-100",
+};
+
 export default function Jobs() {
   const [keyword, setKeyword] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
@@ -196,6 +206,14 @@ export default function Jobs() {
                             <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
                               <DollarSign size={10} /> {job.salary}
                             </span>
+                          )}
+                          {job.category && (
+                            <button
+                              className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded border cursor-pointer hover:opacity-80 ${CATEGORY_COLORS[job.category] ?? "bg-gray-50 text-gray-500 border-gray-100"}`}
+                              onClick={(e) => { e.preventDefault(); if (job.category in CATEGORY_MAP) setSelectedCategory(job.category); }}
+                            >
+                              {job.category}
+                            </button>
                           )}
                           <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border ${SOURCE_COLORS[job.source] ?? "bg-gray-50 text-gray-500 border-gray-100"}`}>
                             {job.source}
