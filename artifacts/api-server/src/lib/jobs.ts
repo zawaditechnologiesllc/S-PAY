@@ -12,7 +12,7 @@ export interface NormalizedJob {
   category: string;
   description: string | null;
   applyUrl: string;
-  source: "Himalayas" | "RemoteOK" | "Remotive" | "Arbeitnow" | "TheMuse" | "WeWorkRemotely" | "Jobicy" | "WorkingNomads" | "Jobspresso" | "RemoteCo" | "DailyRemote" | "Nodesk" | "4DayWeek";
+  source: "Himalayas" | "RemoteOK" | "Remotive" | "Arbeitnow" | "TheMuse" | "WeWorkRemotely" | "Jobicy" | "WorkingNomads" | "Jobspresso" | "RemoteCo" | "DailyRemote" | "Nodesk" | "4DayWeek" | "AuthenticJobs" | "SmashingMagazine" | "WPHired" | "LaraJobs" | "JustRemote" | "SkipTheDrive" | "SupportDriven" | "EuropeRemotely" | "Pangian" | "RemoteLeaf" | "GoRemote" | "ProBlogger" | "CrunchBoard" | "VentureLoop" | "StartupJobs" | "HNJobs" | "PythonOrg" | "DjangoJobs" | "RailsJobs" | "Coroflot" | "Krop" | "JSRemotely" | "AIJobs" | "CryptoJobsList" | "Web3Career" | "FlutterJobs" | "GolangCafe" | "GraphQLJobs" | "Jobgether" | "DynamiteJobs" | "TechCareers" | "DataScienceJobs" | "MLRemote" | "Climatebase" | "DevOpsCafe" | "SecurityJobs" | "CloudJobs" | "SalesGravy" | "GoodGigs" | "JobsinTech" | "AndroidDev" | "iOSJobs" | "BlockchainJobs" | "Web3Jobs" | "ReactJobs" | "NodeJobs" | "VueJobs";
   sourceUrl: string;
   isNew: boolean;
   affiliateCta: { label: string; url: string } | null;
@@ -73,10 +73,68 @@ export async function fetchJobs(keyword?: string, category?: string, limit = 30)
     fetchDailyRemote(),
     fetchNodesk(),
     fetch4DayWeek(),
+    fetchAuthenticJobs(),
+    fetchSmashingMagazine(),
+    fetchWPHired(),
+    fetchLaraJobs(),
+    fetchJustRemote(),
+    fetchSkipTheDrive(),
+    fetchSupportDriven(),
+    fetchEuropeRemotely(),
+    fetchPangian(),
+    fetchRemoteLeaf(),
+    fetchGoRemote(),
+    fetchProBlogger(),
+    fetchCrunchBoard(),
+    fetchVentureLoop(),
+    fetchStartupJobs(),
+    fetchHNJobs(),
+    fetchPythonOrg(),
+    fetchDjangoJobs(),
+    fetchRailsJobs(),
+    fetchCoroflot(),
+    fetchKrop(),
+    fetchJSRemotely(),
+    fetchAIJobs(),
+    fetchCryptoJobsList(),
+    fetchWeb3Career(),
+    fetchFlutterJobs(),
+    fetchGolangCafe(),
+    fetchGraphQLJobs(),
+    fetchJobgether(),
+    fetchDynamiteJobs(),
+    fetchTechCareers(),
+    fetchDataScienceJobs(),
+    fetchMLRemote(),
+    fetchClimatebase(),
+    fetchDevOpsCafe(),
+    fetchSecurityJobs(),
+    fetchCloudJobs(),
+    fetchSalesGravy(),
+    fetchGoodGigs(),
+    fetchJobsinTech(),
+    fetchAndroidDev(),
+    fetchiOSJobs(),
+    fetchBlockchainJobs(),
+    fetchWeb3Jobs(),
+    fetchReactJobs(),
+    fetchNodeJobs(),
+    fetchVueJobs(),
   ]);
 
+  const names = [
+    "Himalayas","RemoteOK","Remotive","Arbeitnow","TheMuse","WeWorkRemotely",
+    "Jobicy","WorkingNomads","Jobspresso","RemoteCo","DailyRemote","Nodesk","4DayWeek",
+    "AuthenticJobs","SmashingMagazine","WPHired","LaraJobs","JustRemote","SkipTheDrive",
+    "SupportDriven","EuropeRemotely","Pangian","RemoteLeaf","GoRemote","ProBlogger",
+    "CrunchBoard","VentureLoop","StartupJobs","HNJobs","PythonOrg","DjangoJobs",
+    "RailsJobs","Coroflot","Krop","JSRemotely","AIJobs","CryptoJobsList","Web3Career",
+    "FlutterJobs","GolangCafe","GraphQLJobs","Jobgether","DynamiteJobs","TechCareers",
+    "DataScienceJobs","MLRemote","Climatebase","DevOpsCafe","SecurityJobs","CloudJobs",
+    "SalesGravy","GoodGigs","JobsinTech","AndroidDev","iOSJobs","BlockchainJobs",
+    "Web3Jobs","ReactJobs","NodeJobs","VueJobs",
+  ];
   const sources = results.map((r, i) => {
-    const names = ["Himalayas","RemoteOK","Remotive","Arbeitnow","TheMuse","WeWorkRemotely","Jobicy","WorkingNomads","Jobspresso","RemoteCo","DailyRemote","Nodesk","4DayWeek"];
     if (r.status === "rejected") logger.warn({ err: r.reason }, `${names[i]} fetch failed`);
     return r.status === "fulfilled" ? r.value : [];
   });
@@ -353,28 +411,36 @@ async function fetchWorkingNomads(keyword?: string): Promise<NormalizedJob[]> {
   }));
 }
 
-async function fetchWordPressRSS(feedUrl: string, source: NormalizedJob["source"]): Promise<NormalizedJob[]> {
+async function fetchRSSFeed(feedUrl: string, source: NormalizedJob["source"]): Promise<NormalizedJob[]> {
   const res = await axios.get<string>(feedUrl, {
     timeout: 8000,
-    headers: { "User-Agent": "S-PAY Jobs Aggregator/1.0", Accept: "application/rss+xml,text/xml" },
+    headers: { "User-Agent": "S-PAY Jobs Aggregator/1.0", Accept: "application/rss+xml,application/atom+xml,text/xml" },
     responseType: "text",
   });
   const xml = res.data;
-  const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 50);
-  const base = feedUrl.replace(/\/feed.*/, "").replace(/\/rss.*/, "");
+  const base = feedUrl.replace(/[?#].*/, "").replace(/\/(feed|rss|atom).*/, "");
+  // Support both RSS <item> and Atom <entry>
+  let rawMatches = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
+  const isAtom = rawMatches.length === 0;
+  if (isAtom) rawMatches = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)];
+  const items = rawMatches.slice(0, 50);
   return items.map((m, i): NormalizedJob => {
     const inner = m[1];
     const get = (tag: string) =>
       inner.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`))?.[1]?.trim() ??
       inner.match(new RegExp(`<${tag}[^>]*>([^<]*)<\\/${tag}>`))?.[1]?.trim() ??
       "";
+    const getAttr = (tag: string, attr: string) =>
+      inner.match(new RegExp(`<${tag}[^>]*${attr}="([^"]*)"`))?.[1]?.trim() ?? "";
     const rawTitle = get("title");
     const title = rawTitle.replace(/^[^:]+:\s+/, "");
     const company = rawTitle.includes(":") ? rawTitle.split(":")[0]?.trim() ?? "" : get("dc:creator") ?? "";
-    const link = get("link") || get("guid");
-    const pubDate = get("pubDate");
+    const link = isAtom
+      ? (getAttr("link", "href") || get("link") || get("id"))
+      : (get("link") || get("guid"));
+    const pubDate = isAtom ? (get("published") || get("updated")) : get("pubDate");
     return {
-      id: `${source.toLowerCase()}-${i}-${Date.now()}`,
+      id: `${source.toLowerCase().replace(/\W/g, "")}-${i}-${Date.now()}`,
       title,
       company,
       companyLogo: null,
@@ -393,24 +459,123 @@ async function fetchWordPressRSS(feedUrl: string, source: NormalizedJob["source"
   });
 }
 
-async function fetchJobspresso(): Promise<NormalizedJob[]> {
-  return fetchWordPressRSS("https://jobspresso.co/feed/", "Jobspresso");
+// ─── Existing RSS sources ─────────────────────────────────────────────────────
+async function fetchJobspresso() { return fetchRSSFeed("https://jobspresso.co/feed/", "Jobspresso"); }
+async function fetchRemoteCo() { return fetchRSSFeed("https://remote.co/remote-jobs/feed/", "RemoteCo"); }
+async function fetchDailyRemote() { return fetchRSSFeed("https://dailyremote.com/rss", "DailyRemote"); }
+async function fetchNodesk() { return fetchRSSFeed("https://nodesk.co/remote-jobs/rss.xml", "Nodesk"); }
+async function fetch4DayWeek() { return fetchRSSFeed("https://4dayweek.io/jobs/rss", "4DayWeek"); }
+
+// ─── 47 new RSS sources ───────────────────────────────────────────────────────
+async function fetchAuthenticJobs()  { return fetchRSSFeed("https://authenticjobs.com/feed/", "AuthenticJobs"); }
+async function fetchSmashingMagazine() { return fetchRSSFeed("https://www.smashingmagazine.com/jobs/feed/", "SmashingMagazine"); }
+async function fetchWPHired()        { return fetchRSSFeed("https://www.wphired.com/feed/", "WPHired"); }
+async function fetchLaraJobs()       { return fetchRSSFeed("https://larajobs.com/feed", "LaraJobs"); }
+async function fetchJustRemote()     { return fetchRSSFeed("https://justremote.co/feed/", "JustRemote"); }
+async function fetchSkipTheDrive()   { return fetchRSSFeed("https://www.skipthedrive.com/feed/", "SkipTheDrive"); }
+async function fetchSupportDriven()  { return fetchRSSFeed("https://jobs.supportdriven.com/feed/", "SupportDriven"); }
+async function fetchEuropeRemotely() { return fetchRSSFeed("https://europeremotely.com/feed/", "EuropeRemotely"); }
+async function fetchPangian()        { return fetchRSSFeed("https://www.pangian.com/job-travel-remote/feed/", "Pangian"); }
+async function fetchRemoteLeaf()     { return fetchRSSFeed("https://remoteleaf.com/whoishiring/feed/", "RemoteLeaf"); }
+async function fetchGoRemote()       { return fetchRSSFeed("https://goremote.io/feed/", "GoRemote"); }
+async function fetchProBlogger()     { return fetchRSSFeed("https://problogger.com/jobs/feed/", "ProBlogger"); }
+async function fetchCrunchBoard()    { return fetchRSSFeed("https://www.crunchboard.com/feed/", "CrunchBoard"); }
+async function fetchVentureLoop()    { return fetchRSSFeed("https://www.ventureloop.com/ventureloop/rss.php?company=0&feed=RSS&tag=0&q=remote", "VentureLoop"); }
+async function fetchStartupJobs()    { return fetchRSSFeed("https://startup.jobs/rss", "StartupJobs"); }
+async function fetchHNJobs()         { return fetchRSSFeed("https://news.ycombinator.com/jobs.rss", "HNJobs"); }
+async function fetchPythonOrg()      { return fetchRSSFeed("https://www.python.org/jobs/feed/rss/", "PythonOrg"); }
+async function fetchDjangoJobs()     { return fetchRSSFeed("https://www.djangojobs.net/jobs/feed/", "DjangoJobs"); }
+async function fetchRailsJobs()      { return fetchRSSFeed("https://jobs.rubyonrails.org/jobs.atom", "RailsJobs"); }
+async function fetchCoroflot()       { return fetchRSSFeed("https://www.coroflot.com/rss/jobs/rss.xml", "Coroflot"); }
+async function fetchKrop()           { return fetchRSSFeed("https://www.krop.com/creativejobs/rss/", "Krop"); }
+async function fetchJSRemotely()     { return fetchRSSFeed("https://jsremotely.com/feed/", "JSRemotely"); }
+async function fetchAIJobs()         { return fetchRSSFeed("https://aijobs.net/feed/", "AIJobs"); }
+async function fetchCryptoJobsList() { return fetchRSSFeed("https://cryptojobslist.com/rss", "CryptoJobsList"); }
+async function fetchWeb3Career()     { return fetchRSSFeed("https://web3.career/rss.xml", "Web3Career"); }
+async function fetchFlutterJobs()    { return fetchRSSFeed("https://flutterjobs.info/feed/", "FlutterJobs"); }
+async function fetchJobgether()      { return fetchRSSFeed("https://jobgether.com/feed/", "Jobgether"); }
+async function fetchDynamiteJobs()   { return fetchRSSFeed("https://dynamitejobs.com/feed/", "DynamiteJobs"); }
+async function fetchTechCareers()    { return fetchRSSFeed("https://techcareers.io/rss/", "TechCareers"); }
+async function fetchDataScienceJobs() { return fetchRSSFeed("https://datascience.jobs/feed/", "DataScienceJobs"); }
+async function fetchMLRemote()       { return fetchRSSFeed("https://mlremote.com/feed/", "MLRemote"); }
+async function fetchClimatebase()    { return fetchRSSFeed("https://climatebase.org/jobs/feed/", "Climatebase"); }
+async function fetchDevOpsCafe()     { return fetchRSSFeed("https://devops.com/jobs/feed/", "DevOpsCafe"); }
+async function fetchSecurityJobs()   { return fetchRSSFeed("https://www.securityjobs.net/rss/", "SecurityJobs"); }
+async function fetchCloudJobs()      { return fetchRSSFeed("https://cloudjobs.io/feed/", "CloudJobs"); }
+async function fetchSalesGravy()     { return fetchRSSFeed("https://www.salesgravy.com/feed/", "SalesGravy"); }
+async function fetchGoodGigs()       { return fetchRSSFeed("https://www.goodgigs.net/feed/", "GoodGigs"); }
+async function fetchJobsinTech()     { return fetchRSSFeed("https://www.jobsintech.io/feed/", "JobsinTech"); }
+async function fetchAndroidDev()     { return fetchRSSFeed("https://androidjobs.io/feed/", "AndroidDev"); }
+async function fetchiOSJobs()        { return fetchRSSFeed("https://iosdevjobs.com/feed/", "iOSJobs"); }
+async function fetchBlockchainJobs() { return fetchRSSFeed("https://blockchain.works-hub.com/rss/", "BlockchainJobs"); }
+async function fetchWeb3Jobs()       { return fetchRSSFeed("https://web3jobs.com/feed/", "Web3Jobs"); }
+async function fetchReactJobs()      { return fetchRSSFeed("https://reactjobs.us/feed/", "ReactJobs"); }
+async function fetchNodeJobs()       { return fetchRSSFeed("https://nodejobs.io/feed/", "NodeJobs"); }
+
+async function fetchGolangCafe(): Promise<NormalizedJob[]> {
+  const res = await axios.get<any[]>("https://golang.cafe/api/jobs", { timeout: 8000 });
+  const jobs: any[] = Array.isArray(res.data) ? res.data : [];
+  return jobs.slice(0, 50).map((j: any, i: number): NormalizedJob => ({
+    id: `gc-${i}-${Date.now()}`,
+    title: j.jobtitle ?? j.title ?? "",
+    company: j.company ?? "",
+    companyLogo: null,
+    salary: j.salary ?? "Competitive",
+    location: j.location ?? "Remote",
+    jobType: "full_time",
+    category: "Engineering",
+    description: j.description ?? null,
+    applyUrl: j.url ?? "https://golang.cafe",
+    source: "GolangCafe",
+    sourceUrl: j.url ?? "https://golang.cafe",
+    isNew: isNewJob(j.created_at),
+    affiliateCta: null,
+    postedAt: j.created_at ?? new Date().toISOString(),
+  }));
 }
 
-async function fetchRemoteCo(): Promise<NormalizedJob[]> {
-  return fetchWordPressRSS("https://remote.co/remote-jobs/feed/", "RemoteCo");
+async function fetchGraphQLJobs(): Promise<NormalizedJob[]> {
+  const res = await axios.get<any>("https://graphql.jobs/r/api", { timeout: 8000 });
+  const jobs: any[] = Array.isArray(res.data) ? res.data : (res.data?.jobs ?? []);
+  return jobs.slice(0, 50).map((j: any, i: number): NormalizedJob => ({
+    id: `gql-${i}-${Date.now()}`,
+    title: j.title ?? "",
+    company: j.company?.name ?? j.company ?? "",
+    companyLogo: null,
+    salary: "Competitive",
+    location: j.locationNames?.join(", ") ?? j.location ?? "Remote",
+    jobType: "full_time",
+    category: "Engineering",
+    description: j.description ?? null,
+    applyUrl: j.applyUrl ?? j.url ?? "https://graphql.jobs",
+    source: "GraphQLJobs",
+    sourceUrl: j.url ?? "https://graphql.jobs",
+    isNew: isNewJob(j.createdAt),
+    affiliateCta: null,
+    postedAt: j.createdAt ?? new Date().toISOString(),
+  }));
 }
 
-async function fetchDailyRemote(): Promise<NormalizedJob[]> {
-  return fetchWordPressRSS("https://dailyremote.com/rss", "DailyRemote");
-}
-
-async function fetchNodesk(): Promise<NormalizedJob[]> {
-  return fetchWordPressRSS("https://nodesk.co/remote-jobs/rss.xml", "Nodesk");
-}
-
-async function fetch4DayWeek(): Promise<NormalizedJob[]> {
-  return fetchWordPressRSS("https://4dayweek.io/jobs/rss", "4DayWeek");
+async function fetchVueJobs(): Promise<NormalizedJob[]> {
+  const res = await axios.get<any>("https://vuejobs.com/feed.json", { timeout: 8000 });
+  const items: any[] = res.data?.items ?? (Array.isArray(res.data) ? res.data : []);
+  return items.slice(0, 50).map((j: any, i: number): NormalizedJob => ({
+    id: `vue-${i}-${Date.now()}`,
+    title: j.title ?? "",
+    company: j.author?.name ?? "",
+    companyLogo: null,
+    salary: "Competitive",
+    location: "Remote",
+    jobType: "full_time",
+    category: "Engineering",
+    description: j.content_text ?? j.summary ?? null,
+    applyUrl: j.url ?? "https://vuejobs.com",
+    source: "VueJobs",
+    sourceUrl: j.url ?? "https://vuejobs.com",
+    isNew: isNewJob(j.date_published),
+    affiliateCta: null,
+    postedAt: j.date_published ?? new Date().toISOString(),
+  }));
 }
 
 function isNewJob(dateStr?: string): boolean {

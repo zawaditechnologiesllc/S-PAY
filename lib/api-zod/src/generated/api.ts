@@ -369,7 +369,7 @@ export const GetJobsResponse = zod.object({
   "category": zod.string().optional(),
   "description": zod.string().optional(),
   "applyUrl": zod.string().optional(),
-  "source": zod.enum(['Himalayas', 'RemoteOK', 'Remotive', 'Arbeitnow', 'TheMuse', 'WeWorkRemotely']),
+  "source": zod.enum(['Himalayas', 'RemoteOK', 'Remotive', 'Arbeitnow', 'TheMuse', 'WeWorkRemotely', 'Jobicy', 'WorkingNomads', 'Jobspresso', 'RemoteCo', 'DailyRemote', 'Nodesk', '4DayWeek', 'AuthenticJobs', 'SmashingMagazine', 'WPHired', 'LaraJobs', 'JustRemote', 'SkipTheDrive', 'SupportDriven', 'EuropeRemotely', 'Pangian', 'RemoteLeaf', 'GoRemote', 'ProBlogger', 'CrunchBoard', 'VentureLoop', 'StartupJobs', 'HNJobs', 'PythonOrg', 'DjangoJobs', 'RailsJobs', 'Coroflot', 'Krop', 'JSRemotely', 'AIJobs', 'CryptoJobsList', 'Web3Career', 'FlutterJobs', 'GolangCafe', 'GraphQLJobs', 'Jobgether', 'DynamiteJobs', 'TechCareers', 'DataScienceJobs', 'MLRemote', 'Climatebase', 'DevOpsCafe', 'SecurityJobs', 'CloudJobs', 'SalesGravy', 'GoodGigs', 'JobsinTech', 'AndroidDev', 'iOSJobs', 'BlockchainJobs', 'Web3Jobs', 'ReactJobs', 'NodeJobs', 'VueJobs']),
   "sourceUrl": zod.string().optional(),
   "isNew": zod.boolean(),
   "affiliateCta": zod.object({
@@ -404,7 +404,7 @@ export const GetJobByIdResponse = zod.object({
   "category": zod.string().optional(),
   "description": zod.string().optional(),
   "applyUrl": zod.string().optional(),
-  "source": zod.enum(['Himalayas', 'RemoteOK', 'Remotive', 'Arbeitnow', 'TheMuse', 'WeWorkRemotely']),
+  "source": zod.enum(['Himalayas', 'RemoteOK', 'Remotive', 'Arbeitnow', 'TheMuse', 'WeWorkRemotely', 'Jobicy', 'WorkingNomads', 'Jobspresso', 'RemoteCo', 'DailyRemote', 'Nodesk', '4DayWeek', 'AuthenticJobs', 'SmashingMagazine', 'WPHired', 'LaraJobs', 'JustRemote', 'SkipTheDrive', 'SupportDriven', 'EuropeRemotely', 'Pangian', 'RemoteLeaf', 'GoRemote', 'ProBlogger', 'CrunchBoard', 'VentureLoop', 'StartupJobs', 'HNJobs', 'PythonOrg', 'DjangoJobs', 'RailsJobs', 'Coroflot', 'Krop', 'JSRemotely', 'AIJobs', 'CryptoJobsList', 'Web3Career', 'FlutterJobs', 'GolangCafe', 'GraphQLJobs', 'Jobgether', 'DynamiteJobs', 'TechCareers', 'DataScienceJobs', 'MLRemote', 'Climatebase', 'DevOpsCafe', 'SecurityJobs', 'CloudJobs', 'SalesGravy', 'GoodGigs', 'JobsinTech', 'AndroidDev', 'iOSJobs', 'BlockchainJobs', 'Web3Jobs', 'ReactJobs', 'NodeJobs', 'VueJobs']),
   "sourceUrl": zod.string().optional(),
   "isNew": zod.boolean(),
   "affiliateCta": zod.object({
