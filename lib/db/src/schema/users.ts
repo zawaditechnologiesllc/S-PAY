@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -13,6 +13,7 @@ export const usersTable = pgTable("users", {
   avatarUrl: text("avatar_url"),
   phoneNumber: text("phone_number"),
   kycStatus: kycStatusEnum("kyc_status").default("pending").notNull(),
+  isAdmin: boolean("is_admin").default(false).notNull(),
   celoWalletAddress: text("celo_wallet_address"),
   noahCustomerId: text("noah_customer_id"),
   stripeCardholderId: text("stripe_cardholder_id"),
