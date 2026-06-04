@@ -13,6 +13,7 @@ export const usersTable = pgTable("users", {
   avatarUrl: text("avatar_url"),
   phoneNumber: text("phone_number"),
   kycStatus: kycStatusEnum("kyc_status").default("pending").notNull(),
+  celoWalletAddress: text("celo_wallet_address"),
   noahCustomerId: text("noah_customer_id"),
   stripeCardholderId: text("stripe_cardholder_id"),
   stripeCardId: text("stripe_card_id"),

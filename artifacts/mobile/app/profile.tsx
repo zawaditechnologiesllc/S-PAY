@@ -92,6 +92,24 @@ export default function ProfileScreen() {
             ))}
           </View>
 
+          {/* Celo Wallet */}
+          {user.celoWalletAddress && (
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Web3 Identity</Text>
+              <View style={[styles.infoRow, { borderBottomColor: "transparent" }]}>
+                <View style={[styles.infoIcon, { backgroundColor: "#F0FDF4" }]}>
+                  <Feather name="link" size={15} color="#22C55E" />
+                </View>
+                <View style={styles.infoText}>
+                  <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Celo Wallet</Text>
+                  <Text style={[styles.infoValue, { color: colors.foreground, fontSize: 12 }]} numberOfLines={1}>
+                    {user.celoWalletAddress}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Sign Out */}
           <TouchableOpacity
             style={[styles.signOutBtn, { borderColor: "#EF4444" }]}

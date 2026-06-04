@@ -48,6 +48,7 @@ export const LoginResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
+  "celoWalletAddress": zod.string().optional(),
   "createdAt": zod.coerce.date()
 })
 })
@@ -64,6 +65,7 @@ export const GetMeResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
+  "celoWalletAddress": zod.string().optional(),
   "createdAt": zod.coerce.date()
 })
 

@@ -27,6 +27,7 @@ function userResponse(u: typeof usersTable.$inferSelect) {
     avatarUrl: u.avatarUrl ?? null,
     kycStatus: u.kycStatus,
     isAdmin: ADMIN_EMAILS.includes(u.email.toLowerCase()),
+    celoWalletAddress: u.celoWalletAddress ?? null,
     createdAt: u.createdAt.toISOString(),
   };
 }
