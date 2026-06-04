@@ -12,7 +12,7 @@ export interface NormalizedJob {
   category: string;
   description: string | null;
   applyUrl: string;
-  source: "Himalayas" | "RemoteOK" | "Remotive" | "Arbeitnow" | "TheMuse" | "WeWorkRemotely" | "Jobicy" | "WorkingNomads" | "Jobspresso" | "RemoteCo";
+  source: "Himalayas" | "RemoteOK" | "Remotive" | "Arbeitnow" | "TheMuse" | "WeWorkRemotely" | "Jobicy" | "WorkingNomads" | "Jobspresso" | "RemoteCo" | "DailyRemote" | "Nodesk" | "4DayWeek";
   sourceUrl: string;
   isNew: boolean;
   affiliateCta: { label: string; url: string } | null;
@@ -70,10 +70,13 @@ export async function fetchJobs(keyword?: string, category?: string, limit = 30)
     fetchWorkingNomads(keyword),
     fetchJobspresso(),
     fetchRemoteCo(),
+    fetchDailyRemote(),
+    fetchNodesk(),
+    fetch4DayWeek(),
   ]);
 
   const sources = results.map((r, i) => {
-    const names = ["Himalayas","RemoteOK","Remotive","Arbeitnow","TheMuse","WeWorkRemotely","Jobicy","WorkingNomads","Jobspresso","RemoteCo"];
+    const names = ["Himalayas","RemoteOK","Remotive","Arbeitnow","TheMuse","WeWorkRemotely","Jobicy","WorkingNomads","Jobspresso","RemoteCo","DailyRemote","Nodesk","4DayWeek"];
     if (r.status === "rejected") logger.warn({ err: r.reason }, `${names[i]} fetch failed`);
     return r.status === "fulfilled" ? r.value : [];
   });
@@ -193,14 +196,25 @@ async function fetchRemotive(keyword?: string, category?: string): Promise<Norma
 }
 
 async function fetchArbeitnow(keyword?: string): Promise<NormalizedJob[]> {
-  const url = keyword
+  const base = keyword
     ? `https://arbeitnow.com/api/job-board-api?search=${encodeURIComponent(keyword)}`
     : "https://arbeitnow.com/api/job-board-api";
-  const res = await axios.get(url, { timeout: 8000 });
-  const jobs: any[] = res.data?.data ?? [];
-  return jobs
-    .filter((j: any) => j.remote)
-    .slice(0, 150)
+  const pages = await Promise.allSettled([
+    axios.get(base, { timeout: 8000 }),
+    axios.get(`${base}${keyword ? "&" : "?"}page=2`, { timeout: 8000 }),
+    axios.get(`${base}${keyword ? "&" : "?"}page=3`, { timeout: 8000 }),
+  ]);
+  const allJobs: any[] = pages.flatMap((p) =>
+    p.status === "fulfilled" ? (p.value.data?.data ?? []) : []
+  );
+  const seen = new Set<string>();
+  return allJobs
+    .filter((j: any) => {
+      if (!j.remote) return false;
+      if (seen.has(j.slug)) return false;
+      seen.add(j.slug);
+      return true;
+    })
     .map((j: any): NormalizedJob => ({
       id: `an-${j.slug}`,
       title: j.title ?? "",
@@ -385,6 +399,18 @@ async function fetchJobspresso(): Promise<NormalizedJob[]> {
 
 async function fetchRemoteCo(): Promise<NormalizedJob[]> {
   return fetchWordPressRSS("https://remote.co/remote-jobs/feed/", "RemoteCo");
+}
+
+async function fetchDailyRemote(): Promise<NormalizedJob[]> {
+  return fetchWordPressRSS("https://dailyremote.com/rss", "DailyRemote");
+}
+
+async function fetchNodesk(): Promise<NormalizedJob[]> {
+  return fetchWordPressRSS("https://nodesk.co/remote-jobs/rss.xml", "Nodesk");
+}
+
+async function fetch4DayWeek(): Promise<NormalizedJob[]> {
+  return fetchWordPressRSS("https://4dayweek.io/jobs/rss", "4DayWeek");
 }
 
 function isNewJob(dateStr?: string): boolean {

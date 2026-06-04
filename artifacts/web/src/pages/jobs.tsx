@@ -63,6 +63,9 @@ export default function Jobs() {
     WorkingNomads: "bg-cyan-50 text-cyan-700 border-cyan-100",
     Jobspresso: "bg-lime-50 text-lime-700 border-lime-100",
     RemoteCo: "bg-yellow-50 text-yellow-700 border-yellow-100",
+    DailyRemote: "bg-red-50 text-red-700 border-red-100",
+    Nodesk: "bg-slate-50 text-slate-700 border-slate-100",
+    "4DayWeek": "bg-emerald-50 text-emerald-700 border-emerald-100",
   };
 
   return (
