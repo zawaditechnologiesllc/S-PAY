@@ -1,8 +1,9 @@
 {
-  "installCommand": "pnpm install",
+  "installCommand": "npm install -g pnpm@10.33.0 && pnpm install",
   "buildCommand": "pnpm -w run typecheck:libs && pnpm --filter @workspace/web run build",
   "outputDirectory": "artifacts/web/dist/public",
   "framework": null,
+  "nodeVersion": "20.x",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
