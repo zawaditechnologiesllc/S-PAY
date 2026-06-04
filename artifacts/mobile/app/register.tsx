@@ -118,6 +118,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: { alignItems: "center", paddingHorizontal: 20, gap: 20 },
   hero: { width: "100%", borderRadius: 24, alignItems: "center", padding: 28, gap: 8 },
+  logoImage: { width: 56, height: 56, borderRadius: 16 },
   logoInner: { width: 56, height: 56, borderRadius: 16, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
   logoS: { fontSize: 30, fontFamily: "Inter_700Bold", color: "#4DC9EE" },
   heroTitle: { color: "#fff", fontSize: 22, fontFamily: "Inter_700Bold" },
