@@ -15,7 +15,7 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gray-50 flex flex-col md:flex-row pb-16 md:pb-0">
+    <div className="min-h-[100dvh] bg-gray-50 flex flex-col md:flex-row pb-16 md:pb-0 overflow-x-hidden">
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-[#1A2B4A] fixed h-full z-10">
@@ -73,7 +73,7 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
         <div className="relative z-10 p-4 md:p-8 max-w-5xl mx-auto space-y-6">
           {/* Top bar */}
           <header className="flex justify-between items-center pt-2">
-            <h1 className="text-2xl font-bold text-white">{title ?? "Dashboard"}</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-white truncate">{title ?? "Dashboard"}</h1>
             <div className="flex items-center gap-2">
               <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors">
                 <Bell size={19} />
@@ -91,7 +91,7 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center px-1 py-2 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center px-1 h-16 z-50 safe-area-pb">
         <MobileNavLink href="/dashboard" icon={<LayoutDashboard size={22} />} label="Home" />
         <MobileNavLink href="/wallet" icon={<Wallet size={22} />} label="Wallet" />
         <MobileNavLink href="/banking" icon={<Landmark size={22} />} label="Banking" />
@@ -125,12 +125,12 @@ function MobileNavLink({ href, icon, label }: { href: string; icon: React.ReactN
   return (
     <Link href={href}>
       <div
-        className={`flex flex-col items-center gap-0.5 px-3 py-1 cursor-pointer transition-colors ${
+        className={`flex flex-col items-center gap-0.5 px-3 py-2 min-w-[52px] cursor-pointer transition-colors ${
           active ? "text-[#4DC9EE]" : "text-gray-400"
         }`}
       >
         {icon}
-        <span className="text-[9px] font-semibold">{label}</span>
+        <span className="text-[10px] font-semibold">{label}</span>
       </div>
     </Link>
   );

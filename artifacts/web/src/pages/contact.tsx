@@ -30,7 +30,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   return (
     <div className="border border-gray-100 rounded-2xl overflow-hidden">
       <button
-        className="w-full flex items-center justify-between px-6 py-5 text-left bg-white hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-4 md:px-6 py-4 md:py-5 text-left bg-white hover:bg-gray-50 transition-colors"
         onClick={() => setOpen(!open)}
       >
         <span className="font-semibold text-[#1A2B4A] text-sm pr-4">{q}</span>
@@ -51,23 +51,23 @@ export default function Contact() {
 
       {/* Hero */}
       <section className="pt-16 bg-gradient-to-br from-[#1A2B4A] via-[#1e3560] to-[#0d1f38]">
-        <div className="max-w-4xl mx-auto px-6 pt-20 pb-20 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 text-[#A8DEFF] text-xs font-semibold px-4 py-1.5 rounded-full mb-6 border border-white/20">
+        <div className="max-w-4xl mx-auto px-5 md:px-6 pt-14 pb-14 md:pt-20 md:pb-20 text-center">
+          <div className="inline-flex items-center gap-2 bg-white/10 text-[#A8DEFF] text-xs font-semibold px-4 py-1.5 rounded-full mb-5 md:mb-6 border border-white/20">
             <Mail size={12} /> We're here to help
           </div>
-          <h1 className="text-5xl font-black text-white mb-5 leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 md:mb-5 leading-tight">
             Get in Touch
           </h1>
-          <p className="text-xl text-blue-200 max-w-xl mx-auto leading-relaxed">
+          <p className="text-base md:text-xl text-blue-200 max-w-xl mx-auto leading-relaxed">
             Have a question, partnership idea, or legal inquiry? Reach the right team directly.
           </p>
         </div>
       </section>
 
       {/* Contact cards */}
-      <section className="py-20 px-6 bg-white">
+      <section className="py-12 md:py-20 px-5 md:px-6 bg-white">
         <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             {[
               {
                 icon: <Clock size={26} />,
@@ -117,11 +117,11 @@ export default function Contact() {
       </section>
 
       {/* FAQ */}
-      <section className="py-20 px-6 bg-gray-50">
+      <section className="py-12 md:py-20 px-5 md:px-6 bg-gray-50">
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8 md:mb-12">
             <span className="text-[#4DC9EE] font-bold text-sm uppercase tracking-widest">FAQ</span>
-            <h2 className="text-4xl font-black text-[#1A2B4A] mt-3 mb-4">Frequently asked questions</h2>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#1A2B4A] mt-3 mb-4">Frequently asked questions</h2>
             <p className="text-gray-500">Quick answers to the most common questions.</p>
           </div>
           <div className="space-y-3">

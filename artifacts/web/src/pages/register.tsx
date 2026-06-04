@@ -140,7 +140,7 @@ export default function Register() {
 
           {/* Form card */}
           <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-            <div className="px-8 pt-8 pb-2">
+            <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-2">
               <h1 className="text-2xl font-black text-[#1A2B4A] mb-1">Create your account</h1>
               <p className="text-sm text-gray-500 mb-7">Free forever · No credit card needed</p>
 

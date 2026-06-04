@@ -44,7 +44,7 @@ export default function Jobs() {
   const queryParams = {
     keyword: debouncedKeyword || undefined,
     category: selectedCategory !== "All" ? CATEGORY_MAP[selectedCategory] : undefined,
-    limit: 50,
+    limit: 200,
   };
 
   const { data: jobsData, isLoading, isError, refetch } = useGetJobs(
@@ -56,6 +56,13 @@ export default function Jobs() {
     Himalayas: "bg-purple-50 text-purple-700 border-purple-100",
     RemoteOK: "bg-green-50 text-green-700 border-green-100",
     Remotive: "bg-blue-50 text-blue-700 border-blue-100",
+    Arbeitnow: "bg-orange-50 text-orange-700 border-orange-100",
+    TheMuse: "bg-pink-50 text-pink-700 border-pink-100",
+    WeWorkRemotely: "bg-teal-50 text-teal-700 border-teal-100",
+    Jobicy: "bg-indigo-50 text-indigo-700 border-indigo-100",
+    WorkingNomads: "bg-cyan-50 text-cyan-700 border-cyan-100",
+    Jobspresso: "bg-lime-50 text-lime-700 border-lime-100",
+    RemoteCo: "bg-yellow-50 text-yellow-700 border-yellow-100",
   };
 
   return (

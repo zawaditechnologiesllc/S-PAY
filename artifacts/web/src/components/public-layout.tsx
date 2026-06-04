@@ -78,17 +78,17 @@ export function PublicNav({ active }: PublicNavProps) {
       {/* Mobile slide-down menu */}
       {mobileOpen && (
         <div className="md:hidden bg-white border-b border-gray-100 shadow-lg">
-          <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col gap-1">
+          <div className="max-w-6xl mx-auto px-6 py-2 flex flex-col">
             <a
               href="/#features"
-              className="py-2.5 text-sm font-medium text-gray-700 hover:text-[#4DC9EE] transition-colors border-b border-gray-50"
+              className="py-3.5 text-base font-medium text-gray-800 hover:text-[#4DC9EE] transition-colors border-b border-gray-100 active:bg-gray-50"
               onClick={() => setMobileOpen(false)}
             >
               Features
             </a>
             <Link href="/jobs">
               <span
-                className="block py-2.5 text-sm font-medium text-gray-700 hover:text-[#4DC9EE] transition-colors border-b border-gray-50 cursor-pointer"
+                className="block py-3.5 text-base font-medium text-gray-800 hover:text-[#4DC9EE] transition-colors border-b border-gray-100 cursor-pointer active:bg-gray-50"
                 onClick={() => setMobileOpen(false)}
               >
                 Jobs
@@ -96,7 +96,7 @@ export function PublicNav({ active }: PublicNavProps) {
             </Link>
             <Link href="/about">
               <span
-                className="block py-2.5 text-sm font-medium text-gray-700 hover:text-[#4DC9EE] transition-colors border-b border-gray-50 cursor-pointer"
+                className="block py-3.5 text-base font-medium text-gray-800 hover:text-[#4DC9EE] transition-colors border-b border-gray-100 cursor-pointer active:bg-gray-50"
                 onClick={() => setMobileOpen(false)}
               >
                 About
@@ -104,7 +104,7 @@ export function PublicNav({ active }: PublicNavProps) {
             </Link>
             <Link href="/contact">
               <span
-                className="block py-2.5 text-sm font-medium text-gray-700 hover:text-[#4DC9EE] transition-colors border-b border-gray-50 cursor-pointer"
+                className="block py-3.5 text-base font-medium text-gray-800 hover:text-[#4DC9EE] transition-colors border-b border-gray-100 cursor-pointer active:bg-gray-50"
                 onClick={() => setMobileOpen(false)}
               >
                 Contact
@@ -112,10 +112,10 @@ export function PublicNav({ active }: PublicNavProps) {
             </Link>
             <Link href="/login">
               <span
-                className="block py-2.5 text-sm font-medium text-gray-700 hover:text-[#4DC9EE] transition-colors cursor-pointer"
+                className="block py-3.5 text-base font-medium text-[#4DC9EE] font-semibold cursor-pointer active:bg-gray-50"
                 onClick={() => setMobileOpen(false)}
               >
-                Sign in
+                Sign in →
               </span>
             </Link>
           </div>
@@ -129,9 +129,9 @@ export function PublicFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="bg-[#1A2B4A] py-16 px-6">
+    <footer className="bg-[#1A2B4A] py-12 md:py-16 px-5 md:px-6">
       <div className="max-w-6xl mx-auto">
-        <div className="grid md:grid-cols-4 gap-10 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10 mb-10 md:mb-12">
           {/* Brand col */}
           <div>
             <div className="flex items-center gap-2.5 mb-4">
@@ -279,12 +279,12 @@ export function PublicFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-blue-400 text-sm">
+        <div className="border-t border-white/10 pt-6 md:pt-8 flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4 text-center md:text-left">
+          <p className="text-blue-400 text-xs md:text-sm">
             © {year} S-PAY · Zawadi Technologies LLC · All rights reserved
           </p>
-          <div className="flex items-center gap-2 text-blue-400 text-xs">
-            <Globe size={13} />
+          <div className="flex items-center gap-1.5 text-blue-400 text-xs">
+            <Globe size={12} className="flex-shrink-0" />
             <span>For remote workers in Africa, Southeast Asia &amp; Latin America</span>
           </div>
         </div>

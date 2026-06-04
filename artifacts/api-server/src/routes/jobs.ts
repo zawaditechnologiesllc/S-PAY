@@ -10,7 +10,7 @@ router.get("/jobs", async (req, res) => {
     const keyword = req.query.keyword as string | undefined;
     const category = req.query.category as string | undefined;
     const limit = req.query.limit as string | undefined;
-    const result = await fetchJobs(keyword, category, Number(limit) || 30);
+    const result = await fetchJobs(keyword, category, Number(limit) || 200);
     result.jobs.forEach((j) => jobDetailCache.set(j.id, j));
     res.json(result);
   } catch (err) {
@@ -27,7 +27,7 @@ router.get("/jobs/:jobId", async (req, res) => {
     return;
   }
   try {
-    const result = await fetchJobs(undefined, undefined, 100);
+    const result = await fetchJobs(undefined, undefined, 500);
     const job = result.jobs.find((j) => j.id === jobId);
     if (!job) {
       res.status(404).json({ error: "not_found", message: "Job not found" });

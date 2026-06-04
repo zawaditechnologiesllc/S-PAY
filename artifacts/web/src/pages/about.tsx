@@ -107,7 +107,7 @@ export default function About() {
   return (
     <PublicLayout active="about">
       {/* ─── HERO ─── */}
-      <section className="pt-16 pb-24 relative overflow-hidden bg-gradient-to-br from-[#1A2B4A] via-[#1e3560] to-[#0d1f38]">
+      <section className="pt-16 pb-16 md:pb-24 relative overflow-hidden bg-gradient-to-br from-[#1A2B4A] via-[#1e3560] to-[#0d1f38]">
         <div
           className="absolute inset-0 opacity-20 pointer-events-none"
           style={{
@@ -115,27 +115,27 @@ export default function About() {
               "radial-gradient(circle at 15% 60%, #4DC9EE 0%, transparent 50%), radial-gradient(circle at 85% 15%, #A8DEFF 0%, transparent 50%)",
           }}
         />
-        <div className="relative max-w-4xl mx-auto px-6 pt-16 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 text-[#A8DEFF] text-xs font-semibold px-4 py-1.5 rounded-full mb-8 border border-white/20">
+        <div className="relative max-w-4xl mx-auto px-5 md:px-6 pt-14 md:pt-16 text-center">
+          <div className="inline-flex items-center gap-2 bg-white/10 text-[#A8DEFF] text-xs font-semibold px-4 py-1.5 rounded-full mb-6 md:mb-8 border border-white/20">
             <Globe size={12} /> Our story
           </div>
-          <h1 className="text-5xl md:text-6xl font-black text-white leading-tight mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-5 md:mb-6">
             We believe everyone deserves{" "}
             <span className="text-[#4DC9EE]">access to global financial tools.</span>
           </h1>
-          <p className="text-xl text-blue-200 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base md:text-xl text-blue-200 max-w-2xl mx-auto leading-relaxed">
             S-PAY was built for the billions of talented people who earn income across borders but are locked out of the financial infrastructure that makes it simple.
           </p>
         </div>
       </section>
 
       {/* ─── MISSION ─── */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-12 md:py-24 px-5 md:px-6 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
             <div>
               <span className="text-[#4DC9EE] font-bold text-sm uppercase tracking-widest">Our Mission</span>
-              <h2 className="text-4xl font-black text-[#1A2B4A] mt-3 mb-6 leading-tight">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#1A2B4A] mt-3 mb-5 md:mb-6 leading-tight">
                 Eliminate the gap between where remote workers live and where they get paid.
               </h2>
               <p className="text-gray-500 text-lg leading-relaxed mb-5">
@@ -169,21 +169,21 @@ export default function About() {
       </section>
 
       {/* ─── OUR STORY / TIMELINE ─── */}
-      <section className="py-20 px-6 bg-gray-50">
+      <section className="py-12 md:py-20 px-5 md:px-6 bg-gray-50">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-14">
+          <div className="text-center mb-10 md:mb-14">
             <span className="text-[#4DC9EE] font-bold text-sm uppercase tracking-widest">Our Story</span>
-            <h2 className="text-4xl font-black text-[#1A2B4A] mt-3 mb-4">How S-PAY came to be.</h2>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#1A2B4A] mt-3 mb-4">How S-PAY came to be.</h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto leading-relaxed">
               S-PAY was born in 2016 — built by a team of full-stack fintech and crypto engineers who were tired of watching PayPal block legitimate remote workers and watching talented people lose 5–10% of every payment to fees. We built the alternative.
             </p>
           </div>
           <div className="relative">
-            <div className="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-[#4DC9EE] via-[#4DC9EE]/50 to-transparent" />
-            <div className="space-y-10">
+            <div className="absolute left-5 md:left-8 top-0 bottom-0 w-px bg-gradient-to-b from-[#4DC9EE] via-[#4DC9EE]/50 to-transparent" />
+            <div className="space-y-6 md:space-y-10">
               {TIMELINE.map((t, i) => (
-                <div key={i} className="flex gap-8 relative">
-                  <div className="flex-shrink-0 w-16 flex flex-col items-center">
+                <div key={i} className="flex gap-4 md:gap-8 relative">
+                  <div className="flex-shrink-0 w-10 md:w-16 flex flex-col items-center">
                     <div className="w-4 h-4 rounded-full bg-[#4DC9EE] border-2 border-white shadow-md mt-1.5 relative z-10" />
                   </div>
                   <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex-1 -mt-1">

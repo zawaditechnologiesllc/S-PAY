@@ -12,7 +12,7 @@ export interface NormalizedJob {
   category: string;
   description: string | null;
   applyUrl: string;
-  source: "Himalayas" | "RemoteOK" | "Remotive" | "Arbeitnow" | "TheMuse" | "WeWorkRemotely";
+  source: "Himalayas" | "RemoteOK" | "Remotive" | "Arbeitnow" | "TheMuse" | "WeWorkRemotely" | "Jobicy" | "WorkingNomads" | "Jobspresso" | "RemoteCo";
   sourceUrl: string;
   isNew: boolean;
   affiliateCta: { label: string; url: string } | null;
@@ -66,25 +66,20 @@ export async function fetchJobs(keyword?: string, category?: string, limit = 30)
     fetchArbeitnow(keyword),
     fetchTheMuse(keyword),
     fetchWeWorkRemotely(keyword),
+    fetchJobicy(keyword),
+    fetchWorkingNomads(keyword),
+    fetchJobspresso(),
+    fetchRemoteCo(),
   ]);
 
-  const [r0, r1, r2, r3, r4, r5] = results;
-  const himalayas     = r0.status === "fulfilled" ? r0.value : [];
-  const remoteok      = r1.status === "fulfilled" ? r1.value : [];
-  const remotive      = r2.status === "fulfilled" ? r2.value : [];
-  const arbeitnow     = r3.status === "fulfilled" ? r3.value : [];
-  const themuse       = r4.status === "fulfilled" ? r4.value : [];
-  const weworkremotely = r5.status === "fulfilled" ? r5.value : [];
-
-  if (r0.status === "rejected") logger.warn({ err: r0.reason }, "Himalayas fetch failed");
-  if (r1.status === "rejected") logger.warn({ err: r1.reason }, "RemoteOK fetch failed");
-  if (r2.status === "rejected") logger.warn({ err: r2.reason }, "Remotive fetch failed");
-  if (r3.status === "rejected") logger.warn({ err: r3.reason }, "Arbeitnow fetch failed");
-  if (r4.status === "rejected") logger.warn({ err: r4.reason }, "TheMuse fetch failed");
-  if (r5.status === "rejected") logger.warn({ err: r5.reason }, "WeWorkRemotely fetch failed");
+  const sources = results.map((r, i) => {
+    const names = ["Himalayas","RemoteOK","Remotive","Arbeitnow","TheMuse","WeWorkRemotely","Jobicy","WorkingNomads","Jobspresso","RemoteCo"];
+    if (r.status === "rejected") logger.warn({ err: r.reason }, `${names[i]} fetch failed`);
+    return r.status === "fulfilled" ? r.value : [];
+  });
 
   // Interleave sources so each appears in the feed, then deduplicate by title+company
-  const all = interleave([himalayas, remoteok, remotive, arbeitnow, themuse, weworkremotely]);
+  const all = interleave(sources);
 
   const seen = new Set<string>();
   let deduped = all
@@ -121,7 +116,7 @@ function interleave(arrays: NormalizedJob[][]): NormalizedJob[] {
 }
 
 async function fetchHimalayas(keyword?: string): Promise<NormalizedJob[]> {
-  const url = `https://himalayas.app/jobs/api/search?search=${encodeURIComponent(keyword ?? "")}&limit=20`;
+  const url = `https://himalayas.app/jobs/api/search?search=${encodeURIComponent(keyword ?? "")}&limit=75`;
   const res = await axios.get(url, { timeout: 8000 });
   const jobs = res.data?.jobs ?? [];
   return jobs.map((j: any): NormalizedJob => ({
@@ -152,7 +147,7 @@ async function fetchRemoteOK(keyword?: string): Promise<NormalizedJob[]> {
   const jobs = all.slice(1); // first item is metadata
   return jobs
     .filter((j: any) => !keyword || JSON.stringify(j).toLowerCase().includes(keyword.toLowerCase()))
-    .slice(0, 20)
+    .slice(0, 100)
     .map((j: any): NormalizedJob => ({
       id: `r-${j.id}`,
       title: j.position ?? "",
@@ -173,7 +168,7 @@ async function fetchRemoteOK(keyword?: string): Promise<NormalizedJob[]> {
 }
 
 async function fetchRemotive(keyword?: string, category?: string): Promise<NormalizedJob[]> {
-  const params: Record<string, string> = { limit: "20" };
+  const params: Record<string, string> = { limit: "100" };
   if (keyword) params.search = keyword;
   if (category) params.category = category;
   const res = await axios.get("https://remotive.com/api/remote-jobs", { params, timeout: 8000 });
@@ -205,7 +200,7 @@ async function fetchArbeitnow(keyword?: string): Promise<NormalizedJob[]> {
   const jobs: any[] = res.data?.data ?? [];
   return jobs
     .filter((j: any) => j.remote)
-    .slice(0, 20)
+    .slice(0, 150)
     .map((j: any): NormalizedJob => ({
       id: `an-${j.slug}`,
       title: j.title ?? "",
@@ -232,7 +227,7 @@ async function fetchTheMuse(keyword?: string): Promise<NormalizedJob[]> {
   const jobs: any[] = res.data?.results ?? [];
   return jobs
     .filter((j: any) => j.locations?.some((l: any) => /remote/i.test(l.name ?? "")))
-    .slice(0, 20)
+    .slice(0, 75)
     .map((j: any): NormalizedJob => ({
       id: `tm-${j.id}`,
       title: j.name ?? "",
@@ -263,7 +258,7 @@ async function fetchWeWorkRemotely(keyword?: string): Promise<NormalizedJob[]> {
     responseType: "text",
   });
   const xml = res.data;
-  const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 20);
+  const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 60);
   return items.map((m, i): NormalizedJob => {
     const inner = m[1];
     const get = (tag: string) => inner.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`))?.[1]?.trim()
@@ -291,6 +286,105 @@ async function fetchWeWorkRemotely(keyword?: string): Promise<NormalizedJob[]> {
       postedAt: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
     };
   });
+}
+
+async function fetchJobicy(keyword?: string): Promise<NormalizedJob[]> {
+  const params: Record<string, string | number> = { count: 100 };
+  if (keyword) params.search = keyword;
+  const res = await axios.get("https://jobicy.com/api/v2/remote-jobs", { params, timeout: 8000 });
+  const jobs: any[] = res.data?.jobs ?? [];
+  return jobs.slice(0, 100).map((j: any): NormalizedJob => ({
+    id: `jcy-${j.id ?? j.jobSlug}`,
+    title: j.jobTitle ?? "",
+    company: j.companyName ?? "",
+    companyLogo: j.companyLogo ?? null,
+    salary: j.annualSalaryMin && j.annualSalaryMax
+      ? `$${Math.round(j.annualSalaryMin / 1000)}k–$${Math.round(j.annualSalaryMax / 1000)}k`
+      : "Competitive",
+    location: j.jobGeo ?? "Worldwide",
+    jobType: (j.jobType ?? "full_time").toLowerCase().replace(/[^a-z]/g, "_"),
+    category: j.jobIndustry?.[0] ?? "Technology",
+    description: j.jobExcerpt ?? null,
+    applyUrl: j.url ?? "",
+    source: "Jobicy",
+    sourceUrl: j.url ?? "https://jobicy.com",
+    isNew: isNewJob(j.pubDate),
+    affiliateCta: null,
+    postedAt: j.pubDate ?? new Date().toISOString(),
+  }));
+}
+
+async function fetchWorkingNomads(keyword?: string): Promise<NormalizedJob[]> {
+  const res = await axios.get("https://www.workingnomads.com/api/exposed_jobs/", {
+    timeout: 8000,
+    params: keyword ? { q: keyword } : {},
+  });
+  const jobs: any[] = Array.isArray(res.data) ? res.data : [];
+  return jobs.slice(0, 100).map((j: any): NormalizedJob => ({
+    id: `wn-${j.id}`,
+    title: j.title ?? "",
+    company: j.company ?? "",
+    companyLogo: j.company_logo_url ?? null,
+    salary: j.salary ?? "Competitive",
+    location: j.location ?? "Worldwide",
+    jobType: "full_time",
+    category: j.category ?? "Technology",
+    description: null,
+    applyUrl: j.url ?? "",
+    source: "WorkingNomads",
+    sourceUrl: j.url ?? "https://www.workingnomads.com",
+    isNew: isNewJob(j.pub_date),
+    affiliateCta: null,
+    postedAt: j.pub_date ?? new Date().toISOString(),
+  }));
+}
+
+async function fetchWordPressRSS(feedUrl: string, source: NormalizedJob["source"]): Promise<NormalizedJob[]> {
+  const res = await axios.get<string>(feedUrl, {
+    timeout: 8000,
+    headers: { "User-Agent": "S-PAY Jobs Aggregator/1.0", Accept: "application/rss+xml,text/xml" },
+    responseType: "text",
+  });
+  const xml = res.data;
+  const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 50);
+  const base = feedUrl.replace(/\/feed.*/, "").replace(/\/rss.*/, "");
+  return items.map((m, i): NormalizedJob => {
+    const inner = m[1];
+    const get = (tag: string) =>
+      inner.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`))?.[1]?.trim() ??
+      inner.match(new RegExp(`<${tag}[^>]*>([^<]*)<\\/${tag}>`))?.[1]?.trim() ??
+      "";
+    const rawTitle = get("title");
+    const title = rawTitle.replace(/^[^:]+:\s+/, "");
+    const company = rawTitle.includes(":") ? rawTitle.split(":")[0]?.trim() ?? "" : get("dc:creator") ?? "";
+    const link = get("link") || get("guid");
+    const pubDate = get("pubDate");
+    return {
+      id: `${source.toLowerCase()}-${i}-${Date.now()}`,
+      title,
+      company,
+      companyLogo: null,
+      salary: "Competitive",
+      location: "Remote",
+      jobType: "full_time",
+      category: get("category") || "Technology",
+      description: null,
+      applyUrl: link,
+      source,
+      sourceUrl: link || base,
+      isNew: isNewJob(pubDate),
+      affiliateCta: null,
+      postedAt: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString(),
+    };
+  });
+}
+
+async function fetchJobspresso(): Promise<NormalizedJob[]> {
+  return fetchWordPressRSS("https://jobspresso.co/feed/", "Jobspresso");
+}
+
+async function fetchRemoteCo(): Promise<NormalizedJob[]> {
+  return fetchWordPressRSS("https://remote.co/remote-jobs/feed/", "RemoteCo");
 }
 
 function isNewJob(dateStr?: string): boolean {

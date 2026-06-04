@@ -131,45 +131,45 @@ export default function Landing() {
           backgroundImage: "radial-gradient(circle at 15% 60%, rgba(77,201,238,0.25) 0%, transparent 45%), radial-gradient(circle at 85% 15%, rgba(168,222,255,0.15) 0%, transparent 45%)",
         }} />
 
-        <div className="relative max-w-6xl mx-auto px-6 pt-16 pb-0">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="relative max-w-6xl mx-auto px-5 md:px-6 pt-14 md:pt-16 pb-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
             {/* Left column */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-white/10 text-[#A8DEFF] text-xs font-semibold px-4 py-1.5 rounded-full mb-6 border border-white/20">
+              <div className="inline-flex items-center gap-2 bg-white/10 text-[#A8DEFF] text-xs font-semibold px-4 py-1.5 rounded-full mb-5 border border-white/20">
                 <Globe size={12} /> Built for remote workers
               </div>
-              <h1 className="text-5xl md:text-6xl font-black text-white leading-[1.08] mb-6">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-[1.1] mb-5 md:mb-6">
                 The money app that works{" "}
                 <span className="text-[#4DC9EE]">where you work.</span>
               </h1>
-              <p className="text-xl text-blue-200 mb-10 leading-relaxed max-w-lg">
+              <p className="text-base md:text-xl text-blue-200 mb-7 md:mb-10 leading-relaxed max-w-lg">
                 Virtual USD &amp; EUR bank accounts, a digital wallet, and instant local cash-outs — one app for remote workers everywhere.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 mb-12">
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-8 md:mb-12">
                 <Link href="/register">
-                  <button className="flex items-center gap-2 bg-[#4DC9EE] text-white font-bold px-8 py-4 rounded-2xl hover:bg-[#2E8FD6] transition-all text-base shadow-lg shadow-[#4DC9EE]/30">
-                    Open Free Account <ArrowRight size={18} />
+                  <button className="flex items-center justify-center gap-2 bg-[#4DC9EE] text-white font-bold px-7 py-3.5 md:px-8 md:py-4 rounded-2xl hover:bg-[#2E8FD6] transition-all text-sm md:text-base shadow-lg shadow-[#4DC9EE]/30 w-full sm:w-auto">
+                    Open Free Account <ArrowRight size={17} />
                   </button>
                 </Link>
                 <a href="#how">
-                  <button className="flex items-center gap-2 bg-white/10 text-white font-semibold px-8 py-4 rounded-2xl hover:bg-white/20 transition-all text-base border border-white/20">
+                  <button className="flex items-center justify-center gap-2 bg-white/10 text-white font-semibold px-7 py-3.5 md:px-8 md:py-4 rounded-2xl hover:bg-white/20 transition-all text-sm md:text-base border border-white/20 w-full sm:w-auto">
                     See How It Works
                   </button>
                 </a>
               </div>
               {/* Stats row */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pb-16 border-t border-white/10 pt-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 pb-10 md:pb-16 border-t border-white/10 pt-6 md:pt-8">
                 {STATS.map((s) => (
                   <div key={s.label}>
-                    <div className="text-2xl font-black text-white">{s.value}</div>
+                    <div className="text-xl md:text-2xl font-black text-white">{s.value}</div>
                     <div className="text-xs text-blue-300 mt-1">{s.label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Right column: floating balance card */}
-            <div className="flex justify-center lg:justify-end pb-0 lg:pb-0">
+            {/* Right column: floating balance card — hidden on mobile */}
+            <div className="hidden lg:flex justify-end pb-0">
               <div className="w-full max-w-xs">
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-3xl p-7 shadow-2xl shadow-black/40">
                   <div className="flex justify-between items-start mb-6">
@@ -244,15 +244,15 @@ export default function Landing() {
       </section>
 
       {/* ─── TRUST STRIP ─── */}
-      <section className="py-10 px-6 bg-white border-b border-gray-100">
+      <section className="py-7 md:py-10 px-5 md:px-6 bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {TRUST_BADGES.map((b) => (
-              <div key={b.label} className="flex items-center gap-3 justify-center">
-                <div className="w-9 h-9 rounded-xl bg-[#4DC9EE]/10 flex items-center justify-center text-[#4DC9EE] flex-shrink-0">
+              <div key={b.label} className="flex items-center gap-2 md:gap-3 justify-center">
+                <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-[#4DC9EE]/10 flex items-center justify-center text-[#4DC9EE] flex-shrink-0">
                   {b.icon}
                 </div>
-                <span className="text-sm font-semibold text-[#1A2B4A]">{b.label}</span>
+                <span className="text-xs md:text-sm font-semibold text-[#1A2B4A]">{b.label}</span>
               </div>
             ))}
           </div>
@@ -260,20 +260,20 @@ export default function Landing() {
       </section>
 
       {/* ─── HOW IT WORKS ─── */}
-      <section id="how" className="py-24 px-6 bg-white">
+      <section id="how" className="py-14 md:py-24 px-5 md:px-6 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-[#1A2B4A] mb-4">Up and running in 3 minutes</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">No branch visits. No paperwork. No waiting.</p>
+          <div className="text-center mb-10 md:mb-16">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#1A2B4A] mb-3 md:mb-4">Up and running in 3 minutes</h2>
+            <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">No branch visits. No paperwork. No waiting.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             {STEPS.map((s, i) => (
               <div key={s.num} className="relative">
                 {i < STEPS.length - 1 && (
                   <div className="hidden md:block absolute top-8 left-full w-full h-px bg-gradient-to-r from-[#4DC9EE] to-transparent z-0 -translate-x-4" />
                 )}
                 <div className="relative z-10">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#4DC9EE] to-[#2E8FD6] flex items-center justify-center text-white font-black text-xl mb-5 shadow-lg shadow-[#4DC9EE]/30">
+                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-[#4DC9EE] to-[#2E8FD6] flex items-center justify-center text-white font-black text-lg md:text-xl mb-4 md:mb-5 shadow-lg shadow-[#4DC9EE]/30">
                     {s.num}
                   </div>
                   <h3 className="font-bold text-[#1A2B4A] text-xl mb-2">{s.title}</h3>
@@ -286,13 +286,13 @@ export default function Landing() {
       </section>
 
       {/* ─── FEATURES ─── */}
-      <section id="features" className="py-24 px-6 bg-gray-50">
+      <section id="features" className="py-14 md:py-24 px-5 md:px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-[#1A2B4A] mb-4">One app. Everything you need.</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">Replace your bank, payment processor, card, and job board with one super app.</p>
+          <div className="text-center mb-10 md:mb-16">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#1A2B4A] mb-3 md:mb-4">One app. Everything you need.</h2>
+            <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">Replace your bank, payment processor, card, and job board with one super app.</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {FEATURES.map((f) => (
               <div key={f.title} className="bg-white rounded-3xl p-7 shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-200 group relative overflow-hidden">
                 {f.badge && (
@@ -315,13 +315,13 @@ export default function Landing() {
       </section>
 
       {/* ─── TESTIMONIALS ─── */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-14 md:py-24 px-5 md:px-6 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-[#1A2B4A] mb-4">Trusted by remote workers worldwide</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">Real people. Real withdrawals. Real freedom.</p>
+          <div className="text-center mb-10 md:mb-16">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#1A2B4A] mb-3 md:mb-4">Trusted by remote workers worldwide</h2>
+            <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">Real people. Real withdrawals. Real freedom.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             {TESTIMONIALS.map((t) => (
               <div key={t.name} className="bg-gray-50 rounded-3xl p-7 border border-gray-100 hover:shadow-md transition-all duration-200 flex flex-col">
                 <div className="flex gap-1 mb-5">
@@ -349,16 +349,16 @@ export default function Landing() {
       </section>
 
       {/* ─── JOBS SECTION ─── */}
-      <section id="jobs" className="py-24 px-6 bg-gradient-to-br from-[#1A2B4A] via-[#1e3560] to-[#0d1f38]">
+      <section id="jobs" className="py-14 md:py-24 px-5 md:px-6 bg-gradient-to-br from-[#1A2B4A] via-[#1e3560] to-[#0d1f38]">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
             {/* Left copy */}
             <div>
               <div className="inline-flex items-center gap-2 bg-[#4DC9EE]/20 text-[#4DC9EE] text-xs font-bold px-3 py-1.5 rounded-full mb-6 border border-[#4DC9EE]/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#4DC9EE] animate-pulse" />
                 Live · Remote Jobs Board
               </div>
-              <h2 className="text-3xl md:text-4xl font-black text-white mb-4 leading-tight">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-white mb-4 leading-tight">
                 Find your next remote job — free
               </h2>
               <p className="text-blue-200 leading-relaxed mb-8">
@@ -417,15 +417,15 @@ export default function Landing() {
       </section>
 
       {/* ─── MARKETS ─── */}
-      <section id="markets" className="py-24 px-6 bg-gray-50">
+      <section id="markets" className="py-14 md:py-24 px-5 md:px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-[#1A2B4A] mb-4">Cash out where you live</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">Live exchange rates · Same-day delivery · 50+ payout methods</p>
+          <div className="text-center mb-10 md:mb-16">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#1A2B4A] mb-3 md:mb-4">Cash out where you live</h2>
+            <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">Live exchange rates · Same-day delivery · 50+ payout methods</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 md:gap-4">
             {MARKETS.map((m) => (
-              <div key={m.country} className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all">
+              <div key={m.country} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-4 text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all">
                 <div className="text-3xl mb-2">{m.flag}</div>
                 <div className="font-semibold text-[#1A2B4A] text-xs">{m.country}</div>
                 <div
@@ -441,9 +441,9 @@ export default function Landing() {
       </section>
 
       {/* ─── SECURITY STRIP ─── */}
-      <section className="py-16 px-6 bg-gradient-to-r from-[#1A2B4A] to-[#0d1f38]">
+      <section className="py-12 md:py-16 px-5 md:px-6 bg-gradient-to-r from-[#1A2B4A] to-[#0d1f38]">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 text-white">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 text-white">
             {[
               { icon: <Shield size={28} />, title: "Bank-grade security", desc: "AES-256 encryption at rest, TLS 1.2+ in transit, and multi-factor authentication protect every account." },
               { icon: <Zap size={28} />, title: "Instant transfers", desc: "Send and receive money in seconds, not days. Available around the clock, every day of the year." },
@@ -464,20 +464,20 @@ export default function Landing() {
       </section>
 
       {/* ─── CTA BANNER ─── */}
-      <section className="py-24 px-6 bg-[#4DC9EE]">
+      <section className="py-16 md:py-24 px-5 md:px-6 bg-[#4DC9EE]">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-6 leading-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4 md:mb-6 leading-tight">
             Start in under 2 minutes
           </h2>
-          <p className="text-blue-50 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+          <p className="text-blue-50 text-base md:text-lg mb-8 md:mb-10 max-w-xl mx-auto leading-relaxed">
             Join 500,000+ remote workers who use S-PAY to get paid globally and spend locally.
           </p>
           <Link href="/register">
-            <button className="inline-flex items-center gap-2 bg-[#1A2B4A] text-white font-bold px-10 py-5 rounded-2xl hover:bg-[#0d1f38] transition-colors text-lg shadow-xl">
+            <button className="inline-flex items-center gap-2 bg-[#1A2B4A] text-white font-bold px-8 py-4 md:px-10 md:py-5 rounded-2xl hover:bg-[#0d1f38] transition-colors text-base md:text-lg shadow-xl w-full sm:w-auto justify-center">
               Open Free Account →
             </button>
           </Link>
-          <p className="text-blue-100 text-sm mt-6">No credit card · No monthly fee · Cancel anytime</p>
+          <p className="text-blue-100 text-xs md:text-sm mt-5 md:mt-6">No credit card · No monthly fee · Cancel anytime</p>
         </div>
       </section>
     </PublicLayout>
