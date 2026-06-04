@@ -254,8 +254,8 @@ export default function PublicJobs() {
                       )}
                       {job.category && (
                         <button
-                          className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded border cursor-pointer hover:opacity-80 ${CATEGORY_COLORS[job.category] ?? "bg-gray-50 text-gray-500 border-gray-100"}`}
-                          onClick={() => { if (job.category in CATEGORY_MAP) setSelectedCategory(job.category); }}
+                          className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded border cursor-pointer hover:opacity-80 ${CATEGORY_COLORS[job.category!] ?? "bg-gray-50 text-gray-500 border-gray-100"}`}
+                          onClick={() => { const cat = job.category; if (cat && cat in CATEGORY_MAP) setSelectedCategory(cat); }}
                         >
                           {job.category}
                         </button>
