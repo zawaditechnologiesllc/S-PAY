@@ -589,20 +589,20 @@ export default function Landing() {
             <div>
               <div className="inline-flex items-center gap-2 bg-[#4DC9EE]/20 text-[#4DC9EE] text-xs font-bold px-3 py-1.5 rounded-full mb-6 border border-[#4DC9EE]/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#4DC9EE] animate-pulse" />
-                Live · 60+ job sources aggregated daily
+                Live · 3,000+ remote jobs from 60+ sources
               </div>
               <h2 className="text-2xl md:text-4xl font-black text-white mb-4 leading-tight">
                 Find your next remote job — free
               </h2>
               <p className="text-blue-200 leading-relaxed mb-8 text-base md:text-lg">
-                Thousands of fully remote roles updated daily — engineering, design, marketing, finance and more. Sourced from 60+ global platforms. Free for all S-PAY members.
+                3,000–5,000 fully remote roles available every day — engineering, design, marketing, finance and more. Sourced from 60+ global platforms. Free for all S-PAY members.
               </p>
               <ul className="space-y-3 mb-8">
                 {[
-                  "Curated remote-only listings, 60+ sources",
+                  "3,000–5,000 live remote-only listings daily",
                   "Search by keyword or category",
                   "Apply directly on the company site",
-                  "New listings every hour",
+                  "Feed refreshed every hour, around the clock",
                 ].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-sm text-blue-100">
                     <CheckCircle size={15} className="text-[#4DC9EE] flex-shrink-0" />{item}

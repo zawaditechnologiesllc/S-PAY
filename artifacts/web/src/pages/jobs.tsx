@@ -31,25 +31,33 @@ const CATEGORY_COLORS: Record<string, string> = {
   Operations: "bg-orange-50 text-orange-700 border-orange-100",
 };
 
+const PAGE_SIZE = 200;
+
 export default function Jobs() {
   const [keyword, setKeyword] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [limit, setLimit] = useState(PAGE_SIZE);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedKeyword(keyword), 500);
     return () => clearTimeout(timer);
   }, [keyword]);
 
+  // New search or category — start back at the first page
+  useEffect(() => {
+    setLimit(PAGE_SIZE);
+  }, [debouncedKeyword, selectedCategory]);
+
   const queryParams = {
     keyword: debouncedKeyword || undefined,
     category: selectedCategory !== "All" ? CATEGORY_MAP[selectedCategory] : undefined,
-    limit: 200,
+    limit,
   };
 
-  const { data: jobsData, isLoading, isError, refetch } = useGetJobs(
+  const { data: jobsData, isLoading, isError, isFetching, refetch } = useGetJobs(
     queryParams,
-    { query: { queryKey: getGetJobsQueryKey(queryParams) } }
+    { query: { queryKey: getGetJobsQueryKey(queryParams), placeholderData: (prev: any) => prev } }
   );
 
   const SOURCE_COLORS: Record<string, string> = {
@@ -284,6 +292,24 @@ export default function Jobs() {
             ))
           )}
         </div>
+
+        {/* Load more */}
+        {!isLoading && jobsData && jobsData.jobs.length > 0 && jobsData.jobs.length < jobsData.total && (
+          <div className="text-center pt-2">
+            <Button
+              variant="outline"
+              className="rounded-full px-8 bg-white shadow-sm"
+              disabled={isFetching}
+              onClick={() => setLimit((l) => l + PAGE_SIZE)}
+            >
+              {isFetching ? (
+                <span className="flex items-center gap-2"><RefreshCw size={14} className="animate-spin" /> Loading…</span>
+              ) : (
+                `Load more jobs (${jobsData.jobs.length.toLocaleString()} of ${jobsData.total.toLocaleString()})`
+              )}
+            </Button>
+          </div>
+        )}
 
         {/* Bottom affiliate CTA */}
         {jobsData?.remoteCom && jobsData.jobs.length > 0 && (
