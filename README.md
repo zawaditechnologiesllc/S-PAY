@@ -13,9 +13,25 @@ S-PAY was born in 2016 by a team of full-stack fintech and crypto engineers frus
 | **Digital Wallet** | Hold USD balance, send/receive money globally |
 | **Virtual Bank Account** | Real US ACH routing number + European IBAN — get paid like a local business |
 | **Global Payouts** | Withdraw to M-Pesa, MTN MoMo, PIX, SEPA, bank transfers in 180+ countries |
-| **Remote Jobs Board** | Thousands of remote-only roles aggregated from 6+ sources, free for all users |
+| **Remote Jobs Board** | 3,000–5,000 remote-only roles available daily, aggregated from 60+ sources, refreshed hourly, free for all users |
 | **Virtual Card** *(coming soon)* | Visa/Mastercard virtual card for online purchases |
 | **KYC / Identity Verification** | Automated via Noah — no manual review, no waiting |
+
+> **The jobs board is free on purpose** — it's S-PAY's acquisition funnel. Job seekers discover S-PAY through listings, sign up to apply, and become wallet users. Every account records its `signupSource` (`jobs`, `jobs:<jobId>`, `landing`, `google`, `mobile`, `direct`), and the admin dashboard shows the **Signups by Source** breakdown so you always know which channel is converting.
+
+---
+
+## Onboarding — MiniPay-style, on the Celo network
+
+S-PAY's onboarding follows the [MiniPay](https://www.opera.com/products/minipay) playbook: a wallet in seconds, no seed phrase, no crypto knowledge required.
+
+1. **Sign up in under 2 minutes** — email + password, or one tap with Google. Phone number optional (used for P2P transfers, M-Pesa/MoMo payouts).
+2. **Celo wallet created instantly & invisibly** — the moment the account exists, S-PAY provisions an EVM wallet address on the **Celo network** via **Privy server wallets**. No seed phrase to write down; private keys live in Privy's TEE infrastructure and **never touch S-PAY servers or the database** — we store only the public address (`celoWalletAddress`).
+3. **Start receiving immediately** — the wallet holds **USDC on Celo** (stablecoin-first, like MiniPay's cUSD/USDC). Friends and clients can pay you by phone number or wallet address.
+4. **KYC when you need more** — Noah's automated verification (government ID + selfie) unlocks the virtual US ACH account, the European IBAN, and local cash-outs. Approval is webhook-driven — no manual review queue.
+5. **Cash out where you live** — M-Pesa, MTN MoMo, PIX, SEPA and 50+ methods, settled from your Celo USDC balance at live FX rates.
+
+Why Celo: sub-cent transaction fees, 5-second finality, mobile-first design, and fee abstraction (gas payable in stablecoins) — the same reasons MiniPay chose it. Set `PRIVY_APP_ID` + `PRIVY_APP_SECRET` on Render to activate wallet provisioning; accounts created before that are backfilled automatically on their next login.
 
 ---
 
@@ -87,8 +103,10 @@ S-PAY/
 | **Passwords** | bcrypt (cost factor 12) — never stored in plain text |
 | **Auth tokens** | Stateless JWT, signed with `JWT_SECRET` (HS256), 30-day expiry |
 | **Transport** | TLS enforced by Render (API) and Vercel (web) — HTTP redirects to HTTPS |
-| **Webhooks** | HMAC-SHA256 signature verification on every Noah and Stripe webhook |
+| **Webhooks** | HMAC-SHA256 over the raw request body, constant-time compare; unsigned requests rejected once a secret is configured |
 | **KYC** | Noah verifies government ID + selfie; all KYC docs stay on Noah's servers |
+| **Celo wallet keys** | Provisioned via Privy server wallets — private keys sealed in Privy's TEE; S-PAY stores only the public address, never key material or seed phrases |
+| **On-chain settlement** | USDC on Celo — auditable, 5s finality, sub-cent fees; no custom bridge or contract risk |
 | **Database** | PostgreSQL on Render private network; `DATABASE_URL` never exposed to client |
 | **Admin access** | Controlled by `ADMIN_EMAILS` env var — not a role in the DB |
 | **CORS** | Locked to `CORS_ORIGIN` env var — only the web app can call the API |
@@ -361,15 +379,23 @@ See the detailed deployment guide below. Summary:
 
 ## Deployment Guide
 
-### 1. Database (Render PostgreSQL)
+### 1. Database (Render PostgreSQL) — no terminal needed
 
-1. Render dashboard → **New → PostgreSQL**
-2. Copy the **External Database URL** (for migrations from your machine)
-3. Copy the **Internal Database URL** (for the API server — faster, free bandwidth)
-4. Run migrations from your local machine or Codespace:
-   ```bash
-   DATABASE_URL=<external-url> pnpm --filter @workspace/db run push
-   ```
+**Option A — Blueprint (recommended, fully automatic):**
+
+1. Render dashboard → **New → Blueprint** → connect the `zawaditechnologiesllc/s-pay` repo
+2. Render reads `render.yaml` and creates **both** the `spay-db` PostgreSQL database and the `spay-api` web service, with `DATABASE_URL` wired automatically
+3. Fill in the env vars marked `sync: false` when prompted (at minimum `CORS_ORIGIN` and `ADMIN_EMAILS`) → click **Apply**
+4. Done — the API applies all schema migrations automatically on boot (watch for "Database migrations applied" in the service Logs tab)
+
+**Option B — Manual dashboard setup:**
+
+1. Render dashboard → **New → PostgreSQL** → name it `spay-db`, pick the same region as the API → **Create Database**
+2. Open the database page → **Connections** → copy the **Internal Database URL**
+3. Go to your API service → **Environment** → add `DATABASE_URL` = the internal URL → **Save Changes**
+4. Render redeploys the API; migrations run automatically on boot — no `drizzle-kit push`, no terminal
+
+> The free Postgres plan expires after 30 days. For production, upgrade the database to a paid plan (Basic 256MB+) in the Render dashboard under the database's **Settings** tab.
 
 ### 2. API Server (Render Web Service)
 
@@ -414,10 +440,32 @@ See the detailed deployment guide below. Summary:
 
 ### 7. Updating the DB schema after changes
 
+Schema migrations live in `lib/db/migrations/` and are **applied automatically every time the API boots** — deploying a new version is all it takes. To add a new migration after editing `lib/db/src/schema/`:
+
 ```bash
-# Run from the repo root after editing lib/db/src/schema/
-DATABASE_URL=<your-render-external-url> pnpm --filter @workspace/db run push
+# Generates a new SQL file in lib/db/migrations/ (no DB connection needed)
+cd lib/db && DATABASE_URL=postgres://x:x@localhost/x pnpm exec drizzle-kit generate
 ```
+
+Commit the generated file and deploy — the server applies it on startup. (The legacy `pnpm --filter @workspace/db run push` still works for quick local prototyping.)
+
+---
+
+## Monitoring Everything Without a Terminal
+
+| What you want to see | Where to look |
+|---|---|
+| **Code changes / commits** | GitHub → repo → **Commits** (or a branch/PR's **Files changed** tab) |
+| **API deploy progress** | Render dashboard → `spay-api` → **Events** (deploy timeline) and **Logs** (live output) |
+| **API is healthy** | Open `https://your-api.onrender.com/api/healthz` in a browser → `{"status":"ok"}` |
+| **Jobs feed is live + count** | Open `https://your-api.onrender.com/api/jobs?limit=1` → check the `total` field (3,000–5,000) |
+| **Database created / size / connections** | Render dashboard → `spay-db` → **Info** & **Metrics** tabs |
+| **Run SQL without a terminal** | Render dashboard → `spay-db` → **Query** tab (built-in SQL console) |
+| **Migrations applied** | Render → `spay-api` → **Logs** → look for `Database migrations applied` |
+| **Web deploy progress** | Vercel dashboard → project → **Deployments** (each shows build logs + preview URL) |
+| **Integration status (DB, Noah, Stripe, Google)** | Log in as admin → `/admin/settings` — green "Configured" / red "Not set" per service |
+| **Users, KYC, transactions** | `/admin` dashboard, `/admin/users`, `/admin/transactions` |
+| **Mobile builds** | expo.dev → project → **Builds** (progress, logs, APK download link) |
 
 ---
 

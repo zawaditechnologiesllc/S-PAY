@@ -14,7 +14,7 @@ S-PAY is a digital wallet super app for remote workers — earn globally in USDC
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - API: Express 5 + JWT auth (`jsonwebtoken`, `bcryptjs`)
-- DB: PostgreSQL + Drizzle ORM (Supabase in production)
+- DB: PostgreSQL + Drizzle ORM (Render Postgres in production, auto-migrated on boot)
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec at `lib/api-spec/openapi.yaml`)
 - Build: esbuild (CJS bundle)
@@ -35,24 +35,24 @@ S-PAY is a digital wallet super app for remote workers — earn globally in USDC
 
 ## Architecture decisions
 
-- **Demo mode**: API routes use in-memory mock data when Supabase/Noah/Stripe aren't configured. Login with `demo@spayewallet.com` / `demo1234`.
+- **Auth + admin are DB-backed**: registration/login/Google OAuth write to Postgres. Wallet/banking/card routes still serve demo mock data until Noah/Stripe are configured.
 - **JWT auth**: Token stored in localStorage (web) and AsyncStorage (mobile). Custom fetch in `lib/api-client-react/src/custom-fetch.ts` injects Bearer token automatically.
-- **Jobs aggregation**: Himalayas + RemoteOK + Remotive free APIs, deduplicated by title+company, cached in memory for 1 hour. No API keys needed.
+- **Jobs aggregation**: 60+ free sources (Remotive full feed, RemoteOK, Himalayas paginated, Arbeitnow, TheMuse, WWR category feeds, Jobicy, WorkingNomads + ~50 RSS boards) — 3,000–5,000 deduplicated jobs daily. No API keys needed. Stale-while-revalidate in-memory cache (1h TTL, hourly refresh loop) + the default feed is snapshotted to the `jobs_cache` Postgres table so cold starts serve jobs instantly.
 - **OpenAPI contract-first**: All API changes start in `lib/api-spec/openapi.yaml`, then run codegen before writing frontend code.
-- **No DATABASE_URL needed to run**: Server starts without Postgres. DB layer not imported until explicitly used.
+- **DATABASE_URL is required**: the server fails fast without it. Schema migrations in `lib/db/migrations/` are applied automatically on boot (`src/lib/migrate.ts`) — no terminal needed.
 
 ## Product
 
 - **Wallet**: USDC balance on Celo, send/receive money, add funds, view transactions
 - **Banking**: Virtual USD (ACH) and EUR (IBAN/SEPA) accounts via Noah API, incoming payment tracking, withdraw to local currency (M-Pesa, SEPA, PIX, bank wire) with live FX rates
 - **Card**: Stripe Issuing virtual cards (coming soon), waitlist signup, spending summary by category, card transaction history
-- **Jobs**: Remote job listings from Himalayas, RemoteOK, and Remotive with search, category filtering, affiliate CTAs, and job detail view
+- **Jobs**: 3,000–5,000 remote job listings daily from 60+ sources with search, category filtering, load-more pagination, affiliate CTAs, and job detail view
 
 ## External Services (configure in production)
 
 | Service | Purpose | Env Var |
 |---------|---------|---------|
-| Supabase | PostgreSQL database | `DATABASE_URL` |
+| Render Postgres | PostgreSQL database | `DATABASE_URL` (auto-wired by render.yaml Blueprint) |
 | Noah API | Virtual banking, FX payouts | `NOAH_API_KEY`, `NOAH_WEBHOOK_SECRET` |
 | Stripe Issuing | Virtual card issuing | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
 | Privy | Celo embedded wallets | `PRIVY_APP_ID`, `PRIVY_APP_SECRET` |
@@ -69,9 +69,9 @@ S-PAY is a digital wallet super app for remote workers — earn globally in USDC
 - `lib/api-zod/src/index.ts` must stay as `export * from "./generated/api"` only — orval mode `"single"` prevents TS2308 collision.
 - Do NOT inline webhook bodies in OpenAPI spec — use `type: object` refs or entity-named schemas.
 - Expo: do NOT create `app.config.ts/js` — use `app.json` only (required for Expo Launch).
-- Jobs API: Himalayas/RemoteOK/Remotive may be slow (8s timeout each). Jobs are cached in memory 1hr.
+- Jobs API: 60+ upstream sources with 8–20s timeouts each, fetched in parallel; a full refresh takes ~20s. Users never wait: stale data is served while a background refresh runs, and the warm-up + hourly loop in `src/index.ts` keeps the feed hot.
 
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
-- Demo credentials: `demo@spayewallet.com` / `demo1234`
+- Admin access: register an account, then add the email to `ADMIN_EMAILS` on Render and visit `/admin`

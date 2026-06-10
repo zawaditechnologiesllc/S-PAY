@@ -34,13 +34,32 @@ router.get("/admin/stats", requireAuth, requireAdmin, async (req, res) => {
       volume: sql<string>`COALESCE(SUM(${transactionsTable.amount}::numeric), 0)`,
     }).from(transactionsTable);
 
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [{ total: activeUsers }] = await db.select({ total: count() }).from(usersTable)
+      .where(sql`${usersTable.createdAt} >= ${thirtyDaysAgo}`);
+
+    // Acquisition breakdown: where signups come from (jobs, landing, google, direct…)
+    const sourceRows = await db.select({
+      source: sql<string>`COALESCE(${usersTable.signupSource}, 'unknown')`,
+      total: count(),
+    }).from(usersTable).groupBy(sql`COALESCE(${usersTable.signupSource}, 'unknown')`);
+    const signupsBySource: Record<string, number> = {};
+    for (const row of sourceRows) {
+      // Collapse "jobs:rv-123" style sources into their channel for the summary
+      const channel = row.source.split(":")[0] || "unknown";
+      signupsBySource[channel] = (signupsBySource[channel] ?? 0) + row.total;
+    }
+
     res.json({
       totalUsers,
+      activeUsers,
       pendingKyc,
       approvedKyc,
       rejectedKyc,
       transactionsToday,
       totalTransactionVolume: parseFloat(volumeRow?.volume ?? "0"),
+      totalWalletBalance: 0,
+      signupsBySource,
     });
   } catch (err) {
     req.log.error({ err }, "Admin stats error");
@@ -59,6 +78,7 @@ router.get("/admin/users", requireAuth, requireAdmin, async (req, res) => {
       phoneNumber: usersTable.phoneNumber,
       kycStatus: usersTable.kycStatus,
       avatarUrl: usersTable.avatarUrl,
+      signupSource: usersTable.signupSource,
       createdAt: usersTable.createdAt,
     }).from(usersTable);
 

@@ -6,9 +6,13 @@ import { eq } from "drizzle-orm";
 
 const router = Router();
 
-function verifyHmac(signature: string, body: string, secret: string): boolean {
+function verifyHmac(signature: string, body: Buffer | string, secret: string): boolean {
   const expected = crypto.createHmac("sha256", secret).update(body).digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  const provided = Buffer.from(signature);
+  const expectedBuf = Buffer.from(expected);
+  // timingSafeEqual throws on length mismatch — treat that as an invalid signature
+  if (provided.length !== expectedBuf.length) return false;
+  return crypto.timingSafeEqual(provided, expectedBuf);
 }
 
 // ─── Noah webhooks ─────────────────────────────────────────────────────────────
@@ -19,9 +23,10 @@ router.post("/webhooks/noah", async (req, res) => {
   const sig = req.headers["x-noah-signature"] as string;
   const webhookSecret = process.env.NOAH_WEBHOOK_SECRET;
 
-  if (webhookSecret && sig) {
-    const isValid = verifyHmac(sig, JSON.stringify(req.body), webhookSecret);
-    if (!isValid) {
+  if (webhookSecret) {
+    // Once a secret is configured, unsigned requests are rejected outright.
+    const rawBody = (req as typeof req & { rawBody?: Buffer }).rawBody;
+    if (!sig || !verifyHmac(sig, rawBody ?? JSON.stringify(req.body), webhookSecret)) {
       res.status(401).json({ error: "invalid_signature" });
       return;
     }

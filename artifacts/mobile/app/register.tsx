@@ -35,7 +35,7 @@ export default function RegisterScreen() {
       return;
     }
     register.mutate(
-      { data: { fullName, email, password, phoneNumber: phone || undefined } },
+      { data: { fullName, email, password, phoneNumber: phone || undefined, signupSource: "mobile" } },
       {
         onSuccess: async (data: any) => {
           await signIn(data.token);

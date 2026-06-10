@@ -41,6 +41,20 @@ const COUNTRIES = [
   "Other",
 ];
 
+// Acquisition attribution: /register?from=jobs&jobId=… (public jobs board links)
+// or /register?source=… — recorded on the account so admin can see where signups come from.
+function getSignupSource(): string {
+  const params = new URLSearchParams(window.location.search);
+  const explicit = params.get("source");
+  if (explicit) return explicit.slice(0, 64);
+  const from = params.get("from");
+  if (from) {
+    const jobId = params.get("jobId");
+    return jobId ? `${from}:${jobId}`.slice(0, 64) : from.slice(0, 64);
+  }
+  return "direct";
+}
+
 export default function Register() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -52,11 +66,12 @@ export default function Register() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [country, setCountry] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [signupSource] = useState(getSignupSource);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     registerMutation.mutate(
-      { data: { email, password, fullName, phoneNumber } },
+      { data: { email, password, fullName, phoneNumber, signupSource } },
       {
         onSuccess: (data) => {
           setToken(data.token);
@@ -147,7 +162,7 @@ export default function Register() {
               {/* Google button */}
               <button
                 type="button"
-                onClick={() => { window.location.href = `${import.meta.env.VITE_API_URL ?? ""}/auth/google`; }}
+                onClick={() => { window.location.href = `${import.meta.env.VITE_API_URL ?? ""}/api/auth/google?source=${encodeURIComponent(signupSource)}`; }}
                 className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

@@ -19,6 +19,15 @@ const KYC_ICON: Record<string, React.ReactNode> = {
   rejected: <XCircle size={13} />,
 };
 
+// Acquisition channel badge colors — "jobs" signups are the big growth funnel
+const SOURCE_BADGE: Record<string, string> = {
+  jobs: "bg-sky-100 text-sky-700",
+  landing: "bg-violet-100 text-violet-700",
+  google: "bg-amber-100 text-amber-700",
+  mobile: "bg-emerald-100 text-emerald-700",
+  direct: "bg-gray-100 text-gray-600",
+};
+
 export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [kycFilter, setKycFilter] = useState("all");
@@ -78,7 +87,7 @@ export default function AdminUsers() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  {["User", "Email", "Country", "KYC Status", "Balance", "Joined"].map((h) => (
+                  {["User", "Email", "Country", "KYC Status", "Source", "Balance", "Joined"].map((h) => (
                     <th key={h} className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -87,14 +96,14 @@ export default function AdminUsers() {
                 {isLoading ? (
                   Array.from({ length: 8 }).map((_, i) => (
                     <tr key={i} className="border-b border-gray-50">
-                      {Array.from({ length: 6 }).map((_, j) => (
+                      {Array.from({ length: 7 }).map((_, j) => (
                         <td key={j} className="px-5 py-3.5"><Skeleton className="h-4 w-full" /></td>
                       ))}
                     </tr>
                   ))
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-16 text-gray-400">
+                    <td colSpan={7} className="text-center py-16 text-gray-400">
                       <Filter size={32} className="mx-auto mb-3 opacity-40" />
                       No users match your filter.
                     </td>
@@ -115,6 +124,11 @@ export default function AdminUsers() {
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${KYC_BADGE[u.kycStatus] ?? "bg-gray-100 text-gray-600"}`}>
                           {KYC_ICON[u.kycStatus]} {u.kycStatus}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${SOURCE_BADGE[(u.signupSource ?? "").split(":")[0]] ?? "bg-gray-100 text-gray-600"}`}>
+                          {u.signupSource ?? "unknown"}
                         </span>
                       </td>
                       <td className="px-5 py-3.5 font-semibold text-gray-900">${(u.walletBalance ?? 0).toFixed(2)}</td>

@@ -15,6 +15,7 @@ export const usersTable = pgTable("users", {
   kycStatus: kycStatusEnum("kyc_status").default("pending").notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
   celoWalletAddress: text("celo_wallet_address"),
+  signupSource: text("signup_source"),           // acquisition channel: jobs, jobs:<id>, landing, google, mobile…
   noahCustomerId: text("noah_customer_id"),
   stripeCardholderId: text("stripe_cardholder_id"),
   stripeCardId: text("stripe_card_id"),
