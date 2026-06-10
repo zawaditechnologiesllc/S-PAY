@@ -29,7 +29,13 @@ const corsOrigin = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
   : true;
 app.use(cors({ origin: corsOrigin, credentials: true }));
-app.use(express.json());
+// Keep the exact raw bytes so webhook HMAC signatures (Noah/Stripe) verify
+// against what was actually sent, not a re-serialized body.
+app.use(express.json({
+  verify: (req, _res, buf) => {
+    (req as express.Request & { rawBody?: Buffer }).rawBody = buf;
+  },
+}));
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);

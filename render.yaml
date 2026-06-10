@@ -1,3 +1,13 @@
+databases:
+  # Managed PostgreSQL — provisioned automatically when this Blueprint is synced.
+  # NOTE: the free plan expires after 30 days; upgrade to "basic-256mb" (paid)
+  # in the Render dashboard for production durability.
+  - name: spay-db
+    plan: free
+    region: oregon
+    databaseName: spay
+    user: spay
+
 services:
   - type: web
     name: spay-api
@@ -13,17 +23,32 @@ services:
         generateValue: true
       - key: SESSION_SECRET
         generateValue: true
+      # Wired automatically to the spay-db Postgres above (internal connection
+      # string — same region, no egress cost). Schema migrations run on boot.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: spay-db
+          property: connectionString
       # Set CORS_ORIGIN to your Vercel domain(s), comma-separated.
       # Example: https://spayewallet.com,https://spayewallet.vercel.app
       - key: CORS_ORIGIN
         sync: false
-      # Optional: Supabase PostgreSQL connection string
-      - key: DATABASE_URL
+      # Comma-separated emails that get access to /admin (register the account first!)
+      - key: ADMIN_EMAILS
         sync: false
       # Optional: Noah API for virtual banking and FX payouts
       - key: NOAH_API_KEY
         sync: false
       - key: NOAH_WEBHOOK_SECRET
+        sync: false
+      # Optional: Google Sign-In
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: API_BASE_URL
         sync: false
       # Optional: Stripe for virtual card issuing
       - key: STRIPE_SECRET_KEY

@@ -3,8 +3,15 @@ import bcrypt from "bcryptjs";
 import axios from "axios";
 import { signToken } from "../lib/auth";
 import { requireAuth } from "../middlewares/auth";
+import { ensureCeloWallet } from "../lib/celo";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+
+/** Sanitized acquisition channel, e.g. "jobs", "jobs:rv-123", "landing", "google", "mobile" */
+function cleanSignupSource(raw: unknown): string | null {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  return raw.trim().slice(0, 64).replace(/[^\w:\-./]/g, "");
+}
 
 const router = Router();
 
@@ -59,7 +66,11 @@ router.post("/auth/register", async (req, res) => {
       passwordHash,
       fullName,
       phoneNumber: phoneNumber || null,
+      signupSource: cleanSignupSource((req.body as Record<string, unknown>).signupSource) ?? "direct",
     }).returning();
+
+    // MiniPay-style onboarding: Celo wallet provisioned instantly in the background
+    ensureCeloWallet(user.id, user.celoWalletAddress);
 
     const token = signToken({ userId: user.id, email: user.email });
     res.status(201).json({ token, user: userResponse(user) });
@@ -96,6 +107,9 @@ router.post("/auth/login", async (req, res) => {
       res.status(401).json({ error: "invalid_credentials", message: "Invalid email or password" });
       return;
     }
+
+    // Backfill the Celo wallet for accounts created before Privy was configured
+    ensureCeloWallet(user.id, user.celoWalletAddress);
 
     const token = signToken({ userId: user.id, email: user.email });
     res.json({ token, user: userResponse(user) });
@@ -137,6 +151,9 @@ router.get("/auth/google", (req, res) => {
     access_type: "offline",
     prompt: "select_account",
   });
+  // Carry the acquisition source (e.g. ?source=jobs) through the OAuth round-trip
+  const source = cleanSignupSource(req.query.source);
+  if (source) params.set("state", source);
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
 
@@ -187,15 +204,20 @@ router.get("/auth/google/callback", async (req, res) => {
           .returning();
       } else {
         // Brand-new user via Google
+        const stateSource = cleanSignupSource(req.query.state);
         [user] = await db.insert(usersTable).values({
           email,
           fullName: name,
           googleId,
           avatarUrl: picture,
           passwordHash: null,
+          signupSource: stateSource ?? "google",
         }).returning();
       }
     }
+
+    // MiniPay-style onboarding: Celo wallet provisioned instantly in the background
+    ensureCeloWallet(user.id, user.celoWalletAddress);
 
     const token = signToken({ userId: user.id, email: user.email });
     res.redirect(`${FRONTEND_URL}/auth/callback?token=${encodeURIComponent(token)}`);

@@ -24,6 +24,11 @@ export interface RegisterRequest {
   password: string;
   fullName: string;
   phoneNumber?: string;
+  /**
+     * Where the signup came from, e.g. jobs, jobs:<jobId>, landing, mobile
+     * @maxLength 64
+     */
+  signupSource?: string;
 }
 
 export interface LoginRequest {
@@ -48,7 +53,8 @@ export interface User {
   kycStatus: UserKycStatus;
   isAdmin: boolean;
   avatarUrl?: string;
-  celoWalletAddress?: string;
+  /** EVM wallet address on the Celo network, provisioned via Privy at signup */
+  celoWalletAddress?: string | null;
   createdAt: string;
 }
 
@@ -455,6 +461,11 @@ export interface JobsResponse {
   remoteCom?: AffiliateCta;
 }
 
+/**
+ * Signup counts grouped by acquisition source (jobs, landing, google, direct...)
+ */
+export type AdminStatsSignupsBySource = {[key: string]: number};
+
 export interface AdminStats {
   totalUsers: number;
   activeUsers: number;
@@ -464,6 +475,8 @@ export interface AdminStats {
   approvedKyc: number;
   rejectedKyc: number;
   totalWalletBalance: number;
+  /** Signup counts grouped by acquisition source (jobs, landing, google, direct...) */
+  signupsBySource?: AdminStatsSignupsBySource;
 }
 
 export interface AdminUser {
@@ -473,6 +486,7 @@ export interface AdminUser {
   kycStatus: string;
   country?: string;
   walletBalance?: number;
+  signupSource?: string | null;
   createdAt?: string;
 }
 

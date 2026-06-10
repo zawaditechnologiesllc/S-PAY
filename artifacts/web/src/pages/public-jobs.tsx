@@ -92,24 +92,32 @@ const CATEGORY_COLORS: Record<string, string> = {
   Operations: "bg-orange-50 text-orange-700 border-orange-100",
 };
 
+const PAGE_SIZE = 200;
+
 export default function PublicJobs() {
   const [keyword, setKeyword] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [limit, setLimit] = useState(PAGE_SIZE);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedKeyword(keyword), 450);
     return () => clearTimeout(t);
   }, [keyword]);
 
+  // New search or category — start back at the first page
+  useEffect(() => {
+    setLimit(PAGE_SIZE);
+  }, [debouncedKeyword, selectedCategory]);
+
   const queryParams = {
     keyword: debouncedKeyword || undefined,
     category: selectedCategory !== "All" ? CATEGORY_MAP[selectedCategory] : undefined,
-    limit: 200,
+    limit,
   };
 
-  const { data, isLoading, isError, refetch } = useGetJobs(queryParams, {
-    query: { queryKey: getGetJobsQueryKey(queryParams) },
+  const { data, isLoading, isError, isFetching, refetch } = useGetJobs(queryParams, {
+    query: { queryKey: getGetJobsQueryKey(queryParams), placeholderData: (prev: any) => prev },
   });
 
   return (
@@ -333,6 +341,23 @@ export default function PublicJobs() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Load more */}
+        {!isLoading && data && data.jobs.length > 0 && data.jobs.length < data.total && (
+          <div className="text-center mt-6">
+            <button
+              disabled={isFetching}
+              onClick={() => setLimit((l) => l + PAGE_SIZE)}
+              className="inline-flex items-center gap-2 bg-white border border-gray-200 text-[#1A2B4A] text-sm font-bold px-8 py-3 rounded-full hover:border-[#4DC9EE] hover:text-[#4DC9EE] transition-colors shadow-sm disabled:opacity-60"
+            >
+              {isFetching ? (
+                <><RefreshCw size={14} className="animate-spin" /> Loading…</>
+              ) : (
+                `Load more jobs (${data.jobs.length.toLocaleString()} of ${data.total.toLocaleString()})`
+              )}
+            </button>
           </div>
         )}
 

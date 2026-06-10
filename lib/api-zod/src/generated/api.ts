@@ -20,13 +20,16 @@ export const HealthCheckResponse = zod.object({
  */
 export const registerBodyPasswordMin = 8;
 
+export const registerBodySignupSourceMax = 64;
+
 
 
 export const RegisterBody = zod.object({
   "email": zod.string().email(),
   "password": zod.string().min(registerBodyPasswordMin),
   "fullName": zod.string(),
-  "phoneNumber": zod.string().optional()
+  "phoneNumber": zod.string().optional(),
+  "signupSource": zod.string().max(registerBodySignupSourceMax).optional().describe('Where the signup came from, e.g. jobs, jobs:<jobId>, landing, mobile')
 })
 
 
@@ -48,7 +51,7 @@ export const LoginResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
-  "celoWalletAddress": zod.string().optional(),
+  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
   "createdAt": zod.coerce.date()
 })
 })
@@ -65,7 +68,7 @@ export const GetMeResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
-  "celoWalletAddress": zod.string().optional(),
+  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
   "createdAt": zod.coerce.date()
 })
 
@@ -450,7 +453,8 @@ export const GetAdminStatsResponse = zod.object({
   "pendingKyc": zod.number(),
   "approvedKyc": zod.number(),
   "rejectedKyc": zod.number(),
-  "totalWalletBalance": zod.number()
+  "totalWalletBalance": zod.number(),
+  "signupsBySource": zod.record(zod.string(), zod.number()).optional().describe('Signup counts grouped by acquisition source (jobs, landing, google, direct...)')
 })
 
 
@@ -469,6 +473,7 @@ export const GetAdminUsersResponse = zod.object({
   "kycStatus": zod.string(),
   "country": zod.string().optional(),
   "walletBalance": zod.number().optional(),
+  "signupSource": zod.string().nullish(),
   "createdAt": zod.string().optional()
 })),
   "total": zod.number()

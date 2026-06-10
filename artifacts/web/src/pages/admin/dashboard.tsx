@@ -3,8 +3,18 @@ import { useGetAdminStats, useGetAdminUsers, getGetAdminStatsQueryKey, getGetAdm
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users, ArrowLeftRight, DollarSign, Clock,
-  ShieldCheck, TrendingUp, AlertCircle, CheckCircle2,
+  ShieldCheck, TrendingUp, AlertCircle, CheckCircle2, Megaphone,
 } from "lucide-react";
+
+// Acquisition channel colors — jobs board is the primary signup funnel
+const SOURCE_COLORS: Record<string, string> = {
+  jobs: "#4DC9EE",
+  landing: "#8B5CF6",
+  google: "#F59E0B",
+  mobile: "#22C55E",
+  direct: "#94A3B8",
+  unknown: "#CBD5E1",
+};
 
 function StatCard({
   icon, label, value, sub, color, loading,
@@ -41,10 +51,45 @@ export default function AdminDashboard() {
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard icon={<Users size={22} />} label="Total Users" value={stats?.totalUsers?.toLocaleString() ?? "—"} sub="+12 today" color="#1677FF" loading={statsLoading} />
+          <StatCard icon={<Users size={22} />} label="Total Users" value={stats?.totalUsers?.toLocaleString() ?? "—"} sub={stats ? `${(stats.activeUsers ?? 0).toLocaleString()} in 30d` : undefined} color="#1677FF" loading={statsLoading} />
           <StatCard icon={<DollarSign size={22} />} label="Total Volume" value={`$${(stats?.totalTransactionVolume ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} sub="USDC" color="#00B578" loading={statsLoading} />
           <StatCard icon={<ArrowLeftRight size={22} />} label="Transactions Today" value={stats?.transactionsToday ?? "—"} color="#FF6900" loading={statsLoading} />
           <StatCard icon={<Clock size={22} />} label="Pending KYC" value={stats?.pendingKyc ?? "—"} color="#FF4D4F" loading={statsLoading} />
+        </div>
+
+        {/* Signups by source — shows how well the free jobs board converts */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+            <Megaphone size={18} className="text-[#4DC9EE]" /> Signups by Source
+          </h3>
+          <p className="text-xs text-gray-400 mb-5">Where new accounts come from — the jobs board is the free acquisition funnel.</p>
+          {statsLoading ? (
+            <Skeleton className="h-16 w-full" />
+          ) : (
+            (() => {
+              const entries = Object.entries(stats?.signupsBySource ?? {}).sort((a, b) => b[1] - a[1]);
+              const total = entries.reduce((sum, [, n]) => sum + n, 0);
+              if (total === 0) return <p className="text-sm text-gray-400">No signups yet.</p>;
+              return (
+                <div className="space-y-3">
+                  <div className="flex h-3 w-full rounded-full overflow-hidden bg-gray-100">
+                    {entries.map(([source, n]) => (
+                      <div key={source} title={`${source}: ${n}`} style={{ width: `${(n / total) * 100}%`, backgroundColor: SOURCE_COLORS[source] ?? "#CBD5E1" }} />
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-x-6 gap-y-2">
+                    {entries.map(([source, n]) => (
+                      <div key={source} className="flex items-center gap-2 text-sm">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SOURCE_COLORS[source] ?? "#CBD5E1" }} />
+                        <span className="font-semibold text-gray-900 capitalize">{source}</span>
+                        <span className="text-gray-500">{n.toLocaleString()} ({Math.round((n / total) * 100)}%)</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">

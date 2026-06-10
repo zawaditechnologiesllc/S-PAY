@@ -596,6 +596,10 @@ components:
           type: string
         phoneNumber:
           type: string
+        signupSource:
+          type: string
+          maxLength: 64
+          description: "Where the signup came from, e.g. jobs, jobs:<jobId>, landing, mobile"
       required:
         - email
         - password
@@ -642,6 +646,10 @@ components:
           type: boolean
         avatarUrl:
           type: string
+        celoWalletAddress:
+          type: string
+          nullable: true
+          description: "EVM wallet address on the Celo network, provisioned via Privy at signup"
         createdAt:
           type: string
           format: date-time
@@ -1198,6 +1206,11 @@ components:
           type: integer
         totalWalletBalance:
           type: number
+        signupsBySource:
+          type: object
+          description: "Signup counts grouped by acquisition source (jobs, landing, google, direct...)"
+          additionalProperties:
+            type: integer
       required:
         - totalUsers
         - activeUsers
@@ -1223,6 +1236,9 @@ components:
           type: string
         walletBalance:
           type: number
+        signupSource:
+          type: string
+          nullable: true
         createdAt:
           type: string
       required:

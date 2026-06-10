@@ -29,6 +29,7 @@ COPY lib/api-client-react/src           ./lib/api-client-react/src
 COPY lib/api-client-react/tsconfig.json ./lib/api-client-react/tsconfig.json
 
 COPY lib/db/src           ./lib/db/src
+COPY lib/db/migrations    ./lib/db/migrations
 COPY lib/db/tsconfig.json ./lib/db/tsconfig.json
 
 COPY artifacts/api-server/src           ./artifacts/api-server/src
@@ -47,6 +48,9 @@ ENV NODE_ENV=production
 
 # esbuild bundles all JS deps; pino transport workers land alongside index.mjs
 COPY --from=builder /workspace/artifacts/api-server/dist ./dist
+
+# SQL migrations applied automatically on boot (see src/lib/migrate.ts)
+COPY --from=builder /workspace/lib/db/migrations ./migrations
 
 EXPOSE 10000
 
