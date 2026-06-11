@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
+import ssrRouter from "./routes/ssr";
 import { maintenanceGate } from "./middlewares/maintenance";
 import { logger } from "./lib/logger";
 
@@ -40,5 +41,8 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", maintenanceGate, router);
+// Server-rendered job pages for crawlers (kept up during maintenance so
+// indexing never stalls) — Vercel routes bot traffic here, humans get the SPA.
+app.use("/ssr", ssrRouter);
 
 export default app;
