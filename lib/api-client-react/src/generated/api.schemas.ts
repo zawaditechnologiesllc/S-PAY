@@ -421,6 +421,7 @@ export type JobSource = typeof JobSource[keyof typeof JobSource];
 
 
 export const JobSource = {
+  SPAY: 'SPAY',
   Himalayas: 'Himalayas',
   RemoteOK: 'RemoteOK',
   Remotive: 'Remotive',
@@ -521,6 +522,51 @@ export interface FeeSchedule {
   cardIssuanceFee: number;
   /** Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly) */
   p2pFeePercent: number;
+}
+
+export interface CustomJob {
+  id: string;
+  title: string;
+  company: string;
+  category?: string;
+  location?: string;
+  salary?: string;
+  applyUrl: string;
+  description?: string | null;
+  createdAt: string;
+}
+
+export interface CustomJobsResponse {
+  jobs: CustomJob[];
+}
+
+export type CustomJobCreateRequestCategory = typeof CustomJobCreateRequestCategory[keyof typeof CustomJobCreateRequestCategory];
+
+
+export const CustomJobCreateRequestCategory = {
+  Engineering: 'Engineering',
+  Design: 'Design',
+  Marketing: 'Marketing',
+  Product: 'Product',
+  Sales: 'Sales',
+  Finance: 'Finance',
+  Operations: 'Operations',
+} as const;
+
+export interface CustomJobCreateRequest {
+  /** @maxLength 160 */
+  title: string;
+  /** @maxLength 120 */
+  company: string;
+  /** @maxLength 500 */
+  applyUrl: string;
+  category?: CustomJobCreateRequestCategory;
+  /** @maxLength 120 */
+  location?: string;
+  /** @maxLength 80 */
+  salary?: string;
+  /** @maxLength 20000 */
+  description?: string;
 }
 
 export interface FeatureFlagsResponse {

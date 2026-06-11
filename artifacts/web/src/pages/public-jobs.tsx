@@ -20,6 +20,7 @@ const CATEGORY_MAP: Record<string, string> = {
 };
 
 const SOURCE_COLORS: Record<string, string> = {
+  SPAY: "bg-[#4DC9EE]/15 text-[#1A2B4A] border-[#4DC9EE]/40 font-bold",
   Himalayas: "bg-purple-50 text-purple-700 border-purple-100",
   RemoteOK: "bg-green-50 text-green-700 border-green-100",
   Remotive: "bg-blue-50 text-blue-700 border-blue-100",

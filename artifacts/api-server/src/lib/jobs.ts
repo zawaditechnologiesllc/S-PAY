@@ -12,7 +12,7 @@ export interface NormalizedJob {
   category: string;
   description: string | null;
   applyUrl: string;
-  source: "Himalayas" | "RemoteOK" | "Remotive" | "Arbeitnow" | "TheMuse" | "WeWorkRemotely" | "Jobicy" | "WorkingNomads" | "Jobspresso" | "RemoteCo" | "DailyRemote" | "Nodesk" | "4DayWeek" | "AuthenticJobs" | "SmashingMagazine" | "WPHired" | "LaraJobs" | "JustRemote" | "SkipTheDrive" | "SupportDriven" | "EuropeRemotely" | "Pangian" | "RemoteLeaf" | "GoRemote" | "ProBlogger" | "CrunchBoard" | "VentureLoop" | "StartupJobs" | "HNJobs" | "PythonOrg" | "DjangoJobs" | "RailsJobs" | "Coroflot" | "Krop" | "JSRemotely" | "AIJobs" | "CryptoJobsList" | "Web3Career" | "FlutterJobs" | "GolangCafe" | "GraphQLJobs" | "Jobgether" | "DynamiteJobs" | "TechCareers" | "DataScienceJobs" | "MLRemote" | "Climatebase" | "DevOpsCafe" | "SecurityJobs" | "CloudJobs" | "SalesGravy" | "GoodGigs" | "JobsinTech" | "AndroidDev" | "iOSJobs" | "BlockchainJobs" | "Web3Jobs" | "ReactJobs" | "NodeJobs" | "VueJobs";
+  source: "SPAY" | "Himalayas" | "RemoteOK" | "Remotive" | "Arbeitnow" | "TheMuse" | "WeWorkRemotely" | "Jobicy" | "WorkingNomads" | "Jobspresso" | "RemoteCo" | "DailyRemote" | "Nodesk" | "4DayWeek" | "AuthenticJobs" | "SmashingMagazine" | "WPHired" | "LaraJobs" | "JustRemote" | "SkipTheDrive" | "SupportDriven" | "EuropeRemotely" | "Pangian" | "RemoteLeaf" | "GoRemote" | "ProBlogger" | "CrunchBoard" | "VentureLoop" | "StartupJobs" | "HNJobs" | "PythonOrg" | "DjangoJobs" | "RailsJobs" | "Coroflot" | "Krop" | "JSRemotely" | "AIJobs" | "CryptoJobsList" | "Web3Career" | "FlutterJobs" | "GolangCafe" | "GraphQLJobs" | "Jobgether" | "DynamiteJobs" | "TechCareers" | "DataScienceJobs" | "MLRemote" | "Climatebase" | "DevOpsCafe" | "SecurityJobs" | "CloudJobs" | "SalesGravy" | "GoodGigs" | "JobsinTech" | "AndroidDev" | "iOSJobs" | "BlockchainJobs" | "Web3Jobs" | "ReactJobs" | "NodeJobs" | "VueJobs";
   sourceUrl: string;
   isNew: boolean;
   affiliateCta: { label: string; url: string } | null;
@@ -172,6 +172,51 @@ export function startJobsRefreshLoop(intervalMs = CACHE_TTL_MS): NodeJS.Timeout 
   return timer;
 }
 
+// ─── S-PAY's own listings (admin-injected, pinned first, SEO content) ────────
+
+let customJobsCache: { data: NormalizedJob[]; cachedAt: number } | null = null;
+const CUSTOM_JOBS_TTL_MS = 30 * 1000;
+
+export function invalidateCustomJobs(): void {
+  customJobsCache = null;
+}
+
+async function getCustomJobs(): Promise<NormalizedJob[]> {
+  if (customJobsCache && Date.now() - customJobsCache.cachedAt < CUSTOM_JOBS_TTL_MS) {
+    return customJobsCache.data;
+  }
+  if (!process.env.DATABASE_URL) return [];
+  try {
+    const { db, customJobsTable } = await import("@workspace/db");
+    const { eq, desc } = await import("drizzle-orm");
+    const rows = await db.select().from(customJobsTable)
+      .where(eq(customJobsTable.active, true))
+      .orderBy(desc(customJobsTable.createdAt));
+    const data: NormalizedJob[] = rows.map((r) => ({
+      id: `sp-${r.id}`,
+      title: r.title,
+      company: r.company,
+      companyLogo: null,
+      salary: r.salary,
+      location: r.location,
+      jobType: "full_time",
+      category: resolveCategoryLabel(r.category) ?? normalizeCategory(r.category),
+      description: r.description,
+      applyUrl: r.applyUrl,
+      source: "SPAY",
+      sourceUrl: r.applyUrl,
+      isNew: isNewJob(r.createdAt.toISOString()),
+      affiliateCta: null,
+      postedAt: r.createdAt.toISOString(),
+    }));
+    customJobsCache = { data, cachedAt: Date.now() };
+    return data;
+  } catch (err) {
+    logger.warn({ err }, "Custom jobs read failed");
+    return customJobsCache?.data ?? [];
+  }
+}
+
 // ─── Public API used by the routes ───────────────────────────────────────────
 
 export async function fetchJobs(keyword?: string, category?: string, limit = 30): Promise<{
@@ -179,8 +224,8 @@ export async function fetchJobs(keyword?: string, category?: string, limit = 30)
   total: number;
   remoteCom: { label: string; url: string };
 }> {
-  const all = await getAllJobs();
-  const filtered = filterJobs(all, keyword, category);
+  const [custom, aggregated] = await Promise.all([getCustomJobs(), getAllJobs()]);
+  const filtered = filterJobs([...custom, ...aggregated], keyword, category);
   return {
     jobs: filtered.slice(0, limit),
     total: filtered.length,
@@ -189,8 +234,14 @@ export async function fetchJobs(keyword?: string, category?: string, limit = 30)
 }
 
 export async function getJobById(jobId: string): Promise<NormalizedJob | null> {
-  const all = await getAllJobs();
-  return all.find((j) => j.id === jobId) ?? null;
+  const [custom, aggregated] = await Promise.all([getCustomJobs(), getAllJobs()]);
+  return custom.find((j) => j.id === jobId) ?? aggregated.find((j) => j.id === jobId) ?? null;
+}
+
+/** Every live job id+date — feeds the SEO sitemap. */
+export async function getAllJobsForSitemap(): Promise<Array<{ id: string; postedAt: string }>> {
+  const [custom, aggregated] = await Promise.all([getCustomJobs(), getAllJobs()]);
+  return [...custom, ...aggregated].map((j) => ({ id: j.id, postedAt: j.postedAt }));
 }
 
 // ─── Aggregation ─────────────────────────────────────────────────────────────

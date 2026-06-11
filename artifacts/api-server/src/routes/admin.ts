@@ -6,7 +6,8 @@ import {
   getFeeSchedule, setFeeSchedule, type FeeSchedule,
 } from "../lib/settings";
 import { isStripeConfigured } from "../lib/stripe-issuing";
-import { db, usersTable, transactionsTable, cardWaitlistTable } from "@workspace/db";
+import { invalidateCustomJobs, CATEGORY_LABELS } from "../lib/jobs";
+import { db, usersTable, transactionsTable, cardWaitlistTable, customJobsTable } from "@workspace/db";
 import { eq, count, desc, sql } from "drizzle-orm";
 
 const router = Router();
@@ -242,6 +243,64 @@ router.put("/admin/fees", requireAuth, requireAdmin, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Fee schedule update error");
     res.status(500).json({ error: "internal_error", message: "Failed to update fee schedule" });
+  }
+});
+
+// ─── S-PAY's own job listings (pinned to the feed top; SEO content) ───────────
+
+router.get("/admin/custom-jobs", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const rows = await db.select().from(customJobsTable)
+      .where(eq(customJobsTable.active, true))
+      .orderBy(desc(customJobsTable.createdAt));
+    res.json({ jobs: rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })) });
+  } catch (err) {
+    req.log.error({ err }, "Custom jobs list error");
+    res.status(500).json({ error: "internal_error", message: "Failed to list custom jobs" });
+  }
+});
+
+router.post("/admin/custom-jobs", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { title, company, applyUrl, category, location, salary, description } = req.body as Record<string, unknown>;
+    if (typeof title !== "string" || !title.trim() || typeof company !== "string" || !company.trim()) {
+      res.status(400).json({ error: "validation_error", message: "title and company are required" });
+      return;
+    }
+    if (typeof applyUrl !== "string" || !/^https?:\/\//.test(applyUrl)) {
+      res.status(400).json({ error: "validation_error", message: "applyUrl must be a valid http(s) URL" });
+      return;
+    }
+    const cat = typeof category === "string" && (CATEGORY_LABELS as readonly string[]).includes(category)
+      ? category : "Engineering";
+    const [row] = await db.insert(customJobsTable).values({
+      title: title.trim().slice(0, 160),
+      company: company.trim().slice(0, 120),
+      applyUrl: applyUrl.trim().slice(0, 500),
+      category: cat,
+      location: typeof location === "string" && location.trim() ? location.trim().slice(0, 120) : "Worldwide",
+      salary: typeof salary === "string" && salary.trim() ? salary.trim().slice(0, 80) : "Competitive",
+      description: typeof description === "string" && description.trim() ? description.trim().slice(0, 20000) : null,
+    }).returning();
+    invalidateCustomJobs();
+    req.log.info({ jobId: row.id, admin: req.user!.email }, "Custom job listing created");
+    res.json({ ...row, createdAt: row.createdAt.toISOString() });
+  } catch (err) {
+    req.log.error({ err }, "Custom job create error");
+    res.status(500).json({ error: "internal_error", message: "Failed to create listing" });
+  }
+});
+
+router.delete("/admin/custom-jobs/:jobId", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await db.update(customJobsTable)
+      .set({ active: false })
+      .where(eq(customJobsTable.id, req.params.jobId as string));
+    invalidateCustomJobs();
+    res.json({ message: "Listing removed from the feed." });
+  } catch (err) {
+    req.log.error({ err }, "Custom job delete error");
+    res.status(500).json({ error: "internal_error", message: "Failed to remove listing" });
   }
 });
 

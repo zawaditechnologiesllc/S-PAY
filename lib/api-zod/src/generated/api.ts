@@ -492,7 +492,7 @@ export const GetJobsResponse = zod.object({
   "category": zod.string().optional(),
   "description": zod.string().optional(),
   "applyUrl": zod.string().optional(),
-  "source": zod.enum(['Himalayas', 'RemoteOK', 'Remotive', 'Arbeitnow', 'TheMuse', 'WeWorkRemotely', 'Jobicy', 'WorkingNomads', 'Jobspresso', 'RemoteCo', 'DailyRemote', 'Nodesk', '4DayWeek', 'AuthenticJobs', 'SmashingMagazine', 'WPHired', 'LaraJobs', 'JustRemote', 'SkipTheDrive', 'SupportDriven', 'EuropeRemotely', 'Pangian', 'RemoteLeaf', 'GoRemote', 'ProBlogger', 'CrunchBoard', 'VentureLoop', 'StartupJobs', 'HNJobs', 'PythonOrg', 'DjangoJobs', 'RailsJobs', 'Coroflot', 'Krop', 'JSRemotely', 'AIJobs', 'CryptoJobsList', 'Web3Career', 'FlutterJobs', 'GolangCafe', 'GraphQLJobs', 'Jobgether', 'DynamiteJobs', 'TechCareers', 'DataScienceJobs', 'MLRemote', 'Climatebase', 'DevOpsCafe', 'SecurityJobs', 'CloudJobs', 'SalesGravy', 'GoodGigs', 'JobsinTech', 'AndroidDev', 'iOSJobs', 'BlockchainJobs', 'Web3Jobs', 'ReactJobs', 'NodeJobs', 'VueJobs']),
+  "source": zod.enum(['SPAY', 'Himalayas', 'RemoteOK', 'Remotive', 'Arbeitnow', 'TheMuse', 'WeWorkRemotely', 'Jobicy', 'WorkingNomads', 'Jobspresso', 'RemoteCo', 'DailyRemote', 'Nodesk', '4DayWeek', 'AuthenticJobs', 'SmashingMagazine', 'WPHired', 'LaraJobs', 'JustRemote', 'SkipTheDrive', 'SupportDriven', 'EuropeRemotely', 'Pangian', 'RemoteLeaf', 'GoRemote', 'ProBlogger', 'CrunchBoard', 'VentureLoop', 'StartupJobs', 'HNJobs', 'PythonOrg', 'DjangoJobs', 'RailsJobs', 'Coroflot', 'Krop', 'JSRemotely', 'AIJobs', 'CryptoJobsList', 'Web3Career', 'FlutterJobs', 'GolangCafe', 'GraphQLJobs', 'Jobgether', 'DynamiteJobs', 'TechCareers', 'DataScienceJobs', 'MLRemote', 'Climatebase', 'DevOpsCafe', 'SecurityJobs', 'CloudJobs', 'SalesGravy', 'GoodGigs', 'JobsinTech', 'AndroidDev', 'iOSJobs', 'BlockchainJobs', 'Web3Jobs', 'ReactJobs', 'NodeJobs', 'VueJobs']),
   "sourceUrl": zod.string().optional(),
   "isNew": zod.boolean(),
   "affiliateCta": zod.object({
@@ -527,7 +527,7 @@ export const GetJobByIdResponse = zod.object({
   "category": zod.string().optional(),
   "description": zod.string().optional(),
   "applyUrl": zod.string().optional(),
-  "source": zod.enum(['Himalayas', 'RemoteOK', 'Remotive', 'Arbeitnow', 'TheMuse', 'WeWorkRemotely', 'Jobicy', 'WorkingNomads', 'Jobspresso', 'RemoteCo', 'DailyRemote', 'Nodesk', '4DayWeek', 'AuthenticJobs', 'SmashingMagazine', 'WPHired', 'LaraJobs', 'JustRemote', 'SkipTheDrive', 'SupportDriven', 'EuropeRemotely', 'Pangian', 'RemoteLeaf', 'GoRemote', 'ProBlogger', 'CrunchBoard', 'VentureLoop', 'StartupJobs', 'HNJobs', 'PythonOrg', 'DjangoJobs', 'RailsJobs', 'Coroflot', 'Krop', 'JSRemotely', 'AIJobs', 'CryptoJobsList', 'Web3Career', 'FlutterJobs', 'GolangCafe', 'GraphQLJobs', 'Jobgether', 'DynamiteJobs', 'TechCareers', 'DataScienceJobs', 'MLRemote', 'Climatebase', 'DevOpsCafe', 'SecurityJobs', 'CloudJobs', 'SalesGravy', 'GoodGigs', 'JobsinTech', 'AndroidDev', 'iOSJobs', 'BlockchainJobs', 'Web3Jobs', 'ReactJobs', 'NodeJobs', 'VueJobs']),
+  "source": zod.enum(['SPAY', 'Himalayas', 'RemoteOK', 'Remotive', 'Arbeitnow', 'TheMuse', 'WeWorkRemotely', 'Jobicy', 'WorkingNomads', 'Jobspresso', 'RemoteCo', 'DailyRemote', 'Nodesk', '4DayWeek', 'AuthenticJobs', 'SmashingMagazine', 'WPHired', 'LaraJobs', 'JustRemote', 'SkipTheDrive', 'SupportDriven', 'EuropeRemotely', 'Pangian', 'RemoteLeaf', 'GoRemote', 'ProBlogger', 'CrunchBoard', 'VentureLoop', 'StartupJobs', 'HNJobs', 'PythonOrg', 'DjangoJobs', 'RailsJobs', 'Coroflot', 'Krop', 'JSRemotely', 'AIJobs', 'CryptoJobsList', 'Web3Career', 'FlutterJobs', 'GolangCafe', 'GraphQLJobs', 'Jobgether', 'DynamiteJobs', 'TechCareers', 'DataScienceJobs', 'MLRemote', 'Climatebase', 'DevOpsCafe', 'SecurityJobs', 'CloudJobs', 'SalesGravy', 'GoodGigs', 'JobsinTech', 'AndroidDev', 'iOSJobs', 'BlockchainJobs', 'Web3Jobs', 'ReactJobs', 'NodeJobs', 'VueJobs']),
   "sourceUrl": zod.string().optional(),
   "isNew": zod.boolean(),
   "affiliateCta": zod.object({
@@ -657,6 +657,76 @@ export const UpdateFeeScheduleResponse = zod.object({
   "withdrawalFeeMin": zod.number().describe('Minimum withdrawal fee in USD'),
   "cardIssuanceFee": zod.number().describe('One-time virtual card creation fee in USD (covers Stripe\'s cost + margin)'),
   "p2pFeePercent": zod.number().describe('Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly)')
+})
+
+
+/**
+ * @summary List S-PAY's own injected job listings
+ */
+export const GetCustomJobsResponse = zod.object({
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "company": zod.string(),
+  "category": zod.string().optional(),
+  "location": zod.string().optional(),
+  "salary": zod.string().optional(),
+  "applyUrl": zod.string(),
+  "description": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Inject an S-PAY job listing (pinned to the top of the feed)
+ */
+export const createCustomJobBodyTitleMax = 160;
+
+export const createCustomJobBodyCompanyMax = 120;
+
+export const createCustomJobBodyApplyUrlMax = 500;
+
+export const createCustomJobBodyLocationMax = 120;
+
+export const createCustomJobBodySalaryMax = 80;
+
+export const createCustomJobBodyDescriptionMax = 20000;
+
+
+
+export const CreateCustomJobBody = zod.object({
+  "title": zod.string().max(createCustomJobBodyTitleMax),
+  "company": zod.string().max(createCustomJobBodyCompanyMax),
+  "applyUrl": zod.string().max(createCustomJobBodyApplyUrlMax),
+  "category": zod.enum(['Engineering', 'Design', 'Marketing', 'Product', 'Sales', 'Finance', 'Operations']).optional(),
+  "location": zod.string().max(createCustomJobBodyLocationMax).optional(),
+  "salary": zod.string().max(createCustomJobBodySalaryMax).optional(),
+  "description": zod.string().max(createCustomJobBodyDescriptionMax).optional()
+})
+
+export const CreateCustomJobResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "company": zod.string(),
+  "category": zod.string().optional(),
+  "location": zod.string().optional(),
+  "salary": zod.string().optional(),
+  "applyUrl": zod.string(),
+  "description": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Remove an injected listing
+ */
+export const DeleteCustomJobParams = zod.object({
+  "jobId": zod.coerce.string()
+})
+
+export const DeleteCustomJobResponse = zod.object({
+  "message": zod.string()
 })
 
 

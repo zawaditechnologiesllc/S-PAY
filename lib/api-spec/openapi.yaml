@@ -691,6 +691,61 @@ paths:
               schema:
                 $ref: "#/components/schemas/FeeSchedule"
 
+  /admin/custom-jobs:
+    get:
+      operationId: getCustomJobs
+      summary: List S-PAY's own injected job listings
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Custom listings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomJobsResponse"
+    post:
+      operationId: createCustomJob
+      summary: Inject an S-PAY job listing (pinned to the top of the feed)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomJobCreateRequest"
+      responses:
+        "200":
+          description: Created listing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomJob"
+
+  /admin/custom-jobs/{jobId}:
+    delete:
+      operationId: deleteCustomJob
+      summary: Remove an injected listing
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
   /admin/feature-flags:
     get:
       operationId: getFeatureFlags
@@ -1371,7 +1426,7 @@ components:
           type: string
         source:
           type: string
-          enum: [Himalayas, RemoteOK, Remotive, Arbeitnow, TheMuse, WeWorkRemotely, Jobicy, WorkingNomads, Jobspresso, RemoteCo, DailyRemote, Nodesk, 4DayWeek, AuthenticJobs, SmashingMagazine, WPHired, LaraJobs, JustRemote, SkipTheDrive, SupportDriven, EuropeRemotely, Pangian, RemoteLeaf, GoRemote, ProBlogger, CrunchBoard, VentureLoop, StartupJobs, HNJobs, PythonOrg, DjangoJobs, RailsJobs, Coroflot, Krop, JSRemotely, AIJobs, CryptoJobsList, Web3Career, FlutterJobs, GolangCafe, GraphQLJobs, Jobgether, DynamiteJobs, TechCareers, DataScienceJobs, MLRemote, Climatebase, DevOpsCafe, SecurityJobs, CloudJobs, SalesGravy, GoodGigs, JobsinTech, AndroidDev, iOSJobs, BlockchainJobs, Web3Jobs, ReactJobs, NodeJobs, VueJobs]
+          enum: [SPAY, Himalayas, RemoteOK, Remotive, Arbeitnow, TheMuse, WeWorkRemotely, Jobicy, WorkingNomads, Jobspresso, RemoteCo, DailyRemote, Nodesk, 4DayWeek, AuthenticJobs, SmashingMagazine, WPHired, LaraJobs, JustRemote, SkipTheDrive, SupportDriven, EuropeRemotely, Pangian, RemoteLeaf, GoRemote, ProBlogger, CrunchBoard, VentureLoop, StartupJobs, HNJobs, PythonOrg, DjangoJobs, RailsJobs, Coroflot, Krop, JSRemotely, AIJobs, CryptoJobsList, Web3Career, FlutterJobs, GolangCafe, GraphQLJobs, Jobgether, DynamiteJobs, TechCareers, DataScienceJobs, MLRemote, Climatebase, DevOpsCafe, SecurityJobs, CloudJobs, SalesGravy, GoodGigs, JobsinTech, AndroidDev, iOSJobs, BlockchainJobs, Web3Jobs, ReactJobs, NodeJobs, VueJobs]
         sourceUrl:
           type: string
         isNew:
@@ -1437,6 +1492,74 @@ components:
         - withdrawalFeeMin
         - cardIssuanceFee
         - p2pFeePercent
+
+    CustomJob:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        company:
+          type: string
+        category:
+          type: string
+        location:
+          type: string
+        salary:
+          type: string
+        applyUrl:
+          type: string
+        description:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - company
+        - applyUrl
+        - createdAt
+
+    CustomJobsResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomJob"
+      required:
+        - jobs
+
+    CustomJobCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 160
+        company:
+          type: string
+          maxLength: 120
+        applyUrl:
+          type: string
+          maxLength: 500
+        category:
+          type: string
+          enum: [Engineering, Design, Marketing, Product, Sales, Finance, Operations]
+        location:
+          type: string
+          maxLength: 120
+        salary:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 20000
+      required:
+        - title
+        - company
+        - applyUrl
 
     FeatureFlagsResponse:
       type: object

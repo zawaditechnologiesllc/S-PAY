@@ -30,6 +30,9 @@ import type {
   BankingAccountsResponse,
   CardDetailsResponse,
   CardTransactionListResponse,
+  CustomJob,
+  CustomJobCreateRequest,
+  CustomJobsResponse,
   DashboardSummary,
   ErrorResponse,
   ExchangeRateResponse,
@@ -2515,6 +2518,224 @@ export const useUpdateFeeSchedule = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateFeeScheduleMutationOptions(options));
+    }
+
+export const getGetCustomJobsUrl = () => {
+
+
+
+
+  return `/api/admin/custom-jobs`
+}
+
+/**
+ * @summary List S-PAY's own injected job listings
+ */
+export const getCustomJobs = async ( options?: RequestInit): Promise<CustomJobsResponse> => {
+
+  return customFetch<CustomJobsResponse>(getGetCustomJobsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCustomJobsQueryKey = () => {
+    return [
+    `/api/admin/custom-jobs`
+    ] as const;
+    }
+
+
+export const getGetCustomJobsQueryOptions = <TData = Awaited<ReturnType<typeof getCustomJobs>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCustomJobs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCustomJobsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCustomJobs>>> = ({ signal }) => getCustomJobs({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCustomJobs>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCustomJobsQueryResult = NonNullable<Awaited<ReturnType<typeof getCustomJobs>>>
+export type GetCustomJobsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List S-PAY's own injected job listings
+ */
+
+export function useGetCustomJobs<TData = Awaited<ReturnType<typeof getCustomJobs>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCustomJobs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCustomJobsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateCustomJobUrl = () => {
+
+
+
+
+  return `/api/admin/custom-jobs`
+}
+
+/**
+ * @summary Inject an S-PAY job listing (pinned to the top of the feed)
+ */
+export const createCustomJob = async (customJobCreateRequest: CustomJobCreateRequest, options?: RequestInit): Promise<CustomJob> => {
+
+  return customFetch<CustomJob>(getCreateCustomJobUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      customJobCreateRequest,)
+  }
+);}
+
+
+
+
+export const getCreateCustomJobMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCustomJob>>, TError,{data: BodyType<CustomJobCreateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCustomJob>>, TError,{data: BodyType<CustomJobCreateRequest>}, TContext> => {
+
+const mutationKey = ['createCustomJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCustomJob>>, {data: BodyType<CustomJobCreateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCustomJob(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCustomJobMutationResult = NonNullable<Awaited<ReturnType<typeof createCustomJob>>>
+    export type CreateCustomJobMutationBody = BodyType<CustomJobCreateRequest>
+    export type CreateCustomJobMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Inject an S-PAY job listing (pinned to the top of the feed)
+ */
+export const useCreateCustomJob = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCustomJob>>, TError,{data: BodyType<CustomJobCreateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCustomJob>>,
+        TError,
+        {data: BodyType<CustomJobCreateRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateCustomJobMutationOptions(options));
+    }
+
+export const getDeleteCustomJobUrl = (jobId: string,) => {
+
+
+
+
+  return `/api/admin/custom-jobs/${jobId}`
+}
+
+/**
+ * @summary Remove an injected listing
+ */
+export const deleteCustomJob = async (jobId: string, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getDeleteCustomJobUrl(jobId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteCustomJobMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCustomJob>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteCustomJob>>, TError,{jobId: string}, TContext> => {
+
+const mutationKey = ['deleteCustomJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCustomJob>>, {jobId: string}> = (props) => {
+          const {jobId} = props ?? {};
+
+          return  deleteCustomJob(jobId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteCustomJobMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCustomJob>>>
+
+    export type DeleteCustomJobMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove an injected listing
+ */
+export const useDeleteCustomJob = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCustomJob>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteCustomJob>>,
+        TError,
+        {jobId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteCustomJobMutationOptions(options));
     }
 
 export const getGetFeatureFlagsUrl = () => {

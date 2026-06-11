@@ -1,7 +1,7 @@
 import { Router } from "express";
 import crypto from "crypto";
 import { logger } from "../lib/logger";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, transactionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -63,6 +63,31 @@ router.post("/webhooks/noah", async (req, res) => {
             .set({ kycStatus: "rejected", updatedAt: new Date() })
             .where(eq(usersTable.noahCustomerId, event.customer_id));
           logger.warn({ customerId: event.customer_id, event: event.event }, "Verification rejected — user notified on next login");
+        }
+        break;
+
+      // Fiat received on the virtual account (USD wire/ACH or EU SEPA) —
+      // Noah auto-converts it to stablecoin and settles to the user's Celo
+      // wallet. Credit the ledger so it shows in history immediately.
+      case "payment.received":
+      case "deposit.completed":
+      case "onramp.completed":
+        if (event.customer_id && typeof event.amount === "number" && event.amount > 0) {
+          const [user] = await db.select().from(usersTable)
+            .where(eq(usersTable.noahCustomerId, event.customer_id)).limit(1);
+          if (user) {
+            const token = event.currency?.toUpperCase() === "USDT" ? "USDT" : "USDC";
+            await db.insert(transactionsTable).values({
+              userId: user.id,
+              type: "receive",
+              amount: String(event.amount),
+              currency: token,
+              description: `Bank deposit — auto-converted to ${token}`,
+              counterparty: "Virtual account deposit",
+              status: "completed",
+            });
+            logger.info({ customerId: event.customer_id, amount: event.amount, token }, "Fiat deposit converted to stablecoin and credited");
+          }
         }
         break;
 
