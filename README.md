@@ -1,6 +1,8 @@
 # S-PAY — Digital Money Super App for Remote Workers
 
-**Built by Zawadi Technologies LLC**
+**Built by Zawadi Technologies LLC · Built on [Celo](https://celo.org)**
+
+Like MiniPay, S-PAY is built on the Celo network: stablecoin-first balances (USDC), sub-cent fees, 5-second finality, and wallets that exist the moment you sign up — no seed phrase, ever.
 
 S-PAY was born in 2016 by a team of full-stack fintech and crypto engineers frustrated by PayPal blocking legitimate remote worker accounts across Africa and Southeast Asia. The goal: give every remote worker a real US bank account, instant local cash-outs, and the financial tools they deserve — with no gatekeeper.
 
@@ -395,7 +397,17 @@ See the detailed deployment guide below. Summary:
 3. Go to your API service → **Environment** → add `DATABASE_URL` = the internal URL → **Save Changes**
 4. Render redeploys the API; migrations run automatically on boot — no `drizzle-kit push`, no terminal
 
-> The free Postgres plan expires after 30 days. For production, upgrade the database to a paid plan (Basic 256MB+) in the Render dashboard under the database's **Settings** tab.
+> **What "expires after 30 days" means:** Render's free PostgreSQL is a trial — 30 days after creation the database is **suspended, and ~14 days later it is deleted along with its data** unless you upgrade it to a paid plan (Basic 256MB, ~$7/mo). Render emails you before this happens. For production either upgrade the plan (Settings tab of `spay-db`) **or use Supabase below — its free tier never expires.**
+
+**Option C — Supabase (free tier never expires):**
+
+1. [supabase.com](https://supabase.com) → **New project** → pick a name, password, and region close to your Render region (e.g. `us-west-1` for Oregon)
+2. In the project: **Connect** (top bar) → **Connection string → URI** → choose the **Session pooler** string (works on all networks) and copy it. It looks like
+   `postgresql://postgres.xxxx:[YOUR-PASSWORD]@aws-0-us-west-1.pooler.supabase.com:5432/postgres`
+3. Replace `[YOUR-PASSWORD]` with your database password
+4. Render → `spay-api` → **Environment** → set `DATABASE_URL` to that string → **Save Changes**
+5. Render redeploys; migrations run automatically on boot — the schema creates itself in Supabase. (TLS is auto-detected for `*.supabase.com` URLs; set `DATABASE_SSL=true|false` to override.)
+6. You can browse your data anytime in Supabase's **Table Editor** — no terminal needed
 
 ### 2. API Server (Render Web Service)
 

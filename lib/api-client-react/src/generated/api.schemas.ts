@@ -36,6 +36,22 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface GoogleTokenRequest {
+  /** Google ID token obtained on-device (Android / iOS) */
+  idToken: string;
+  /** @maxLength 64 */
+  signupSource?: string;
+}
+
+export interface AppleTokenRequest {
+  /** Apple identity token from Sign in with Apple */
+  identityToken: string;
+  /** Provided by Apple only on first authorization */
+  fullName?: string;
+  /** @maxLength 64 */
+  signupSource?: string;
+}
+
 export type UserKycStatus = typeof UserKycStatus[keyof typeof UserKycStatus];
 
 

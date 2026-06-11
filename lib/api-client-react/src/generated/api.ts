@@ -25,6 +25,7 @@ import type {
   AdminStats,
   AdminTransactionsResponse,
   AdminUsersResponse,
+  AppleTokenRequest,
   AuthResponse,
   BankingAccountsResponse,
   CardDetailsResponse,
@@ -41,6 +42,7 @@ import type {
   GetJobsParams,
   GetSpendingSummaryParams,
   GetWalletTransactionsParams,
+  GoogleTokenRequest,
   HealthStatus,
   IncomingPaymentsResponse,
   Job,
@@ -367,6 +369,218 @@ export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = Err
 
 
 
+
+export const getDeleteAccountUrl = () => {
+
+
+
+
+  return `/api/auth/me`
+}
+
+/**
+ * @summary Permanently delete the current account and its data (required for App Store / Play Store compliance)
+ */
+export const deleteAccount = async ( options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getDeleteAccountUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteAccountMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAccount>>, void> = () => {
+
+
+          return  deleteAccount(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAccountMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAccount>>>
+
+    export type DeleteAccountMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Permanently delete the current account and its data (required for App Store / Play Store compliance)
+ */
+export const useDeleteAccount = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAccount>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteAccountMutationOptions(options));
+    }
+
+export const getGoogleTokenSignInUrl = () => {
+
+
+
+
+  return `/api/auth/oauth/google`
+}
+
+/**
+ * @summary Sign in / sign up with a Google ID token (native mobile flow)
+ */
+export const googleTokenSignIn = async (googleTokenRequest: GoogleTokenRequest, options?: RequestInit): Promise<AuthResponse> => {
+
+  return customFetch<AuthResponse>(getGoogleTokenSignInUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      googleTokenRequest,)
+  }
+);}
+
+
+
+
+export const getGoogleTokenSignInMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof googleTokenSignIn>>, TError,{data: BodyType<GoogleTokenRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof googleTokenSignIn>>, TError,{data: BodyType<GoogleTokenRequest>}, TContext> => {
+
+const mutationKey = ['googleTokenSignIn'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof googleTokenSignIn>>, {data: BodyType<GoogleTokenRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  googleTokenSignIn(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GoogleTokenSignInMutationResult = NonNullable<Awaited<ReturnType<typeof googleTokenSignIn>>>
+    export type GoogleTokenSignInMutationBody = BodyType<GoogleTokenRequest>
+    export type GoogleTokenSignInMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Sign in / sign up with a Google ID token (native mobile flow)
+ */
+export const useGoogleTokenSignIn = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof googleTokenSignIn>>, TError,{data: BodyType<GoogleTokenRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof googleTokenSignIn>>,
+        TError,
+        {data: BodyType<GoogleTokenRequest>},
+        TContext
+      > => {
+      return useMutation(getGoogleTokenSignInMutationOptions(options));
+    }
+
+export const getAppleTokenSignInUrl = () => {
+
+
+
+
+  return `/api/auth/oauth/apple`
+}
+
+/**
+ * @summary Sign in / sign up with Apple (native iOS flow)
+ */
+export const appleTokenSignIn = async (appleTokenRequest: AppleTokenRequest, options?: RequestInit): Promise<AuthResponse> => {
+
+  return customFetch<AuthResponse>(getAppleTokenSignInUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      appleTokenRequest,)
+  }
+);}
+
+
+
+
+export const getAppleTokenSignInMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appleTokenSignIn>>, TError,{data: BodyType<AppleTokenRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof appleTokenSignIn>>, TError,{data: BodyType<AppleTokenRequest>}, TContext> => {
+
+const mutationKey = ['appleTokenSignIn'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof appleTokenSignIn>>, {data: BodyType<AppleTokenRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  appleTokenSignIn(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AppleTokenSignInMutationResult = NonNullable<Awaited<ReturnType<typeof appleTokenSignIn>>>
+    export type AppleTokenSignInMutationBody = BodyType<AppleTokenRequest>
+    export type AppleTokenSignInMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Sign in / sign up with Apple (native iOS flow)
+ */
+export const useAppleTokenSignIn = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appleTokenSignIn>>, TError,{data: BodyType<AppleTokenRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof appleTokenSignIn>>,
+        TError,
+        {data: BodyType<AppleTokenRequest>},
+        TContext
+      > => {
+      return useMutation(getAppleTokenSignInMutationOptions(options));
+    }
 
 export const getGetDashboardSummaryUrl = () => {
 

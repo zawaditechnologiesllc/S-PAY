@@ -1,6 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import axios from "axios";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { signToken } from "../lib/auth";
 import { requireAuth } from "../middlewares/auth";
 import { ensureCeloWallet } from "../lib/celo";
@@ -132,6 +133,143 @@ router.get("/auth/me", requireAuth, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Get me error");
     res.status(500).json({ error: "internal_error", message: "Failed to fetch user" });
+  }
+});
+
+// ─── Account deletion (App Store 5.1.1(v) / Play "Account deletion" policy) ──
+
+router.delete("/auth/me", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const { transactionsTable, cardWaitlistTable } = await import("@workspace/db");
+    await db.delete(transactionsTable).where(eq(transactionsTable.userId, userId));
+    await db.delete(cardWaitlistTable).where(eq(cardWaitlistTable.userId, userId));
+    await db.delete(usersTable).where(eq(usersTable.id, userId));
+    req.log.info({ userId }, "Account deleted at user request");
+    res.json({ message: "Your account and all associated data have been permanently deleted." });
+  } catch (err) {
+    req.log.error({ err }, "Account deletion error");
+    res.status(500).json({ error: "internal_error", message: "Failed to delete account" });
+  }
+});
+
+// ─── Native mobile sign-in: Google (Android) & Apple (iOS) ───────────────────
+// The apps send the ID token obtained on-device; we verify the signature
+// against the provider's JWKS before trusting any claim in it.
+
+const googleJwks = createRemoteJWKSet(new URL("https://www.googleapis.com/oauth2/v3/certs"));
+const appleJwks = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
+
+const GOOGLE_AUDIENCES = [
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_ANDROID_CLIENT_ID,
+  process.env.GOOGLE_IOS_CLIENT_ID,
+].filter((v): v is string => !!v);
+
+const APPLE_BUNDLE_ID = process.env.APPLE_BUNDLE_ID ?? "com.zawaditechnologies.spay";
+
+router.post("/auth/oauth/google", async (req, res) => {
+  try {
+    const { idToken, signupSource } = req.body as { idToken?: string; signupSource?: string };
+    if (!idToken) {
+      res.status(400).json({ error: "validation_error", message: "idToken is required" });
+      return;
+    }
+    if (GOOGLE_AUDIENCES.length === 0) {
+      res.status(503).json({ error: "not_configured", message: "Google sign-in is not configured" });
+      return;
+    }
+
+    const { payload } = await jwtVerify(idToken, googleJwks, {
+      issuer: ["https://accounts.google.com", "accounts.google.com"],
+      audience: GOOGLE_AUDIENCES,
+    });
+    const googleId = String(payload.sub);
+    const email = typeof payload.email === "string" ? payload.email : null;
+    const name = typeof payload.name === "string" ? payload.name : "S-PAY User";
+    const picture = typeof payload.picture === "string" ? payload.picture : null;
+    if (!email) {
+      res.status(401).json({ error: "invalid_token", message: "Google token has no email" });
+      return;
+    }
+
+    let [user] = await db.select().from(usersTable).where(eq(usersTable.googleId, googleId)).limit(1);
+    if (!user) {
+      const [byEmail] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+      if (byEmail) {
+        [user] = await db.update(usersTable)
+          .set({ googleId, avatarUrl: byEmail.avatarUrl ?? picture, updatedAt: new Date() })
+          .where(eq(usersTable.id, byEmail.id))
+          .returning();
+      } else {
+        [user] = await db.insert(usersTable).values({
+          email,
+          fullName: name,
+          googleId,
+          avatarUrl: picture,
+          passwordHash: null,
+          signupSource: cleanSignupSource(signupSource) ?? "mobile",
+        }).returning();
+      }
+    }
+
+    ensureCeloWallet(user.id, user.celoWalletAddress);
+    const token = signToken({ userId: user.id, email: user.email });
+    res.json({ token, user: userResponse(user) });
+  } catch (err) {
+    req.log.warn({ err }, "Google token sign-in failed");
+    res.status(401).json({ error: "invalid_token", message: "Google sign-in could not be verified" });
+  }
+});
+
+router.post("/auth/oauth/apple", async (req, res) => {
+  try {
+    const { identityToken, fullName, signupSource } = req.body as {
+      identityToken?: string; fullName?: string; signupSource?: string;
+    };
+    if (!identityToken) {
+      res.status(400).json({ error: "validation_error", message: "identityToken is required" });
+      return;
+    }
+
+    const { payload } = await jwtVerify(identityToken, appleJwks, {
+      issuer: "https://appleid.apple.com",
+      audience: APPLE_BUNDLE_ID,
+    });
+    const appleId = String(payload.sub);
+    const email = typeof payload.email === "string" ? payload.email : null;
+
+    let [user] = await db.select().from(usersTable).where(eq(usersTable.appleId, appleId)).limit(1);
+    if (!user && email) {
+      const [byEmail] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+      if (byEmail) {
+        [user] = await db.update(usersTable)
+          .set({ appleId, updatedAt: new Date() })
+          .where(eq(usersTable.id, byEmail.id))
+          .returning();
+      }
+    }
+    if (!user) {
+      if (!email) {
+        // Apple only includes the email claim on first authorization — ask the user to revoke & retry
+        res.status(401).json({ error: "invalid_token", message: "Apple token has no email. Remove S-PAY from Settings → Apple ID → Sign-In & Security and try again." });
+        return;
+      }
+      [user] = await db.insert(usersTable).values({
+        email,
+        fullName: fullName?.trim() || "S-PAY User",
+        appleId,
+        passwordHash: null,
+        signupSource: cleanSignupSource(signupSource) ?? "mobile",
+      }).returning();
+    }
+
+    ensureCeloWallet(user.id, user.celoWalletAddress);
+    const token = signToken({ userId: user.id, email: user.email });
+    res.json({ token, user: userResponse(user) });
+  } catch (err) {
+    req.log.warn({ err }, "Apple token sign-in failed");
+    res.status(401).json({ error: "invalid_token", message: "Apple sign-in could not be verified" });
   }
 });
 

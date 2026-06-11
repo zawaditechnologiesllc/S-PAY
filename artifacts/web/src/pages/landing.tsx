@@ -176,8 +176,14 @@ export default function Landing() {
 
             {/* Left column */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-white/10 text-[#A8DEFF] text-xs font-semibold px-4 py-1.5 rounded-full mb-5 border border-white/20">
-                <Globe size={11} /> Built for remote workers worldwide
+              <div className="flex flex-wrap items-center gap-2 mb-5">
+                <div className="inline-flex items-center gap-2 bg-white/10 text-[#A8DEFF] text-xs font-semibold px-4 py-1.5 rounded-full border border-white/20">
+                  <Globe size={11} /> Built for remote workers worldwide
+                </div>
+                {/* Built on Celo — same declaration MiniPay makes */}
+                <div className="inline-flex items-center gap-2 bg-white/10 text-white text-xs font-semibold px-4 py-1.5 rounded-full border border-white/20">
+                  <span className="w-2 h-2 rounded-full bg-[#FCFF52]" /> Built on Celo
+                </div>
               </div>
               <h1 className="text-[2.1rem] sm:text-4xl md:text-5xl lg:text-[3.4rem] font-black text-white leading-[1.08] mb-5">
                 The money app that works{" "}

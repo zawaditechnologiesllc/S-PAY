@@ -109,6 +109,75 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAccount
+      tags: [auth]
+      summary: Permanently delete the current account and its data (required for App Store / Play Store compliance)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Account deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/oauth/google:
+    post:
+      operationId: googleTokenSignIn
+      tags: [auth]
+      summary: Sign in / sign up with a Google ID token (native mobile flow)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleTokenRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/oauth/apple:
+    post:
+      operationId: appleTokenSignIn
+      tags: [auth]
+      summary: Sign in / sign up with Apple (native iOS flow)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppleTokenRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /dashboard/summary:
     get:
@@ -616,6 +685,33 @@ components:
       required:
         - email
         - password
+
+    GoogleTokenRequest:
+      type: object
+      properties:
+        idToken:
+          type: string
+          description: Google ID token obtained on-device (Android / iOS)
+        signupSource:
+          type: string
+          maxLength: 64
+      required:
+        - idToken
+
+    AppleTokenRequest:
+      type: object
+      properties:
+        identityToken:
+          type: string
+          description: Apple identity token from Sign in with Apple
+        fullName:
+          type: string
+          description: Provided by Apple only on first authorization
+        signupSource:
+          type: string
+          maxLength: 64
+      required:
+        - identityToken
 
     AuthResponse:
       type: object

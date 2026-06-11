@@ -135,7 +135,12 @@ export function PublicFooter() {
             <p className="text-blue-300 text-sm leading-relaxed mb-2 max-w-xs">
               The money super app for remote workers. Get a real US &amp; EU bank account, digital wallet, and local cash-outs — all in one place.
             </p>
-            <p className="text-blue-400 text-xs mb-6">By Zawadi Technologies LLC</p>
+            <p className="text-blue-400 text-xs mb-3">By Zawadi Technologies LLC</p>
+            {/* Built on Celo — same declaration MiniPay makes */}
+            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3.5 py-1.5 mb-6">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FCFF52] flex-shrink-0" />
+              <span className="text-white text-xs font-semibold tracking-wide">Built on Celo</span>
+            </div>
             <div className="flex items-center gap-3">
               <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-blue-300 hover:text-white hover:bg-white/20 transition-colors" aria-label="Twitter">
@@ -189,7 +194,7 @@ export function PublicFooter() {
         {/* Bottom bar */}
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
           <p className="text-blue-400 text-xs">
-            © {year} S-PAY · Zawadi Technologies LLC · All rights reserved
+            © {year} S-PAY · Zawadi Technologies LLC · Built on Celo · All rights reserved
           </p>
           <div className="flex items-center gap-2 text-blue-400 text-xs">
             <Globe size={12} className="flex-shrink-0" />

@@ -8,7 +8,6 @@
     "scheme": "spay",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
     "updates": {
       "url": "https://u.expo.dev/spay",
       "enabled": true,
@@ -18,13 +17,11 @@
     "runtimeVersion": {
       "policy": "appVersion"
     },
-
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#1A2B4A"
     },
-
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.zawaditechnologies.spay",
@@ -37,9 +34,9 @@
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": []
-      }
+      },
+      "usesAppleSignIn": true
     },
-
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
@@ -55,12 +52,10 @@
         "android.permission.RECEIVE_BOOT_COMPLETED"
       ]
     },
-
     "web": {
       "favicon": "./assets/images/icon.png",
       "bundler": "metro"
     },
-
     "plugins": [
       [
         "expo-router",
@@ -70,6 +65,7 @@
       ],
       "expo-font",
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "expo-build-properties",
         {
@@ -84,12 +80,10 @@
         }
       ]
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
-
     "extra": {
       "eas": {
         "projectId": "spay"

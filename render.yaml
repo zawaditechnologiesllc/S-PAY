@@ -41,10 +41,17 @@ services:
         sync: false
       - key: NOAH_WEBHOOK_SECRET
         sync: false
-      # Optional: Google Sign-In
+      # Optional: Google Sign-In (web flow + native Android/iOS token verification)
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_ANDROID_CLIENT_ID
+        sync: false
+      - key: GOOGLE_IOS_CLIENT_ID
+        sync: false
+      # Optional: Sign in with Apple (defaults to com.zawaditechnologies.spay)
+      - key: APPLE_BUNDLE_ID
         sync: false
       - key: FRONTEND_URL
         sync: false
