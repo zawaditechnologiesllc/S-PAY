@@ -40,7 +40,7 @@ const MARKETS = [
 ];
 
 const STATS = [
-  { value: "500K+", label: "Users worldwide" },
+  { value: "3,000+", label: "Remote jobs daily" },
   { value: "$0", label: "Monthly fee" },
   { value: "180+", label: "Countries supported" },
   { value: "<1 min", label: "Withdrawals" },
@@ -699,7 +699,7 @@ export default function Landing() {
             <span className="text-blue-50">It's free, forever.</span>
           </h2>
           <p className="text-blue-50 text-base md:text-xl mb-10 max-w-xl mx-auto leading-relaxed">
-            Join 500,000+ remote workers who use S-PAY to get paid globally and spend locally — in 180+ countries.
+            Join the remote workers in 180+ countries who use S-PAY to get paid globally and spend locally.
           </p>
           <Link href="/register">
             <button className="inline-flex items-center gap-2 bg-[#1A2B4A] text-white font-bold px-8 py-4 md:px-12 md:py-5 rounded-2xl hover:bg-[#0d1f38] transition-colors text-base md:text-lg shadow-xl w-full sm:w-auto justify-center">

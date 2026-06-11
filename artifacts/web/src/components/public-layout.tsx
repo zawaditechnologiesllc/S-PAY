@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Globe, Twitter, Linkedin, Instagram, Menu, X, ArrowRight } from "lucide-react";
+import { Globe, Mail, Menu, X, ArrowRight } from "lucide-react";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 interface PublicNavProps {
@@ -141,20 +141,12 @@ export function PublicFooter() {
               <span className="w-2.5 h-2.5 rounded-full bg-[#FCFF52] flex-shrink-0" />
               <span className="text-white text-xs font-semibold tracking-wide">Built on Celo</span>
             </div>
-            <div className="flex items-center gap-3">
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-blue-300 hover:text-white hover:bg-white/20 transition-colors" aria-label="Twitter">
-                <Twitter size={15} />
-              </a>
-              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-blue-300 hover:text-white hover:bg-white/20 transition-colors" aria-label="LinkedIn">
-                <Linkedin size={15} />
-              </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-blue-300 hover:text-white hover:bg-white/20 transition-colors" aria-label="Instagram">
-                <Instagram size={15} />
-              </a>
-            </div>
+            <a
+              href="mailto:support@spayewallet.com"
+              className="inline-flex items-center gap-2 text-blue-300 hover:text-white transition-colors text-sm"
+            >
+              <Mail size={14} /> support@spayewallet.com
+            </a>
           </div>
 
           {/* Product col */}

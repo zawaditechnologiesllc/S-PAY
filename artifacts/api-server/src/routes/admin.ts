@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
-import { isCardProgramEnabled, setCardProgramEnabled, getFeeSchedule, setFeeSchedule, type FeeSchedule } from "../lib/settings";
+import {
+  isCardProgramEnabled, setCardProgramEnabled,
+  getMaintenance, setMaintenance,
+  getFeeSchedule, setFeeSchedule, type FeeSchedule,
+} from "../lib/settings";
 import { isStripeConfigured } from "../lib/stripe-issuing";
 import { db, usersTable, transactionsTable, cardWaitlistTable } from "@workspace/db";
 import { eq, count, desc, sql } from "drizzle-orm";
@@ -136,11 +140,18 @@ router.get("/admin/transactions", requireAuth, requireAdmin, async (req, res) =>
 // ─── Feature flags: the admin master switches ─────────────────────────────────
 
 async function featureFlagsPayload() {
-  const [cardProgramEnabled, [{ total: cardWaitlistCount }]] = await Promise.all([
+  const [cardProgramEnabled, maintenance, [{ total: cardWaitlistCount }]] = await Promise.all([
     isCardProgramEnabled(),
+    getMaintenance(),
     db.select({ total: count() }).from(cardWaitlistTable),
   ]);
-  return { cardProgramEnabled, stripeConfigured: isStripeConfigured(), cardWaitlistCount };
+  return {
+    cardProgramEnabled,
+    stripeConfigured: isStripeConfigured(),
+    cardWaitlistCount,
+    maintenanceMode: maintenance.enabled,
+    maintenanceMessage: maintenance.message,
+  };
 }
 
 router.get("/admin/feature-flags", requireAuth, requireAdmin, async (req, res) => {
@@ -154,13 +165,36 @@ router.get("/admin/feature-flags", requireAuth, requireAdmin, async (req, res) =
 
 router.put("/admin/feature-flags", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { cardProgramEnabled } = req.body as { cardProgramEnabled?: unknown };
-    if (typeof cardProgramEnabled !== "boolean") {
-      res.status(400).json({ error: "validation_error", message: "cardProgramEnabled must be a boolean" });
+    const { cardProgramEnabled, maintenanceMode, maintenanceMessage } = req.body as {
+      cardProgramEnabled?: unknown; maintenanceMode?: unknown; maintenanceMessage?: unknown;
+    };
+    if (cardProgramEnabled === undefined && maintenanceMode === undefined && maintenanceMessage === undefined) {
+      res.status(400).json({ error: "validation_error", message: "Provide at least one flag to update" });
       return;
     }
-    await setCardProgramEnabled(cardProgramEnabled);
-    req.log.info({ cardProgramEnabled, admin: req.user!.email }, "Card program switch changed");
+    if (cardProgramEnabled !== undefined) {
+      if (typeof cardProgramEnabled !== "boolean") {
+        res.status(400).json({ error: "validation_error", message: "cardProgramEnabled must be a boolean" });
+        return;
+      }
+      await setCardProgramEnabled(cardProgramEnabled);
+      req.log.info({ cardProgramEnabled, admin: req.user!.email }, "Card program switch changed");
+    }
+    if (maintenanceMode !== undefined || maintenanceMessage !== undefined) {
+      if (maintenanceMode !== undefined && typeof maintenanceMode !== "boolean") {
+        res.status(400).json({ error: "validation_error", message: "maintenanceMode must be a boolean" });
+        return;
+      }
+      if (maintenanceMessage !== undefined && typeof maintenanceMessage !== "string") {
+        res.status(400).json({ error: "validation_error", message: "maintenanceMessage must be a string" });
+        return;
+      }
+      await setMaintenance({
+        ...(maintenanceMode !== undefined ? { enabled: maintenanceMode } : {}),
+        ...(maintenanceMessage !== undefined ? { message: maintenanceMessage.slice(0, 280) } : {}),
+      });
+      req.log.warn({ maintenanceMode, admin: req.user!.email }, "Maintenance mode changed");
+    }
     res.json(await featureFlagsPayload());
   } catch (err) {
     req.log.error({ err }, "Feature flags update error");

@@ -17,9 +17,14 @@ import { setBaseUrl } from "@workspace/api-client-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
 
-// Configure API base URL for Expo (runs outside web proxy)
+// Configure API base URL for Expo (runs outside web proxy).
+// Production builds set EXPO_PUBLIC_API_URL (e.g. https://spay-api.onrender.com);
+// EXPO_PUBLIC_DOMAIN remains as the Replit dev fallback.
+const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 const domain = process.env.EXPO_PUBLIC_DOMAIN;
-if (domain) {
+if (apiUrl) {
+  setBaseUrl(apiUrl.replace(/\/+$/, ""));
+} else if (domain) {
   setBaseUrl(`https://${domain}`);
 }
 
@@ -27,7 +32,14 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: false, refetchOnWindowFocus: false },
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+      // Instant tab switching: serve cached data immediately, refresh quietly
+      // in the background once it's 30s old.
+      staleTime: 30 * 1000,
+      gcTime: 10 * 60 * 1000,
+    },
   },
 });
 
