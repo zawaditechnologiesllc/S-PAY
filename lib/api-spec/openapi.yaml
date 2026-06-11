@@ -39,6 +39,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  /status:
+    get:
+      operationId: getPlatformStatus
+      tags: [health]
+      summary: Public platform status (maintenance mode flag + message)
+      responses:
+        "200":
+          description: Platform status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStatus"
+
   /auth/register:
     post:
       operationId: register
@@ -1422,18 +1435,42 @@ components:
         cardWaitlistCount:
           type: integer
           description: How many users are waiting for the card
+        maintenanceMode:
+          type: boolean
+          description: When true, the API serves 503 for user traffic (admin + auth + webhooks stay up)
+        maintenanceMessage:
+          type: string
+          description: Message shown to users while in maintenance
       required:
         - cardProgramEnabled
         - stripeConfigured
         - cardWaitlistCount
+        - maintenanceMode
 
     FeatureFlagsUpdateRequest:
       type: object
+      description: Partial update — provide any subset of flags
       properties:
         cardProgramEnabled:
           type: boolean
+        maintenanceMode:
+          type: boolean
+        maintenanceMessage:
+          type: string
+          maxLength: 280
+
+    PlatformStatus:
+      type: object
+      properties:
+        status:
+          type: string
+        maintenance:
+          type: boolean
+        message:
+          type: string
       required:
-        - cardProgramEnabled
+        - status
+        - maintenance
 
     AdminStats:
       type: object

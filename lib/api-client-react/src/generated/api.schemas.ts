@@ -502,10 +502,26 @@ export interface FeatureFlagsResponse {
   stripeConfigured: boolean;
   /** How many users are waiting for the card */
   cardWaitlistCount: number;
+  /** When true, the API serves 503 for user traffic (admin + auth + webhooks stay up) */
+  maintenanceMode: boolean;
+  /** Message shown to users while in maintenance */
+  maintenanceMessage?: string;
 }
 
+/**
+ * Partial update — provide any subset of flags
+ */
 export interface FeatureFlagsUpdateRequest {
-  cardProgramEnabled: boolean;
+  cardProgramEnabled?: boolean;
+  maintenanceMode?: boolean;
+  /** @maxLength 280 */
+  maintenanceMessage?: string;
+}
+
+export interface PlatformStatus {
+  status: string;
+  maintenance: boolean;
+  message?: string;
 }
 
 /**

@@ -53,6 +53,7 @@ import type {
   LoginRequest,
   MessageResponse,
   NoahWebhookBody,
+  PlatformStatus,
   RegisterRequest,
   SendMoneyRequest,
   SpendingSummaryResponse,
@@ -142,6 +143,83 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetPlatformStatusUrl = () => {
+
+
+
+
+  return `/api/status`
+}
+
+/**
+ * @summary Public platform status (maintenance mode flag + message)
+ */
+export const getPlatformStatus = async ( options?: RequestInit): Promise<PlatformStatus> => {
+
+  return customFetch<PlatformStatus>(getGetPlatformStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlatformStatusQueryKey = () => {
+    return [
+    `/api/status`
+    ] as const;
+    }
+
+
+export const getGetPlatformStatusQueryOptions = <TData = Awaited<ReturnType<typeof getPlatformStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlatformStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlatformStatus>>> = ({ signal }) => getPlatformStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlatformStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlatformStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getPlatformStatus>>>
+export type GetPlatformStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public platform status (maintenance mode flag + message)
+ */
+
+export function useGetPlatformStatus<TData = Awaited<ReturnType<typeof getPlatformStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlatformStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlatformStatusQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

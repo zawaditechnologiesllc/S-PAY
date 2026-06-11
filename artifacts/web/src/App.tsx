@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getToken } from "@/lib/auth";
+import Maintenance from "@/pages/maintenance";
 
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
@@ -38,6 +39,10 @@ const queryClient = new QueryClient({
     queries: {
       retry: false,
       refetchOnWindowFocus: false,
+      // Instant tab switching: serve cached data immediately and refresh in
+      // the background only after it's 30s old.
+      staleTime: 30 * 1000,
+      gcTime: 10 * 60 * 1000,
     },
   },
 });
@@ -71,6 +76,16 @@ function JobDetailRoute() {
 function Router() {
   const [location, setLocation] = useLocation();
   const token = getToken();
+  const [maintenance, setMaintenance] = useState<{ enabled: boolean; message?: string }>({ enabled: false });
+
+  // Maintenance gate: ask the public status endpoint once per load. Login and
+  // the admin panel stay reachable so an admin can switch maintenance off.
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL ?? ""}/api/status`)
+      .then((r) => r.json())
+      .then((s) => setMaintenance({ enabled: Boolean(s?.maintenance), message: s?.message }))
+      .catch(() => setMaintenance({ enabled: false }));
+  }, []);
 
   // Already logged in — bounce away from auth pages.
   useEffect(() => {
@@ -78,6 +93,10 @@ function Router() {
       setLocation("/dashboard");
     }
   }, [token, location, setLocation]);
+
+  if (maintenance.enabled && !location.startsWith("/admin") && location !== "/login" && location !== "/auth/callback") {
+    return <Maintenance message={maintenance.message} />;
+  }
 
   return (
     <Switch>

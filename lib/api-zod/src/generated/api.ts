@@ -16,6 +16,16 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Public platform status (maintenance mode flag + message)
+ */
+export const GetPlatformStatusResponse = zod.object({
+  "status": zod.string(),
+  "maintenance": zod.boolean(),
+  "message": zod.string().optional()
+})
+
+
+/**
  * @summary Register a new user
  */
 export const registerBodyPasswordMin = 8;
@@ -640,19 +650,29 @@ export const UpdateFeeScheduleResponse = zod.object({
 export const GetFeatureFlagsResponse = zod.object({
   "cardProgramEnabled": zod.boolean().describe('Master switch for the virtual card program (admin-controlled)'),
   "stripeConfigured": zod.boolean().describe('Whether STRIPE_SECRET_KEY is set — cards can only be issued when true'),
-  "cardWaitlistCount": zod.number().describe('How many users are waiting for the card')
+  "cardWaitlistCount": zod.number().describe('How many users are waiting for the card'),
+  "maintenanceMode": zod.boolean().describe('When true, the API serves 503 for user traffic (admin + auth + webhooks stay up)'),
+  "maintenanceMessage": zod.string().optional().describe('Message shown to users while in maintenance')
 })
 
 
 /**
  * @summary Toggle runtime feature flags (e.g. switch the card program on)
  */
+export const updateFeatureFlagsBodyMaintenanceMessageMax = 280;
+
+
+
 export const UpdateFeatureFlagsBody = zod.object({
-  "cardProgramEnabled": zod.boolean()
-})
+  "cardProgramEnabled": zod.boolean().optional(),
+  "maintenanceMode": zod.boolean().optional(),
+  "maintenanceMessage": zod.string().max(updateFeatureFlagsBodyMaintenanceMessageMax).optional()
+}).describe('Partial update — provide any subset of flags')
 
 export const UpdateFeatureFlagsResponse = zod.object({
   "cardProgramEnabled": zod.boolean().describe('Master switch for the virtual card program (admin-controlled)'),
   "stripeConfigured": zod.boolean().describe('Whether STRIPE_SECRET_KEY is set — cards can only be issued when true'),
-  "cardWaitlistCount": zod.number().describe('How many users are waiting for the card')
+  "cardWaitlistCount": zod.number().describe('How many users are waiting for the card'),
+  "maintenanceMode": zod.boolean().describe('When true, the API serves 503 for user traffic (admin + auth + webhooks stay up)'),
+  "maintenanceMessage": zod.string().optional().describe('Message shown to users while in maintenance')
 })

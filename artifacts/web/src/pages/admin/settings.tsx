@@ -5,7 +5,7 @@ import {
   useGetFeatureFlags, getGetFeatureFlagsQueryKey, useUpdateFeatureFlags,
   useGetFeeSchedule, getGetFeeScheduleQueryKey, useUpdateFeeSchedule,
 } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent } from "lucide-react";
+import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatusRow({ label, ok, note }: { label: string; ok: boolean; note?: string }) {
@@ -113,6 +113,40 @@ export default function AdminSettings() {
     );
   };
 
+  const [maintMessage, setMaintMessage] = useState("");
+  useEffect(() => {
+    if (flags?.maintenanceMessage !== undefined) setMaintMessage(flags.maintenanceMessage ?? "");
+  }, [flags?.maintenanceMessage]);
+
+  const toggleMaintenance = () => {
+    const next = !flags?.maintenanceMode;
+    updateFlags.mutate(
+      { data: { maintenanceMode: next, maintenanceMessage: maintMessage || undefined } },
+      {
+        onSuccess: () => {
+          toast({
+            title: next ? "🛠 Maintenance mode ON" : "✅ Maintenance mode OFF — back live",
+            description: next
+              ? "Users now see the maintenance screen. Sign-in, webhooks, and this admin panel stay up."
+              : "All traffic is being served normally again.",
+          });
+          refetchFlags();
+        },
+        onError: () => toast({ title: "Could not update", description: "Please try again.", variant: "destructive" }),
+      },
+    );
+  };
+
+  const saveMaintenanceMessage = () => {
+    updateFlags.mutate(
+      { data: { maintenanceMessage: maintMessage } },
+      {
+        onSuccess: () => { toast({ title: "Maintenance message saved" }); refetchFlags(); },
+        onError: () => toast({ title: "Could not save", variant: "destructive" }),
+      },
+    );
+  };
+
   const toggleCardProgram = () => {
     const next = !flags?.cardProgramEnabled;
     updateFlags.mutate(
@@ -149,6 +183,49 @@ export default function AdminSettings() {
         <p className="text-sm text-gray-500">
           This page shows which integrations are configured. Set environment variables on Render to enable each service.
         </p>
+
+        <Section icon={<Wrench size={16} />} title="Maintenance Mode">
+          <div className="flex items-center justify-between py-3 border-b border-gray-50">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Platform Maintenance Switch</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {flags?.maintenanceMode
+                  ? "ON — users see the maintenance screen. Sign-in, webhooks & admin stay reachable."
+                  : "OFF — platform serving all traffic normally."}
+              </p>
+            </div>
+            <button
+              onClick={toggleMaintenance}
+              disabled={updateFlags.isPending}
+              aria-label="Toggle maintenance mode"
+              className={`relative w-14 h-8 rounded-full transition-colors flex-shrink-0 disabled:opacity-60 ${
+                flags?.maintenanceMode ? "bg-amber-500" : "bg-gray-300"
+              }`}
+            >
+              <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-all ${
+                flags?.maintenanceMode ? "left-7" : "left-1"
+              }`} />
+            </button>
+          </div>
+          <div className="py-3 space-y-2">
+            <p className="text-sm font-medium text-gray-900">Message shown to users</p>
+            <textarea
+              value={maintMessage}
+              onChange={(e) => setMaintMessage(e.target.value)}
+              maxLength={280}
+              rows={2}
+              className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20"
+              placeholder="S-PAY is undergoing scheduled maintenance. We'll be back shortly — your funds are safe."
+            />
+            <button
+              onClick={saveMaintenanceMessage}
+              disabled={updateFlags.isPending}
+              className="text-sm font-semibold text-[#4DC9EE] hover:underline disabled:opacity-60"
+            >
+              Save message
+            </button>
+          </div>
+        </Section>
 
         <Section icon={<Database size={16} />} title="Infrastructure">
           <StatusRow label="PostgreSQL Database" ok={s?.database?.configured} note="DATABASE_URL" />

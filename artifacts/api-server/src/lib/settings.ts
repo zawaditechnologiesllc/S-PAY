@@ -47,6 +47,33 @@ export async function setCardProgramEnabled(enabled: boolean): Promise<void> {
   await setSetting(CARD_PROGRAM_KEY, { enabled });
 }
 
+// ── Maintenance mode ──────────────────────────────────────────────────────────
+// When enabled, the API serves 503 for user traffic while keeping health,
+// sign-in, webhooks, and the admin panel reachable so an admin can switch
+// it back off. Toggled live from /admin/settings.
+
+const MAINTENANCE_KEY = "maintenance_mode";
+
+export interface MaintenanceState {
+  enabled: boolean;
+  message: string;
+}
+
+const DEFAULT_MAINTENANCE: MaintenanceState = {
+  enabled: false,
+  message: "S-PAY is undergoing scheduled maintenance. We'll be back shortly — your funds are safe.",
+};
+
+export async function getMaintenance(): Promise<MaintenanceState> {
+  const stored = await getSetting<Partial<MaintenanceState>>(MAINTENANCE_KEY, {});
+  return { ...DEFAULT_MAINTENANCE, ...stored };
+}
+
+export async function setMaintenance(state: Partial<MaintenanceState>): Promise<void> {
+  const current = await getMaintenance();
+  await setSetting(MAINTENANCE_KEY, { ...current, ...state });
+}
+
 // ── Platform fee schedule ─────────────────────────────────────────────────────
 // User price = provider cost + S-PAY margin. Providers bill S-PAY separately
 // (Stripe nets fees from the Stripe balance, Noah nets from settlement, Celo
