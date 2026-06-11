@@ -22,6 +22,11 @@ export interface NormalizedJob {
 const REMOTIVE_AFFILIATE = process.env.REMOTIVE_AFFILIATE_URL ?? "https://remotive.com";
 const REMOTE_COM_AFFILIATE = process.env.REMOTE_COM_AFFILIATE_URL ?? "https://remote.com";
 
+// ─── Categories ───────────────────────────────────────────────────────────────
+
+export const CATEGORY_LABELS = ["Engineering", "Design", "Marketing", "Product", "Sales", "Finance", "Operations"] as const;
+
+// Web sends Remotive-style ids ("software-dev"); mobile sends plain labels ("Engineering").
 const REMOTIVE_ID_TO_LABEL: Record<string, string> = {
   "software-dev": "Engineering",
   "design": "Design",
@@ -32,95 +37,94 @@ const REMOTIVE_ID_TO_LABEL: Record<string, string> = {
   "all-others": "Operations",
 };
 
-function normalizeCategory(raw: string): string {
+/** Accepts either form, case-insensitive. Returns a canonical label or null (= no filtering). */
+export function resolveCategoryLabel(category?: string): string | null {
+  if (!category) return null;
+  const lower = category.trim().toLowerCase();
+  if (REMOTIVE_ID_TO_LABEL[lower]) return REMOTIVE_ID_TO_LABEL[lower];
+  return CATEGORY_LABELS.find((l) => l.toLowerCase() === lower) ?? null;
+}
+
+export function normalizeCategory(raw: string): string {
   const s = raw.toLowerCase();
-  if (/engineer|software|develop|programm|tech|cloud|devops|backend|frontend|fullstack|data\s*(science|eng)|machine\s*learn|artificial|ml\b|ai\b|platform|infra|architect|security|cyber|database|qa\b|testing|mobile\s*dev/.test(s)) return "Engineering";
   if (/design|ux\b|ui\b|creative|visual|graphic|brand|illustrat|animat/.test(s)) return "Design";
   if (/market|growth|content|seo\b|social\s*media|copywrite|communicat|public\s*relat|\bpr\b|demand\s*gen/.test(s)) return "Marketing";
   if (/product\s*manag|program\s*manag|\bpm\b|product\s*owner|scrum|agile\s*coach/.test(s)) return "Product";
   if (/\bsales\b|account\s*exec|business\s*dev|\bbdr\b|\bsdr\b|revenue\s*ops|partnership/.test(s)) return "Sales";
   if (/financ|accounting|\btax\b|payroll|audit|bookkeep|controller|treasury/.test(s)) return "Finance";
-  if (/operat|support|customer\s*(success|service)|hr\b|human\s*resourc|recruit|talent|admin|legal|compliance|logistics/.test(s)) return "Operations";
+  if (/operat|support|customer\s*(success|service)|hr\b|human\s*resourc|recruit|talent|\badmin|legal|compliance|logistics|writer|writing|translat|educat|teach/.test(s)) return "Operations";
+  if (/engineer|software|develop|programm|tech|cloud|devops|backend|frontend|fullstack|data\s*(science|eng)|machine\s*learn|artificial|\bml\b|\bai\b|platform|infra|architect|security|cyber|database|qa\b|testing|mobile\s*dev/.test(s)) return "Engineering";
   return "Engineering";
 }
 
-/** Deterministic short id from a URL/title so job detail links survive cache refreshes */
-function stableId(prefix: string, input: string): string {
-  let h = 5381;
-  for (let i = 0; i < input.length; i++) h = ((h << 5) + h + input.charCodeAt(i)) >>> 0;
-  return `${prefix}-${h.toString(36)}`;
+// ─── Filtering (pure, unit-testable) ─────────────────────────────────────────
+
+function stripHtml(html: string | null): string {
+  return html ? html.replace(/<[^>]+>/g, " ") : "";
 }
 
-// ─── Cache: stale-while-revalidate in memory, default feed persisted to Postgres ──
+/**
+ * In-memory filtering over the aggregated dataset. Category matches the
+ * normalized label; keyword is an AND-match of all terms across title,
+ * company, category, location, and description.
+ */
+export function filterJobs(jobs: NormalizedJob[], keyword?: string, category?: string): NormalizedJob[] {
+  let result = jobs;
 
-const jobsCache = new Map<string, { data: NormalizedJob[]; cachedAt: number }>();
-const inFlight = new Map<string, Promise<NormalizedJob[]>>();
+  const label = resolveCategoryLabel(category);
+  if (label) result = result.filter((j) => j.category === label);
+
+  const terms = (keyword ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (terms.length > 0) {
+    result = result.filter((j) => {
+      const haystack = `${j.title} ${j.company} ${j.category} ${j.location} ${stripHtml(j.description)}`.toLowerCase();
+      return terms.every((t) => haystack.includes(t));
+    });
+  }
+
+  return result;
+}
+
+// ─── Single aggregated dataset: SWR cache + Postgres snapshot ─────────────────
+// All 60 sources are fetched once (boot warm-up + hourly refresh). Search and
+// category filters never hit upstream — they filter this dataset in memory,
+// so every request answers instantly.
+
 const CACHE_TTL_MS = 60 * 60 * 1000; // refresh hourly
-const MAX_CACHE_ENTRIES = 20; // bound memory across keyword/category combos
-const DEFAULT_CACHE_KEY = "all-all";
 const DB_SNAPSHOT_KEY = "jobs:default-feed";
 
-function setCache(key: string, data: NormalizedJob[]): void {
-  if (!jobsCache.has(key) && jobsCache.size >= MAX_CACHE_ENTRIES) {
-    let oldestKey: string | undefined;
-    let oldestAt = Infinity;
-    for (const [k, v] of jobsCache) {
-      if (k === DEFAULT_CACHE_KEY) continue; // never evict the main feed
-      if (v.cachedAt < oldestAt) { oldestAt = v.cachedAt; oldestKey = k; }
+let allJobsCache: { data: NormalizedJob[]; cachedAt: number } | null = null;
+let refreshInFlight: Promise<NormalizedJob[]> | null = null;
+
+async function getAllJobs(): Promise<NormalizedJob[]> {
+  if (allJobsCache) {
+    // Serve instantly; revalidate in the background when stale
+    if (Date.now() - allJobsCache.cachedAt >= CACHE_TTL_MS) {
+      refreshAllJobs().catch((err) => logger.warn({ err }, "Background jobs refresh failed"));
     }
-    if (oldestKey) jobsCache.delete(oldestKey);
+    return allJobsCache.data;
   }
-  jobsCache.set(key, { data, cachedAt: Date.now() });
+  return refreshAllJobs();
 }
 
-export async function fetchJobs(keyword?: string, category?: string, limit = 30): Promise<{
-  jobs: NormalizedJob[];
-  total: number;
-  remoteCom: { label: string; url: string };
-}> {
-  const cacheKey = `${keyword ?? "all"}-${category ?? "all"}`;
-  const remoteCom = { label: "Hiring globally? Manage your team with Remote.com", url: REMOTE_COM_AFFILIATE };
-
-  const cached = jobsCache.get(cacheKey);
-  if (cached) {
-    // Serve instantly; if stale, revalidate in the background so users never wait
-    if (Date.now() - cached.cachedAt >= CACHE_TTL_MS) {
-      refreshCache(keyword, category).catch((err) => logger.warn({ err, cacheKey }, "Background jobs refresh failed"));
-    }
-    return { jobs: cached.data.slice(0, limit), total: cached.data.length, remoteCom };
-  }
-
-  const data = await refreshCache(keyword, category);
-  return { jobs: data.slice(0, limit), total: data.length, remoteCom };
-}
-
-/** Fetch all sources for a keyword/category, update cache, persist the default feed. De-duplicates concurrent refreshes. */
-async function refreshCache(keyword?: string, category?: string): Promise<NormalizedJob[]> {
-  const cacheKey = `${keyword ?? "all"}-${category ?? "all"}`;
-  const existing = inFlight.get(cacheKey);
-  if (existing) return existing;
-
-  const promise = (async () => {
+async function refreshAllJobs(): Promise<NormalizedJob[]> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
     try {
-      const data = await aggregateAllSources(keyword, category);
-      const prev = jobsCache.get(cacheKey);
+      const data = await aggregateAllSources();
       // Never clobber good data with an empty result (e.g. transient upstream outage)
-      if (data.length === 0 && prev && prev.data.length > 0) return prev.data;
-      setCache(cacheKey, data);
-      if (cacheKey === DEFAULT_CACHE_KEY) {
-        persistSnapshot(data).catch((err) => logger.warn({ err }, "Jobs snapshot persistence failed"));
-      }
+      if (data.length === 0 && allJobsCache && allJobsCache.data.length > 0) return allJobsCache.data;
+      allJobsCache = { data, cachedAt: Date.now() };
+      persistSnapshot(data).catch((err) => logger.warn({ err }, "Jobs snapshot persistence failed"));
       return data;
     } finally {
-      inFlight.delete(cacheKey);
+      refreshInFlight = null;
     }
   })();
-
-  inFlight.set(cacheKey, promise);
-  return promise;
+  return refreshInFlight;
 }
 
-/** Save the default feed to the jobs_cache table so cold starts serve jobs instantly */
+/** Save the feed to the jobs_cache table so cold starts serve jobs instantly */
 async function persistSnapshot(data: NormalizedJob[]): Promise<void> {
   if (!process.env.DATABASE_URL || data.length === 0) return;
   const { db, jobsCacheTable } = await import("@workspace/db");
@@ -136,31 +140,30 @@ async function persistSnapshot(data: NormalizedJob[]): Promise<void> {
  * (instant availability), then refresh from live sources if stale.
  */
 export async function warmJobsCache(): Promise<void> {
-  if (process.env.DATABASE_URL && !jobsCache.has(DEFAULT_CACHE_KEY)) {
+  if (process.env.DATABASE_URL && !allJobsCache) {
     try {
       const { db, jobsCacheTable } = await import("@workspace/db");
       const { eq } = await import("drizzle-orm");
       const [row] = await db.select().from(jobsCacheTable).where(eq(jobsCacheTable.key, DB_SNAPSHOT_KEY)).limit(1);
       const snapshot = row?.data as NormalizedJob[] | undefined;
       if (Array.isArray(snapshot) && snapshot.length > 0) {
-        jobsCache.set(DEFAULT_CACHE_KEY, { data: snapshot, cachedAt: row!.cachedAt.getTime() });
+        allJobsCache = { data: snapshot, cachedAt: row!.cachedAt.getTime() };
         logger.info({ count: snapshot.length }, "Jobs cache hydrated from database snapshot");
       }
     } catch (err) {
       logger.warn({ err }, "Jobs snapshot hydration skipped");
     }
   }
-  const cached = jobsCache.get(DEFAULT_CACHE_KEY);
-  if (!cached || Date.now() - cached.cachedAt >= CACHE_TTL_MS) {
-    const data = await refreshCache();
+  if (!allJobsCache || Date.now() - allJobsCache.cachedAt >= CACHE_TTL_MS) {
+    const data = await refreshAllJobs();
     logger.info({ total: data.length }, "Jobs feed warmed from live sources");
   }
 }
 
-/** Re-fetch the default feed every hour so 3,000–5,000 fresh jobs are always available */
+/** Re-fetch the feed every hour so 3,000–5,000 fresh jobs are always available */
 export function startJobsRefreshLoop(intervalMs = CACHE_TTL_MS): NodeJS.Timeout {
   const timer = setInterval(() => {
-    refreshCache().then(
+    refreshAllJobs().then(
       (data) => logger.info({ total: data.length }, "Scheduled jobs refresh complete"),
       (err) => logger.warn({ err }, "Scheduled jobs refresh failed"),
     );
@@ -169,16 +172,39 @@ export function startJobsRefreshLoop(intervalMs = CACHE_TTL_MS): NodeJS.Timeout 
   return timer;
 }
 
-async function aggregateAllSources(keyword?: string, category?: string): Promise<NormalizedJob[]> {
+// ─── Public API used by the routes ───────────────────────────────────────────
+
+export async function fetchJobs(keyword?: string, category?: string, limit = 30): Promise<{
+  jobs: NormalizedJob[];
+  total: number;
+  remoteCom: { label: string; url: string };
+}> {
+  const all = await getAllJobs();
+  const filtered = filterJobs(all, keyword, category);
+  return {
+    jobs: filtered.slice(0, limit),
+    total: filtered.length,
+    remoteCom: { label: "Hiring globally? Manage your team with Remote.com", url: REMOTE_COM_AFFILIATE },
+  };
+}
+
+export async function getJobById(jobId: string): Promise<NormalizedJob | null> {
+  const all = await getAllJobs();
+  return all.find((j) => j.id === jobId) ?? null;
+}
+
+// ─── Aggregation ─────────────────────────────────────────────────────────────
+
+async function aggregateAllSources(): Promise<NormalizedJob[]> {
   const results = await Promise.allSettled([
-    fetchHimalayas(keyword),
-    fetchRemoteOK(keyword),
-    fetchRemotive(keyword, category),
-    fetchArbeitnow(keyword),
-    fetchTheMuse(keyword),
-    fetchWeWorkRemotely(keyword),
-    fetchJobicy(keyword),
-    fetchWorkingNomads(keyword),
+    fetchHimalayas(),
+    fetchRemoteOK(),
+    fetchRemotive(),
+    fetchArbeitnow(),
+    fetchTheMuse(),
+    fetchWeWorkRemotely(),
+    fetchJobicy(),
+    fetchWorkingNomads(),
     fetchJobspresso(),
     fetchRemoteCo(),
     fetchDailyRemote(),
@@ -254,22 +280,15 @@ async function aggregateAllSources(keyword?: string, category?: string): Promise
   const all = interleave(sources);
 
   const seen = new Set<string>();
-  let deduped = all
+  return all
     .map((j) => ({ ...j, category: normalizeCategory(j.category) }))
     .filter((j) => {
+      if (!j.title) return false;
       const key = `${j.title}-${j.company}`.toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-
-  // Post-filter by category so all sources (not just Remotive) are category-aware
-  if (category) {
-    const target = REMOTIVE_ID_TO_LABEL[category] ?? null;
-    if (target) deduped = deduped.filter((j) => j.category === target);
-  }
-
-  return deduped;
 }
 
 /** Round-robin interleave so no single source dominates the top of the list */
@@ -284,6 +303,15 @@ function interleave(arrays: NormalizedJob[][]): NormalizedJob[] {
   }
   return result;
 }
+
+/** Deterministic short id from a URL/title so job detail links survive cache refreshes */
+function stableId(prefix: string, input: string): string {
+  let h = 5381;
+  for (let i = 0; i < input.length; i++) h = ((h << 5) + h + input.charCodeAt(i)) >>> 0;
+  return `${prefix}-${h.toString(36)}`;
+}
+
+// ─── Sources ─────────────────────────────────────────────────────────────────
 
 function mapHimalayasJob(j: any): NormalizedJob {
   return {
@@ -305,13 +333,8 @@ function mapHimalayasJob(j: any): NormalizedJob {
   };
 }
 
-async function fetchHimalayas(keyword?: string): Promise<NormalizedJob[]> {
-  if (keyword) {
-    const url = `https://himalayas.app/jobs/api/search?search=${encodeURIComponent(keyword)}&limit=100`;
-    const res = await axios.get(url, { timeout: 12000 });
-    return (res.data?.jobs ?? []).map(mapHimalayasJob);
-  }
-  // No keyword: pull 5 pages of 100 from the public API for full coverage
+async function fetchHimalayas(): Promise<NormalizedJob[]> {
+  // 5 pages of 100 from the public API for full coverage
   const pages = await Promise.allSettled(
     [0, 100, 200, 300, 400].map((offset) =>
       axios.get(`https://himalayas.app/jobs/api?limit=100&offset=${offset}`, { timeout: 12000 }),
@@ -329,40 +352,35 @@ async function fetchHimalayas(keyword?: string): Promise<NormalizedJob[]> {
     .map(mapHimalayasJob);
 }
 
-async function fetchRemoteOK(keyword?: string): Promise<NormalizedJob[]> {
+async function fetchRemoteOK(): Promise<NormalizedJob[]> {
   const res = await axios.get("https://remoteok.io/api", {
     timeout: 12000,
     headers: { "User-Agent": "S-PAY Jobs Aggregator/1.0" },
   });
   const all: any[] = res.data ?? [];
   const jobs = all.slice(1); // first item is metadata
-  return jobs
-    .filter((j: any) => !keyword || JSON.stringify(j).toLowerCase().includes(keyword.toLowerCase()))
-    .map((j: any): NormalizedJob => ({
-      id: `r-${j.id}`,
-      title: j.position ?? "",
-      company: j.company ?? "",
-      companyLogo: j.company_logo ?? null,
-      salary: j.salary ?? "Competitive",
-      location: j.location ?? "Worldwide",
-      jobType: "full_time",
-      category: j.tags?.[0] ?? "Technology",
-      description: j.description ?? null,
-      applyUrl: j.apply_url ?? j.url ?? "",
-      source: "RemoteOK",
-      sourceUrl: j.url ?? "https://remoteok.io",
-      isNew: isNewJob(j.date),
-      affiliateCta: null,
-      postedAt: j.date ?? new Date().toISOString(),
-    }));
+  return jobs.map((j: any): NormalizedJob => ({
+    id: `r-${j.id}`,
+    title: j.position ?? "",
+    company: j.company ?? "",
+    companyLogo: j.company_logo ?? null,
+    salary: j.salary ?? "Competitive",
+    location: j.location ?? "Worldwide",
+    jobType: "full_time",
+    category: j.tags?.[0] ?? "Technology",
+    description: j.description ?? null,
+    applyUrl: j.apply_url ?? j.url ?? "",
+    source: "RemoteOK",
+    sourceUrl: j.url ?? "https://remoteok.io",
+    isNew: isNewJob(j.date),
+    affiliateCta: null,
+    postedAt: j.date ?? new Date().toISOString(),
+  }));
 }
 
-async function fetchRemotive(keyword?: string, category?: string): Promise<NormalizedJob[]> {
+async function fetchRemotive(): Promise<NormalizedJob[]> {
   // No limit param: Remotive returns its full live dataset (~1,500–2,000 jobs)
-  const params: Record<string, string> = {};
-  if (keyword) params.search = keyword;
-  if (category) params.category = category;
-  const res = await axios.get("https://remotive.com/api/remote-jobs", { params, timeout: 20000 });
+  const res = await axios.get("https://remotive.com/api/remote-jobs", { timeout: 20000 });
   const jobs = res.data?.jobs ?? [];
   return jobs.map((j: any): NormalizedJob => ({
     id: `rv-${j.id}`,
@@ -383,13 +401,11 @@ async function fetchRemotive(keyword?: string, category?: string): Promise<Norma
   }));
 }
 
-async function fetchArbeitnow(keyword?: string): Promise<NormalizedJob[]> {
-  const base = keyword
-    ? `https://arbeitnow.com/api/job-board-api?search=${encodeURIComponent(keyword)}`
-    : "https://arbeitnow.com/api/job-board-api";
+async function fetchArbeitnow(): Promise<NormalizedJob[]> {
+  const base = "https://arbeitnow.com/api/job-board-api";
   const pages = await Promise.allSettled(
     [1, 2, 3, 4, 5, 6].map((page) =>
-      axios.get(page === 1 ? base : `${base}${keyword ? "&" : "?"}page=${page}`, { timeout: 12000 }),
+      axios.get(page === 1 ? base : `${base}?page=${page}`, { timeout: 12000 }),
     ),
   );
   const allJobs: any[] = pages.flatMap((p) =>
@@ -422,13 +438,14 @@ async function fetchArbeitnow(keyword?: string): Promise<NormalizedJob[]> {
     }));
 }
 
-async function fetchTheMuse(keyword?: string): Promise<NormalizedJob[]> {
+async function fetchTheMuse(): Promise<NormalizedJob[]> {
   const pages = await Promise.allSettled(
-    [0, 1, 2, 3, 4].map((page) => {
-      const params: Record<string, string> = { page: String(page), descending: "true" };
-      if (keyword) params.query = keyword;
-      return axios.get("https://www.themuse.com/api/public/jobs", { params, timeout: 12000 });
-    }),
+    [0, 1, 2, 3, 4].map((page) =>
+      axios.get("https://www.themuse.com/api/public/jobs", {
+        params: { page: String(page), descending: "true" },
+        timeout: 12000,
+      }),
+    ),
   );
   const raw: any[] = pages.flatMap((p) => (p.status === "fulfilled" ? (p.value.data?.results ?? []) : []));
   const seen = new Set<string>();
@@ -475,13 +492,9 @@ const WWR_FEEDS = [
   "https://weworkremotely.com/categories/remote-all-other-remote-jobs.rss",
 ];
 
-async function fetchWeWorkRemotely(keyword?: string): Promise<NormalizedJob[]> {
-  // WWR provides RSS feeds — keyword search uses its search feed; otherwise pull every category feed
-  const feedUrls = keyword
-    ? [`https://weworkremotely.com/remote-jobs/search.rss?term=${encodeURIComponent(keyword)}`]
-    : WWR_FEEDS;
+async function fetchWeWorkRemotely(): Promise<NormalizedJob[]> {
   const feeds = await Promise.allSettled(
-    feedUrls.map((url) =>
+    WWR_FEEDS.map((url) =>
       axios.get<string>(url, {
         timeout: 12000,
         headers: { "User-Agent": "S-PAY Jobs Aggregator/1.0", Accept: "application/rss+xml" },
@@ -530,10 +543,8 @@ async function fetchWeWorkRemotely(keyword?: string): Promise<NormalizedJob[]> {
   return jobs;
 }
 
-async function fetchJobicy(keyword?: string): Promise<NormalizedJob[]> {
-  const params: Record<string, string | number> = { count: 100 };
-  if (keyword) params.search = keyword;
-  const res = await axios.get("https://jobicy.com/api/v2/remote-jobs", { params, timeout: 12000 });
+async function fetchJobicy(): Promise<NormalizedJob[]> {
+  const res = await axios.get("https://jobicy.com/api/v2/remote-jobs", { params: { count: 100 }, timeout: 12000 });
   const jobs: any[] = res.data?.jobs ?? [];
   return jobs.map((j: any): NormalizedJob => ({
     id: `jcy-${j.id ?? j.jobSlug}`,
@@ -556,11 +567,8 @@ async function fetchJobicy(keyword?: string): Promise<NormalizedJob[]> {
   }));
 }
 
-async function fetchWorkingNomads(keyword?: string): Promise<NormalizedJob[]> {
-  const res = await axios.get("https://www.workingnomads.com/api/exposed_jobs/", {
-    timeout: 12000,
-    params: keyword ? { q: keyword } : {},
-  });
+async function fetchWorkingNomads(): Promise<NormalizedJob[]> {
+  const res = await axios.get("https://www.workingnomads.com/api/exposed_jobs/", { timeout: 12000 });
   const jobs: any[] = Array.isArray(res.data) ? res.data : [];
   return jobs.slice(0, 600).map((j: any): NormalizedJob => ({
     id: `wn-${j.id}`,
@@ -629,14 +637,12 @@ async function fetchRSSFeed(feedUrl: string, source: NormalizedJob["source"]): P
   });
 }
 
-// ─── Existing RSS sources ─────────────────────────────────────────────────────
+// ─── RSS sources ──────────────────────────────────────────────────────────────
 async function fetchJobspresso() { return fetchRSSFeed("https://jobspresso.co/feed/", "Jobspresso"); }
 async function fetchRemoteCo() { return fetchRSSFeed("https://remote.co/remote-jobs/feed/", "RemoteCo"); }
 async function fetchDailyRemote() { return fetchRSSFeed("https://dailyremote.com/rss", "DailyRemote"); }
 async function fetchNodesk() { return fetchRSSFeed("https://nodesk.co/remote-jobs/rss.xml", "Nodesk"); }
 async function fetch4DayWeek() { return fetchRSSFeed("https://4dayweek.io/jobs/rss", "4DayWeek"); }
-
-// ─── 47 new RSS sources ───────────────────────────────────────────────────────
 async function fetchAuthenticJobs()  { return fetchRSSFeed("https://authenticjobs.com/feed/", "AuthenticJobs"); }
 async function fetchSmashingMagazine() { return fetchRSSFeed("https://www.smashingmagazine.com/jobs/feed/", "SmashingMagazine"); }
 async function fetchWPHired()        { return fetchRSSFeed("https://www.wphired.com/feed/", "WPHired"); }

@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { fetchJobs } from "../lib/jobs";
+import { fetchJobs, getJobById, type NormalizedJob } from "../lib/jobs";
 
 const router = Router();
 
-const jobDetailCache = new Map<string, unknown>();
+// Jobs served after the hourly rotation keep working from this cache
+const jobDetailCache = new Map<string, NormalizedJob>();
 
 router.get("/jobs", async (req, res) => {
   try {
@@ -21,18 +22,13 @@ router.get("/jobs", async (req, res) => {
 
 router.get("/jobs/:jobId", async (req, res) => {
   const jobId = req.params.jobId as string;
-  const cached = jobDetailCache.get(jobId);
-  if (cached) {
-    res.json(cached);
-    return;
-  }
   try {
-    const result = await fetchJobs(undefined, undefined, 500);
-    const job = result.jobs.find((j) => j.id === jobId);
+    const job = (await getJobById(jobId)) ?? jobDetailCache.get(jobId);
     if (!job) {
       res.status(404).json({ error: "not_found", message: "Job not found" });
       return;
     }
+    jobDetailCache.set(job.id, job);
     res.json(job);
   } catch (err) {
     req.log.error({ err }, "Job detail fetch error");
