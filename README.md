@@ -2,6 +2,8 @@
 
 **Built by Zawadi Technologies LLC · Built on [Celo](https://celo.org)**
 
+> 📋 **Start here for operations:** [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) — what's live, how to activate each provider (Privy/Noah/Stripe/Google/Apple/EAS), every remaining task with file paths, and how to run the platform without a terminal.
+
 Like MiniPay, S-PAY is built on the Celo network: stablecoin-first balances (USDC), sub-cent fees, 5-second finality, and wallets that exist the moment you sign up — no seed phrase, ever.
 
 S-PAY was born in 2016 by a team of full-stack fintech and crypto engineers frustrated by PayPal blocking legitimate remote worker accounts across Africa and Southeast Asia. The goal: give every remote worker a real US bank account, instant local cash-outs, and the financial tools they deserve — with no gatekeeper.
@@ -40,10 +42,10 @@ Why Celo: sub-cent transaction fees, 5-second finality, mobile-first design, and
 ## How Payments Work
 
 ### Receiving money
-1. User signs up and completes KYC (Noah verifies identity automatically).
-2. S-PAY provisions a **virtual US bank account** (ACH routing + account number) and an **EU IBAN** via Noah.
-3. The user shares those account details with their employer or client.
-4. Client sends a wire, ACH, or SEPA transfer — it arrives in the user's S-PAY wallet as **Digital Dollars**.
+1. User signs up — a **Celo wallet is created instantly** (Privy, no seed phrase). Anyone can already pay them in USDC/USDT by phone number or wallet address, including withdrawals from Binance/Coinbase to their S-PAY address.
+2. After verification (KYC for personal, **KYB for business**), Noah provisions a **virtual US bank account** (ACH routing + account number) and an **EU IBAN** — in the company's name for business accounts.
+3. The user shares those details with their employer or client.
+4. Client sends a wire, ACH, or SEPA transfer — **it is auto-converted to USDC/USDT** and credited to the wallet (history shows "Bank deposit — auto-converted to USDC").
 
 ### Sending / withdrawing money
 
@@ -56,11 +58,12 @@ The user chooses a payout method and enters the recipient details:
 | **PIX** | BRL | Brazil | < 1 minute |
 | **SEPA Transfer** | EUR | All EU/EEA countries | Same day – next day |
 | **ACH / Bank Transfer** | USD | USA and international | 1–2 business days |
+| **Crypto exchange** | USDC / USDT | Binance, Bybit, OKX, any Celo wallet — guided MiniPay-style flow with network safety checks | ~5 seconds |
 
 All payouts are processed by **Noah Global Payouts** — no third-party wallet required. The user just enters a phone number (M-Pesa/MTN) or IBAN (SEPA) and hits confirm.
 
 ### Internal transfers
-Users can also send Digital Dollars peer-to-peer within S-PAY by entering a recipient phone number.
+Users send USDC/USDT peer-to-peer within S-PAY by entering a recipient phone number — settled on-chain on Celo in ~5 seconds, free by default (admin-tunable).
 
 ---
 
@@ -75,10 +78,12 @@ Users can also send Digital Dollars peer-to-peer within S-PAY by entering a reci
 │  Database: PostgreSQL           → Render Postgres        │
 │  ORM: Drizzle                                            │
 ├─────────────────────────────────────────────────────────┤
-│  KYC + Payouts:  Noah           (single integration)     │
-│  Virtual Cards:  Stripe Issuing (coming soon)            │
-│  Auth:           JWT (30-day) + Google OAuth             │
+│  Wallets: Privy server wallets → USDC/USDT on Celo       │
+│  KYC/KYB + Payouts:  Noah       (single integration)     │
+│  Virtual Cards:  Stripe Issuing (admin master switch)    │
+│  Auth: JWT 30d · Google (web+Android) · Apple (iOS)      │
 │  Type safety:    OpenAPI spec → orval → React Query hooks│
+│  SEO: jobs sitemap + bot-routed server-rendered pages    │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -151,10 +156,11 @@ Navigate to `https://your-app.vercel.app/admin` while logged in with that email.
 
 ### What the admin panel shows
 
-- **Dashboard** — Total users, KYC breakdown (pending/approved/rejected), transactions today, total volume
-- **Users** — Full user list, searchable, filterable by KYC status. KYC is handled automatically by Noah webhooks — no manual approve/reject needed.
-- **Transactions** — All transactions, filterable by type
-- **Settings** — Which environment variables are configured (never shows the actual values, just whether they're set)
+- **Dashboard** — Total users (incl. business count), 30-day actives, **Signups by Source** (jobs/landing/google/mobile/direct), KYC breakdown, transactions today, total volume
+- **Users & KYC** — Full user list with account **Type** (Personal / Business · company name), country, acquisition source. KYC/KYB is webhook-driven via Noah — no manual review queue.
+- **Transactions** — Every on-chain send, P2P transfer, and deposit credit, filterable by type
+- **Job Listings** — Inject S-PAY/partner/sponsored roles: pinned to the top of the feed (SPAY badge), included in the SEO sitemap, live in ≤30s
+- **Settings** — Integration status (env configured: DB/Noah/Stripe/Google) **plus the master switches**: 🛠 Maintenance Mode (+ user-facing message), 💳 Card Program (waitlist → live, with waitlist count), 💰 Fees & Revenue (withdrawal %, minimum, card fee, P2P fee — live repricing, provider costs shown so your margin is explicit)
 
 ---
 
