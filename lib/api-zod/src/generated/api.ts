@@ -32,6 +32,9 @@ export const registerBodyPasswordMin = 8;
 
 export const registerBodyCountryMax = 56;
 
+export const registerBodyAccountTypeDefault = `personal`;
+export const registerBodyBusinessNameMax = 120;
+
 export const registerBodySignupSourceMax = 64;
 
 
@@ -42,6 +45,8 @@ export const RegisterBody = zod.object({
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
   "country": zod.string().max(registerBodyCountryMax).optional(),
+  "accountType": zod.enum(['personal', 'business']).default(registerBodyAccountTypeDefault).describe('personal → Noah KYC · business → Noah KYB (business + representative verification)'),
+  "businessName": zod.string().max(registerBodyBusinessNameMax).optional().describe('Required when accountType is business — goes on the business virtual accounts'),
   "signupSource": zod.string().max(registerBodySignupSourceMax).optional().describe('Where the signup came from, e.g. jobs, jobs:<jobId>, landing, mobile')
 })
 
@@ -65,6 +70,8 @@ export const LoginResponse = zod.object({
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
+  "accountType": zod.enum(['personal', 'business']).optional(),
+  "businessName": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 })
@@ -82,6 +89,8 @@ export const GetMeResponse = zod.object({
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
+  "accountType": zod.enum(['personal', 'business']).optional(),
+  "businessName": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -117,6 +126,8 @@ export const GoogleTokenSignInResponse = zod.object({
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
+  "accountType": zod.enum(['personal', 'business']).optional(),
+  "businessName": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 })
@@ -146,6 +157,8 @@ export const AppleTokenSignInResponse = zod.object({
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
+  "accountType": zod.enum(['personal', 'business']).optional(),
+  "businessName": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 })
@@ -561,7 +574,8 @@ export const GetAdminStatsResponse = zod.object({
   "approvedKyc": zod.number(),
   "rejectedKyc": zod.number(),
   "totalWalletBalance": zod.number(),
-  "signupsBySource": zod.record(zod.string(), zod.number()).optional().describe('Signup counts grouped by acquisition source (jobs, landing, google, direct...)')
+  "signupsBySource": zod.record(zod.string(), zod.number()).optional().describe('Signup counts grouped by acquisition source (jobs, landing, google, direct...)'),
+  "businessUsers": zod.number().optional().describe('Number of business (KYB) accounts')
 })
 
 
@@ -581,6 +595,8 @@ export const GetAdminUsersResponse = zod.object({
   "country": zod.string().optional(),
   "walletBalance": zod.number().optional(),
   "signupSource": zod.string().nullish(),
+  "accountType": zod.enum(['personal', 'business']).optional(),
+  "businessName": zod.string().nullish(),
   "createdAt": zod.string().optional()
 })),
   "total": zod.number()

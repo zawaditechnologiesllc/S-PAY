@@ -18,6 +18,17 @@ export interface MessageResponse {
   message: string;
 }
 
+/**
+ * personal → Noah KYC · business → Noah KYB (business + representative verification)
+ */
+export type RegisterRequestAccountType = typeof RegisterRequestAccountType[keyof typeof RegisterRequestAccountType];
+
+
+export const RegisterRequestAccountType = {
+  personal: 'personal',
+  business: 'business',
+} as const;
+
 export interface RegisterRequest {
   email: string;
   /** @minLength 8 */
@@ -26,6 +37,13 @@ export interface RegisterRequest {
   phoneNumber?: string;
   /** @maxLength 56 */
   country?: string;
+  /** personal → Noah KYC · business → Noah KYB (business + representative verification) */
+  accountType?: RegisterRequestAccountType;
+  /**
+     * Required when accountType is business — goes on the business virtual accounts
+     * @maxLength 120
+     */
+  businessName?: string;
   /**
      * Where the signup came from, e.g. jobs, jobs:<jobId>, landing, mobile
      * @maxLength 64
@@ -63,6 +81,14 @@ export const UserKycStatus = {
   rejected: 'rejected',
 } as const;
 
+export type UserAccountType = typeof UserAccountType[keyof typeof UserAccountType];
+
+
+export const UserAccountType = {
+  personal: 'personal',
+  business: 'business',
+} as const;
+
 export interface User {
   id: string;
   email: string;
@@ -73,6 +99,8 @@ export interface User {
   avatarUrl?: string;
   /** EVM wallet address on the Celo network, provisioned via Privy at signup */
   celoWalletAddress?: string | null;
+  accountType?: UserAccountType;
+  businessName?: string | null;
   createdAt: string;
 }
 
@@ -540,7 +568,17 @@ export interface AdminStats {
   totalWalletBalance: number;
   /** Signup counts grouped by acquisition source (jobs, landing, google, direct...) */
   signupsBySource?: AdminStatsSignupsBySource;
+  /** Number of business (KYB) accounts */
+  businessUsers?: number;
 }
+
+export type AdminUserAccountType = typeof AdminUserAccountType[keyof typeof AdminUserAccountType];
+
+
+export const AdminUserAccountType = {
+  personal: 'personal',
+  business: 'business',
+} as const;
 
 export interface AdminUser {
   id: string;
@@ -550,6 +588,8 @@ export interface AdminUser {
   country?: string;
   walletBalance?: number;
   signupSource?: string | null;
+  accountType?: AdminUserAccountType;
+  businessName?: string | null;
   createdAt?: string;
 }
 

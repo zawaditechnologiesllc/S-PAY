@@ -23,6 +23,8 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [accountType, setAccountType] = useState<"personal" | "business">("personal");
+  const [businessName, setBusinessName] = useState("");
   const register = useRegister();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -31,6 +33,10 @@ export default function RegisterScreen() {
   const handleRegister = () => {
     if (!fullName || !email || !password) {
       Alert.alert("Missing fields", "Full name, email, and password are required");
+      return;
+    }
+    if (accountType === "business" && !businessName.trim()) {
+      Alert.alert("Business name required", "Enter your registered business name to open a business account");
       return;
     }
     if (password.length < 8) {
@@ -42,7 +48,15 @@ export default function RegisterScreen() {
       return;
     }
     register.mutate(
-      { data: { fullName, email, password, phoneNumber: phone || undefined, signupSource: "mobile" } },
+      {
+        data: {
+          fullName, email, password,
+          phoneNumber: phone || undefined,
+          signupSource: "mobile",
+          accountType,
+          businessName: accountType === "business" ? businessName.trim() : undefined,
+        },
+      },
       {
         onSuccess: async (data: any) => {
           await signIn(data.token);
@@ -77,6 +91,55 @@ export default function RegisterScreen() {
       <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {/* Platform-native sign-up: Google on Android, Apple on iOS */}
         <SocialAuthButtons signupSource="mobile" />
+
+        {/* Account type: Personal (Noah KYC) or Business (Noah KYB) */}
+        <View style={styles.typeRow}>
+          {([
+            { value: "personal" as const, label: "Personal" },
+            { value: "business" as const, label: "Business" },
+          ]).map((opt) => (
+            <TouchableOpacity
+              key={opt.value}
+              onPress={() => setAccountType(opt.value)}
+              style={[
+                styles.typeBtn,
+                { borderColor: accountType === opt.value ? colors.primary : colors.border,
+                  backgroundColor: accountType === opt.value ? `${colors.primary}15` : colors.background },
+              ]}
+              testID={`type-${opt.value}`}
+            >
+              <Text style={{
+                fontSize: 14,
+                fontFamily: "Inter_600SemiBold",
+                color: accountType === opt.value ? colors.primary : colors.mutedForeground,
+              }}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {accountType === "business" && (
+          <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.background }]}>
+            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Registered Business Name</Text>
+            <View style={styles.inputRow}>
+              <Feather name="briefcase" size={15} color={colors.mutedForeground} />
+              <TextInput
+                style={[styles.input, { color: colors.foreground }]}
+                placeholder="Acme Ltd"
+                placeholderTextColor={colors.mutedForeground}
+                value={businessName}
+                onChangeText={setBusinessName}
+                autoCapitalize="words"
+                testID="input-business-name"
+              />
+            </View>
+          </View>
+        )}
+        {accountType === "business" && (
+          <Text style={{ fontSize: 11, fontFamily: "Inter_400Regular", color: colors.mutedForeground, marginTop: -8 }}>
+            You'll verify the business and its representative (KYB) after sign-up. Virtual accounts are issued in the business name — USDC & USDT supported.
+          </Text>
+        )}
         {[
           { label: "Full Name", value: fullName, onChange: setFullName, placeholder: "Alex Johnson", keyboard: "default" as const, icon: "user" as const },
           { label: "Email Address", value: email, onChange: setEmail, placeholder: "you@example.com", keyboard: "email-address" as const, icon: "mail" as const },
@@ -142,6 +205,8 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
+  typeRow: { flexDirection: "row", gap: 10 },
+  typeBtn: { flex: 1, borderWidth: 1.5, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
   container: { alignItems: "center", paddingHorizontal: 20, gap: 20 },
   hero: { width: "100%", borderRadius: 24, alignItems: "center", padding: 28, gap: 8 },
   logoImage: { width: 56, height: 56, borderRadius: 16 },

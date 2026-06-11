@@ -32,6 +32,7 @@ export function PublicNav({ active }: PublicNavProps) {
         {/* Desktop center nav links */}
         <div className="hidden md:flex items-center gap-7">
           <a href="/#features" className={linkClass("features")}>Features</a>
+          <a href="/#business" className={linkClass("business")}>For Business</a>
           <Link href="/jobs"><span className={`cursor-pointer ${linkClass("jobs")}`}>Jobs</span></Link>
           <Link href="/about"><span className={`cursor-pointer ${linkClass("about")}`}>About</span></Link>
           <Link href="/contact"><span className={`cursor-pointer ${linkClass("contact")}`}>Contact</span></Link>
@@ -67,6 +68,7 @@ export function PublicNav({ active }: PublicNavProps) {
           <div className="px-5 py-3 flex flex-col">
             {[
               { label: "Features", href: "/#features", internal: false },
+              { label: "For Business", href: "/#business", internal: false },
               { label: "Jobs", href: "/jobs", internal: true },
               { label: "About", href: "/about", internal: true },
               { label: "Contact", href: "/contact", internal: true },
@@ -156,6 +158,7 @@ export function PublicFooter() {
               <li><a href="/#wallet" className="text-blue-300 text-sm hover:text-white transition-colors">Digital Wallet</a></li>
               <li><a href="/#banking" className="text-blue-300 text-sm hover:text-white transition-colors">Virtual Banking</a></li>
               <li><a href="/#card" className="text-blue-300 text-sm hover:text-white transition-colors">S-PAY Card</a></li>
+              <li><a href="/#business" className="text-blue-300 text-sm hover:text-white transition-colors">S-PAY for Business</a></li>
               <li><Link href="/jobs"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">Remote Jobs</span></Link></li>
               <li><a href="/#markets" className="text-blue-300 text-sm hover:text-white transition-colors">Cash-Out Markets</a></li>
             </ul>

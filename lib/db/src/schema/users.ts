@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const kycStatusEnum = pgEnum("kyc_status", ["pending", "approved", "rejected"]);
+export const accountTypeEnum = pgEnum("account_type", ["personal", "business"]);
 
 export const usersTable = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -14,6 +15,8 @@ export const usersTable = pgTable("users", {
   avatarUrl: text("avatar_url"),
   phoneNumber: text("phone_number"),
   country: text("country"),                      // self-reported at signup; drives payout method defaults
+  accountType: accountTypeEnum("account_type").default("personal").notNull(), // personal → Noah KYC · business → Noah KYB
+  businessName: text("business_name"),           // required for business accounts; goes on business virtual accounts
   kycStatus: kycStatusEnum("kyc_status").default("pending").notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
   celoWalletAddress: text("celo_wallet_address"),

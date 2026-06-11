@@ -51,7 +51,7 @@ export default function AdminDashboard() {
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard icon={<Users size={22} />} label="Total Users" value={stats?.totalUsers?.toLocaleString() ?? "—"} sub={stats ? `${(stats.activeUsers ?? 0).toLocaleString()} in 30d` : undefined} color="#1677FF" loading={statsLoading} />
+          <StatCard icon={<Users size={22} />} label="Total Users" value={stats?.totalUsers?.toLocaleString() ?? "—"} sub={stats ? `${(stats.businessUsers ?? 0).toLocaleString()} business · ${(stats.activeUsers ?? 0).toLocaleString()} in 30d` : undefined} color="#1677FF" loading={statsLoading} />
           <StatCard icon={<DollarSign size={22} />} label="Total Volume" value={`$${(stats?.totalTransactionVolume ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} sub="USDC" color="#00B578" loading={statsLoading} />
           <StatCard icon={<ArrowLeftRight size={22} />} label="Transactions Today" value={stats?.transactionsToday ?? "—"} color="#FF6900" loading={statsLoading} />
           <StatCard icon={<Clock size={22} />} label="Pending KYC" value={stats?.pendingKyc ?? "—"} color="#FF4D4F" loading={statsLoading} />

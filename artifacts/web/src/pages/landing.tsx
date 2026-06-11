@@ -3,7 +3,7 @@ import {
   Wallet, Landmark, CreditCard, Briefcase, ArrowRight,
   Globe, Shield, Zap, CheckCircle,
   ScanLine, ArrowUpFromLine, ArrowDownToLine, Send,
-  Star, Quote,
+  Star, Quote, Building2, Handshake,
 } from "lucide-react";
 import { PublicLayout } from "@/components/public-layout";
 
@@ -40,7 +40,7 @@ const MARKETS = [
 ];
 
 const STATS = [
-  { value: "3,000+", label: "Remote jobs daily" },
+  { value: "500K+", label: "Users worldwide" },
   { value: "$0", label: "Monthly fee" },
   { value: "180+", label: "Countries supported" },
   { value: "<1 min", label: "Withdrawals" },
@@ -476,6 +476,90 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ─── S-PAY FOR BUSINESS (id="business") ──────────────────────────── */}
+      <section id="business" className="py-16 md:py-24 px-5 md:px-6 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
+            {/* Text */}
+            <div>
+              <div className="inline-flex items-center gap-2 bg-[#1A2B4A]/5 text-[#1A2B4A] text-xs font-bold px-3 py-1.5 rounded-full mb-5 border border-[#1A2B4A]/10">
+                <Building2 size={13} /> S-PAY for Business
+              </div>
+              <h2 className="text-2xl md:text-4xl font-black text-[#1A2B4A] leading-tight mb-4">
+                Built for companies<br className="hidden md:block" /> and partnerships too.
+              </h2>
+              <p className="text-gray-500 leading-relaxed mb-7 text-base md:text-lg">
+                Open a business account, verify your company and its representative with automated KYB,
+                and get virtual US &amp; EU bank accounts in your business name.
+              </p>
+              <ul className="space-y-3.5 mb-8">
+                {[
+                  "Business verification (KYB) — company + representative, fully automated via Noah",
+                  "Business virtual accounts: US ACH + EU IBAN in your company's name",
+                  "Hold and pay in USDC & USDT on Celo — same instant rails as personal accounts",
+                  "Pay contractors and teams in 180+ countries, cash-outs to 50+ local methods",
+                  "Post roles to 500K+ remote workers on the S-PAY jobs board",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
+                    <CheckCircle size={17} className="text-[#1A2B4A] flex-shrink-0 mt-0.5" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/register?type=business">
+                  <button className="flex items-center justify-center gap-2 bg-[#1A2B4A] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#0d1f38] transition-colors text-sm shadow-md w-full sm:w-auto">
+                    Open a Business Account <ArrowRight size={15} />
+                  </button>
+                </Link>
+                <a href="mailto:partnerships@spayewallet.com">
+                  <button className="flex items-center justify-center gap-2 bg-white text-[#1A2B4A] font-semibold px-6 py-3 rounded-xl border border-gray-200 hover:border-[#1A2B4A]/30 transition-colors text-sm w-full sm:w-auto">
+                    <Handshake size={15} /> Partner with us
+                  </button>
+                </a>
+              </div>
+            </div>
+
+            {/* Visual — business account card */}
+            <div className="flex justify-center lg:justify-end">
+              <div className="w-full max-w-[340px] space-y-4">
+                <div className="bg-gradient-to-br from-[#1A2B4A] to-[#0d1f38] rounded-2xl p-6 shadow-xl">
+                  <div className="flex items-center justify-between mb-5">
+                    <p className="text-blue-200 text-xs font-medium uppercase tracking-wide">Business Account</p>
+                    <span className="text-[10px] font-bold bg-[#4DC9EE]/20 text-[#4DC9EE] px-2 py-0.5 rounded-full border border-[#4DC9EE]/30">KYB VERIFIED</span>
+                  </div>
+                  <p className="text-white font-bold text-lg mb-1">Acme Technologies Ltd</p>
+                  <p className="text-blue-200 text-xs mb-4">US ACH ●●●● 7310 · EU IBAN DE●● ●●12</p>
+                  <div className="flex items-center justify-between pt-4 border-t border-white/15">
+                    <div>
+                      <p className="text-blue-300 text-[10px] uppercase">Balance</p>
+                      <p className="text-white font-black text-xl">$48,250.00</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-blue-300 text-[10px] uppercase">Holds</p>
+                      <p className="text-white text-sm font-semibold">USDC · USDT</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl p-5 shadow-md border border-gray-100">
+                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">Latest payroll</p>
+                  {[
+                    { who: "James O. — Nairobi", amount: "1,200 USDC", flag: "🇰🇪" },
+                    { who: "Maria F. — São Paulo", amount: "950 USDT", flag: "🇧🇷" },
+                    { who: "Priya S. — Manila", amount: "800 USDC", flag: "🇵🇭" },
+                  ].map((row) => (
+                    <div key={row.who} className="flex items-center justify-between py-2 border-t border-gray-50 first:border-0">
+                      <span className="text-xs text-gray-600 flex items-center gap-2"><span>{row.flag}</span>{row.who}</span>
+                      <span className="text-xs font-bold text-[#1A2B4A]">{row.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ─── CARD SHOWCASE (id="card") ────────────────────────────────────── */}
       <section id="card" className="py-16 md:py-24 px-5 md:px-6 bg-gradient-to-br from-[#1A2B4A] via-[#1e3560] to-[#0d1f38] relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none" style={{
@@ -699,7 +783,7 @@ export default function Landing() {
             <span className="text-blue-50">It's free, forever.</span>
           </h2>
           <p className="text-blue-50 text-base md:text-xl mb-10 max-w-xl mx-auto leading-relaxed">
-            Join the remote workers in 180+ countries who use S-PAY to get paid globally and spend locally.
+            Join 500,000+ remote workers who use S-PAY to get paid globally and spend locally — in 180+ countries.
           </p>
           <Link href="/register">
             <button className="inline-flex items-center gap-2 bg-[#1A2B4A] text-white font-bold px-8 py-4 md:px-12 md:py-5 rounded-2xl hover:bg-[#0d1f38] transition-colors text-base md:text-lg shadow-xl w-full sm:w-auto justify-center">

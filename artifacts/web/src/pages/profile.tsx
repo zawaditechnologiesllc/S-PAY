@@ -61,6 +61,14 @@ export default function Profile() {
                   <p className="text-sm text-gray-500 mb-1">Full Name</p>
                   <p className="font-medium text-gray-900">{user?.fullName}</p>
                 </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Account Type</p>
+                  <p className="font-medium text-gray-900">
+                    {user?.accountType === "business"
+                      ? `Business${user?.businessName ? ` — ${user.businessName}` : ""} (KYB)`
+                      : "Personal (KYC)"}
+                  </p>
+                </div>
                 <div className="flex items-center gap-3">
                   <Mail className="text-gray-400" size={18} />
                   <div>
