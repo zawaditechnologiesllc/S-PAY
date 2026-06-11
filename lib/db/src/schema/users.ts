@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -27,7 +27,12 @@ export const usersTable = pgTable("users", {
   stripeCardId: text("stripe_card_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("idx_users_phone").on(t.phoneNumber),          // P2P recipient lookup on every send
+  index("idx_users_noah_customer").on(t.noahCustomerId), // every Noah KYC/deposit webhook
+  index("idx_users_created").on(t.createdAt.desc()),   // admin list + 30-day actives
+  index("idx_users_kyc_status").on(t.kycStatus),       // admin KYC filter/counts
+]).enableRLS();
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({
   id: true,

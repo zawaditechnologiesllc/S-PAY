@@ -13,6 +13,6 @@ export const customJobsTable = pgTable("custom_jobs", {
   description: text("description"),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 export type CustomJob = typeof customJobsTable.$inferSelect;
