@@ -51,8 +51,21 @@ export default function Banking() {
                   </CardContent>
                 </Card>
               ))
+            ) : !bankingData?.accounts || bankingData.accounts.length === 0 ? (
+              <Card className="border border-dashed border-gray-200 rounded-2xl md:col-span-2 bg-gray-50/60">
+                <CardContent className="p-8 text-center space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-[#4DC9EE]/10 text-[#4DC9EE] flex items-center justify-center mx-auto">
+                    <CircleDollarSign size={26} />
+                  </div>
+                  <h3 className="font-semibold text-gray-900">Your virtual accounts are coming</h3>
+                  <p className="text-sm text-gray-500 max-w-md mx-auto">
+                    Once identity verification (KYC) is approved, S-PAY issues you a real US account
+                    (ACH routing + account number) and a European IBAN so employers can pay you like a local.
+                  </p>
+                </CardContent>
+              </Card>
             ) : (
-              bankingData?.accounts.map(account => (
+              bankingData.accounts.map(account => (
                 <Card key={account.id} className="border-0 shadow-md rounded-2xl overflow-hidden relative group">
                   <div className="absolute top-0 right-0 p-4 opacity-10">
                     <CircleDollarSign size={80} />

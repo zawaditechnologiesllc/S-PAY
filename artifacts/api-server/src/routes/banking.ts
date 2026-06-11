@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { getFeeSchedule, withdrawalFee } from "../lib/settings";
-import { DEMO_BANK_ACCOUNTS, DEMO_INCOMING_PAYMENTS } from "../lib/mock-data";
 
 const router = Router();
+
+const noahConfigured = () => Boolean(process.env.NOAH_API_KEY);
 
 // Indicative FX rates for every advertised payout corridor (stablecoin base).
 // Replaced by live Noah quotes once NOAH_API_KEY is configured.
@@ -48,19 +49,15 @@ function lookupRate(target: string | undefined): number {
   return PAYOUT_RATES[target.toUpperCase()] ?? 1.0;
 }
 
+// Virtual accounts are provisioned by Noah after KYC approval. Until the
+// Noah partner key is live we return an empty, honest state — never fake
+// routing numbers that someone might give to an employer.
 router.get("/banking/accounts", requireAuth, (req, res) => {
-  const totalBalance = DEMO_BANK_ACCOUNTS.reduce((sum, a) => sum + a.availableBalance, 0);
-  res.json({ accounts: DEMO_BANK_ACCOUNTS, totalBalance });
+  res.json({ accounts: [], totalBalance: 0 });
 });
 
 router.get("/banking/incoming-payments", requireAuth, (req, res) => {
-  const limit = Math.min(Number(req.query.limit) || 20, 100);
-  const offset = Number(req.query.offset) || 0;
-  const payments = DEMO_INCOMING_PAYMENTS.slice(offset, offset + limit).map((p) => ({
-    ...p,
-    createdAt: p.createdAt.toISOString(),
-  }));
-  res.json({ payments, total: DEMO_INCOMING_PAYMENTS.length });
+  res.json({ payments: [], total: 0 });
 });
 
 router.get("/banking/rates", requireAuth, async (req, res) => {
@@ -87,6 +84,14 @@ router.post("/banking/withdraw", requireAuth, async (req, res) => {
   }
   if (!method) {
     res.status(400).json({ error: "validation_error", message: "Withdrawal method is required" });
+    return;
+  }
+  // Real payouts execute through Noah — never simulate a withdrawal in production
+  if (!noahConfigured()) {
+    res.status(503).json({
+      error: "not_configured",
+      message: "Local cash-outs are activating soon. Your balance stays safe in your wallet until then.",
+    });
     return;
   }
 

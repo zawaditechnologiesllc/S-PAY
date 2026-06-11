@@ -281,7 +281,15 @@ async function aggregateAllSources(): Promise<NormalizedJob[]> {
 
   const seen = new Set<string>();
   return all
-    .map((j) => ({ ...j, category: normalizeCategory(j.category) }))
+    .map((j) => ({
+      ...j,
+      category: normalizeCategory(j.category),
+      // Cap description size: 4,000+ jobs × unbounded HTML would pressure the
+      // 512MB instance and bloat the Postgres snapshot.
+      description: j.description && j.description.length > 16000
+        ? `${j.description.slice(0, 16000)}…`
+        : j.description,
+    }))
     .filter((j) => {
       if (!j.title) return false;
       const key = `${j.title}-${j.company}`.toLowerCase();

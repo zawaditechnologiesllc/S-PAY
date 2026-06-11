@@ -22,8 +22,8 @@ export function isCeloConfigured(): boolean {
   return Boolean(PRIVY_APP_ID && PRIVY_APP_SECRET);
 }
 
-/** Create a Celo-compatible (EVM) wallet via Privy. Returns the address, or null when unconfigured/failed. */
-export async function createCeloWallet(): Promise<string | null> {
+/** Create a Celo-compatible (EVM) wallet via Privy. Returns id + address, or null when unconfigured/failed. */
+export async function createCeloWallet(): Promise<{ id: string; address: string } | null> {
   if (!isCeloConfigured()) {
     logger.info("Privy not configured — Celo wallet provisioning skipped (set PRIVY_APP_ID / PRIVY_APP_SECRET)");
     return null;
@@ -38,7 +38,7 @@ export async function createCeloWallet(): Promise<string | null> {
         headers: { "privy-app-id": PRIVY_APP_ID },
       },
     );
-    return res.data?.address ?? null;
+    return res.data?.address ? { id: res.data.id, address: res.data.address } : null;
   } catch (err) {
     logger.warn({ err }, "Celo wallet provisioning via Privy failed — will retry on next login");
     return null;
@@ -52,15 +52,15 @@ export async function createCeloWallet(): Promise<string | null> {
 export function ensureCeloWallet(userId: string, currentAddress: string | null): void {
   if (currentAddress || !isCeloConfigured()) return;
   void (async () => {
-    const address = await createCeloWallet();
-    if (!address) return;
+    const wallet = await createCeloWallet();
+    if (!wallet) return;
     try {
       const { db, usersTable } = await import("@workspace/db");
       const { eq, isNull, and } = await import("drizzle-orm");
       await db.update(usersTable)
-        .set({ celoWalletAddress: address, updatedAt: new Date() })
+        .set({ celoWalletAddress: wallet.address, privyWalletId: wallet.id, updatedAt: new Date() })
         .where(and(eq(usersTable.id, userId), isNull(usersTable.celoWalletAddress)));
-      logger.info({ userId, address }, "Celo wallet provisioned");
+      logger.info({ userId, address: wallet.address }, "Celo wallet provisioned");
     } catch (err) {
       logger.warn({ err, userId }, "Failed to save Celo wallet address");
     }
