@@ -8,3 +8,4 @@ Disallow: /banking
 Disallow: /card
 
 Sitemap: https://spayewallet.com/sitemap.xml
+Sitemap: https://spayewallet.com/jobs-sitemap.xml

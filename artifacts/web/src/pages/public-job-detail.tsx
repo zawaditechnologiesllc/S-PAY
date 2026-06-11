@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useParams } from "wouter";
 import { useGetJobById, getGetJobByIdQueryKey } from "@workspace/api-client-react";
 import { PublicLayout } from "@/components/public-layout";
@@ -20,6 +21,35 @@ export default function PublicJobDetail() {
   const { data: job, isLoading } = useGetJobById(jobId, {
     query: { queryKey: getGetJobByIdQueryKey(jobId), enabled: !!jobId },
   });
+
+  // SEO: page title + Google for Jobs structured data (JSON-LD JobPosting)
+  useEffect(() => {
+    if (!job) return;
+    document.title = `${job.title} at ${job.company} — Remote Job | S-PAY`;
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = "job-posting-ld";
+    ld.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "JobPosting",
+      title: job.title,
+      description: job.description
+        ? job.description.replace(/<[^>]+>/g, " ").slice(0, 5000)
+        : `${job.title} at ${job.company} — fully remote role via the S-PAY jobs board.`,
+      datePosted: job.postedAt,
+      hiringOrganization: { "@type": "Organization", name: job.company },
+      jobLocationType: "TELECOMMUTE",
+      applicantLocationRequirements: { "@type": "Country", name: job.location || "Worldwide" },
+      employmentType: "FULL_TIME",
+      directApply: false,
+    });
+    document.getElementById("job-posting-ld")?.remove();
+    document.head.appendChild(ld);
+    return () => {
+      document.getElementById("job-posting-ld")?.remove();
+      document.title = "S-PAY — Receive Global Payments. Cash Out Locally.";
+    };
+  }, [job]);
 
   return (
     <PublicLayout active="jobs">

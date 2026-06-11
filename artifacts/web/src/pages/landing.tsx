@@ -19,7 +19,7 @@ const QUICK_ACTIONS = [
 const STEPS = [
   { num: "01", title: "Create your account", desc: "Sign up in 2 minutes with just your email. No branch visit, no paperwork required." },
   { num: "02", title: "Get your account number", desc: "Receive a real US ACH routing number and European IBAN instantly after sign-up." },
-  { num: "03", title: "Cash out instantly", desc: "Withdraw to M-Pesa, MTN, PIX and 50+ local payout methods in seconds." },
+  { num: "03", title: "Cash out instantly", desc: "Bank deposits auto-convert to USDC/USDT. Withdraw to M-Pesa, MTN, PIX, Binance and 50+ destinations in seconds." },
 ];
 
 const MARKETS = [

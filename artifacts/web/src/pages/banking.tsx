@@ -60,7 +60,7 @@ export default function Banking() {
                   <h3 className="font-semibold text-gray-900">Your virtual accounts are coming</h3>
                   <p className="text-sm text-gray-500 max-w-md mx-auto">
                     Once verification is approved (KYC for personal, KYB for business accounts), S-PAY issues a real US account
-                    (ACH routing + account number) and a European IBAN — in your name, or your company's name on business accounts.
+                    (ACH routing + account number) and a European IBAN — in your name, or your company's name on business accounts. Every dollar or euro that lands on them is auto-converted to USDC/USDT in your wallet, ready to send or withdraw — including to Binance.
                   </p>
                 </CardContent>
               </Card>

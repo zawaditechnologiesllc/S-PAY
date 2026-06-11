@@ -15,6 +15,7 @@ import Profile from "@/pages/profile";
 import Wallet from "@/pages/wallet";
 import Banking from "@/pages/banking";
 import Withdraw from "@/pages/withdraw";
+import ExchangeWithdraw from "@/pages/exchange-withdraw";
 import CardPage from "@/pages/card";
 import Jobs from "@/pages/jobs";
 import JobDetail from "@/pages/job-detail";
@@ -24,6 +25,7 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminUsers from "@/pages/admin/users";
 import AdminTransactions from "@/pages/admin/transactions";
 import AdminSettings from "@/pages/admin/settings";
+import AdminJobs from "@/pages/admin/jobs";
 import About from "@/pages/about";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
@@ -126,12 +128,14 @@ function Router() {
       <Route path="/wallet"><ProtectedRoute component={Wallet} /></Route>
       <Route path="/banking"><ProtectedRoute component={Banking} /></Route>
       <Route path="/banking/withdraw"><ProtectedRoute component={Withdraw} /></Route>
+      <Route path="/wallet/exchange"><ProtectedRoute component={ExchangeWithdraw} /></Route>
       <Route path="/card"><ProtectedRoute component={CardPage} /></Route>
 
       {/* ── Admin panel (auth + server-enforced admin-email check) ── */}
       <Route path="/admin"><ProtectedRoute component={AdminDashboard} /></Route>
       <Route path="/admin/users"><ProtectedRoute component={AdminUsers} /></Route>
       <Route path="/admin/transactions"><ProtectedRoute component={AdminTransactions} /></Route>
+      <Route path="/admin/jobs"><ProtectedRoute component={AdminJobs} /></Route>
       <Route path="/admin/settings"><ProtectedRoute component={AdminSettings} /></Route>
 
       <Route component={NotFound} />

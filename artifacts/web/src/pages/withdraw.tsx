@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { MoveRight, Landmark, Smartphone, BadgeCheck, CheckCircle2 } from "lucide-react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export default function Withdraw() {
   const [, setLocation] = useLocation();
@@ -84,6 +84,20 @@ export default function Withdraw() {
 
   return (
     <Layout title="Withdraw Funds">
+      {/* Crypto exchange route — MiniPay-style guided flow */}
+      <Link href="/wallet/exchange">
+        <div className="max-w-xl mx-auto mt-4 bg-gradient-to-r from-[#1A2B4A] to-[#2E8FD6] rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:opacity-95 transition-opacity shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🟡</span>
+            <div>
+              <p className="text-white font-bold text-sm">Withdraw to Binance or another exchange</p>
+              <p className="text-blue-200 text-xs">USDC/USDT on Celo · settles in ~5 seconds</p>
+            </div>
+          </div>
+          <span className="text-white text-lg">→</span>
+        </div>
+      </Link>
+
       <Card className="max-w-xl mx-auto border-0 shadow-lg rounded-2xl bg-white mt-4 overflow-hidden">
         <CardHeader className="bg-gray-50 border-b pb-4">
           <CardTitle className="text-lg text-gray-800">Send to Local Bank</CardTitle>
