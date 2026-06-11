@@ -1,19 +1,42 @@
 import { Layout } from "@/components/layout";
-import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
+import { useGetMe, getGetMeQueryKey, useDeleteAccount } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CircleUser, Mail, Phone, ShieldCheck, LogOut, BadgeCheck, Wallet, Globe, HelpCircle } from "lucide-react";
+import { CircleUser, Mail, Phone, ShieldCheck, LogOut, BadgeCheck, Wallet, Globe, HelpCircle, Link2, Trash2 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Profile() {
   const { data: user, isLoading } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const deleteAccount = useDeleteAccount();
 
   const handleLogout = () => {
     clearToken();
     setLocation("/login");
+  };
+
+  const handleDeleteAccount = () => {
+    const confirmed = window.confirm(
+      "This permanently deletes your account, wallet link, and transaction history. This cannot be undone.\n\nDelete your account forever?"
+    );
+    if (!confirmed) return;
+    deleteAccount.mutate(undefined as never, {
+      onSuccess: () => {
+        clearToken();
+        setLocation("/");
+      },
+      onError: (e: any) => {
+        toast({
+          title: "Deletion failed",
+          description: e?.message ?? "Please try again or contact support@spayewallet.com",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   return (
@@ -136,6 +159,15 @@ export default function Profile() {
                       : "Complete identity verification to unlock higher limits and all features."}
                   </p>
                 </div>
+                {user?.celoWalletAddress && (
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#FCFF52] border border-gray-200 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1"><Link2 size={11} /> Celo Wallet — Built on Celo</p>
+                      <p className="font-mono text-xs text-gray-900 truncate">{user.celoWalletAddress}</p>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </CardContent>
@@ -178,6 +210,16 @@ export default function Profile() {
         <Button variant="destructive" className="w-full rounded-xl" onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" /> Sign Out
         </Button>
+
+        {/* Account deletion — App Store 5.1.1(v) / Play account-deletion policy */}
+        <button
+          onClick={handleDeleteAccount}
+          disabled={deleteAccount.isPending}
+          className="w-full flex items-center justify-center gap-2 text-sm text-red-500 hover:text-red-700 py-2 disabled:opacity-60"
+        >
+          <Trash2 size={14} />
+          {deleteAccount.isPending ? "Deleting…" : "Delete my account permanently"}
+        </button>
       </div>
     </Layout>
   );

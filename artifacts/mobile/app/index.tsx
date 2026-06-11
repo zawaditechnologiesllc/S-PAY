@@ -19,5 +19,6 @@ export default function Index() {
     return <Redirect href="/(tabs)" />;
   }
 
-  return <Redirect href="/login" />;
+  // MiniPay-style entry: signed-out users land on the branded welcome screen
+  return <Redirect href="/welcome" />;
 }

@@ -4,6 +4,49 @@ import { DEMO_BANK_ACCOUNTS, DEMO_INCOMING_PAYMENTS } from "../lib/mock-data";
 
 const router = Router();
 
+// Indicative FX rates for every advertised payout corridor (stablecoin base).
+// Replaced by live Noah quotes once NOAH_API_KEY is configured.
+const PAYOUT_RATES: Record<string, number> = {
+  KES: 131.5,   // Kenya, Tanzania — M-Pesa
+  NGN: 1610.0,  // Nigeria — bank transfer
+  GHS: 15.4,    // Ghana — MTN MoMo
+  UGX: 3720.0,  // Uganda — Mobile Money
+  TZS: 2660.0,  // Tanzania — M-Pesa
+  RWF: 1380.0,  // Rwanda — MoMo
+  XAF: 600.0,   // Cameroon — MTN MoMo
+  ZAR: 18.2,    // South Africa — bank transfer
+  PHP: 58.5,    // Philippines — GCash
+  IDR: 16200.0, // Indonesia — GoPay
+  BRL: 5.1,     // Brazil — PIX
+  COP: 4150.0,  // Colombia — Nequi
+  MXN: 18.6,    // Mexico — SPEI
+  EUR: 0.92,    // EU/EEA — SEPA
+  GBP: 0.79,    // UK — Faster Payments
+  USD: 1.0,     // USA / international — ACH & wire
+};
+
+const METHOD_ARRIVAL: Record<string, string> = {
+  mpesa: "Within 1 minute",
+  mtn_momo: "Within 1 minute",
+  momo: "Within 1 minute",
+  gcash: "Within 1 minute",
+  gopay: "Within 1 minute",
+  nequi: "Within 5 minutes",
+  pix: "Within 1 minute",
+  spei: "Same day",
+  faster_payments: "Within 2 hours",
+  sepa: "Same day – next business day",
+  bank_transfer: "1–2 business days",
+  ach: "1–2 business days",
+  wire: "1–2 business days",
+};
+
+// USDC/USDT/USD are all 1:1 USD-equivalents before local FX conversion
+function lookupRate(target: string | undefined): number {
+  if (!target) return 1.0;
+  return PAYOUT_RATES[target.toUpperCase()] ?? 1.0;
+}
+
 router.get("/banking/accounts", requireAuth, (req, res) => {
   const totalBalance = DEMO_BANK_ACCOUNTS.reduce((sum, a) => sum + a.availableBalance, 0);
   res.json({ accounts: DEMO_BANK_ACCOUNTS, totalBalance });
@@ -20,35 +63,22 @@ router.get("/banking/incoming-payments", requireAuth, (req, res) => {
 });
 
 router.get("/banking/rates", requireAuth, async (req, res) => {
-  const { source, target } = req.query as { source: string; target: string };
+  const { source, target, method } = req.query as { source: string; target: string; method?: string };
   if (!source || !target) {
     res.status(400).json({ error: "validation_error", message: "source and target currency are required" });
     return;
   }
-  const mockRates: Record<string, number> = {
-    "USDC-KES": 131.5,
-    "USDC-NGN": 1610.0,
-    "USDC-GHS": 15.4,
-    "USDC-EUR": 0.92,
-    "USDC-GBP": 0.79,
-    "USDC-BRL": 5.1,
-    "USDC-USD": 1.0,
-    "USDT-KES": 131.5,
-    "USDT-NGN": 1610.0,
-  };
-  const rateKey = `${source}-${target}`;
-  const rate = mockRates[rateKey] ?? 1.0;
   res.json({
     source,
     target,
-    rate,
+    rate: lookupRate(target),
     fee: 0.005,
-    estimatedArrival: "Within 2 hours",
+    estimatedArrival: METHOD_ARRIVAL[method ?? ""] ?? "Within 2 hours",
   });
 });
 
 router.post("/banking/withdraw", requireAuth, (req, res) => {
-  const { amount, sourceCurrency, targetCurrency, method, recipientPhone, recipientIban } = req.body;
+  const { amount, targetCurrency, method } = req.body;
   if (!amount || amount <= 0) {
     res.status(400).json({ error: "validation_error", message: "Invalid amount" });
     return;
@@ -58,17 +88,13 @@ router.post("/banking/withdraw", requireAuth, (req, res) => {
     return;
   }
 
-  const mockRates: Record<string, number> = {
-    "USDC-KES": 131.5, "USDC-NGN": 1610.0, "USDC-EUR": 0.92, "USDC-GBP": 0.79,
-  };
-  const rateKey = `${sourceCurrency ?? "USDC"}-${targetCurrency}`;
-  const rate = mockRates[rateKey] ?? 1.0;
+  const rate = lookupRate(targetCurrency);
   const fee = amount * 0.005;
 
   res.json({
     withdrawalId: `wdw-${crypto.randomUUID()}`,
     status: "pending",
-    estimatedArrival: method === "mpesa" ? "Within 5 minutes" : method === "sepa" ? "1-2 business days" : "2-3 business days",
+    estimatedArrival: METHOD_ARRIVAL[String(method)] ?? "1–2 business days",
     localAmount: (amount - fee) * rate,
     localCurrency: targetCurrency ?? "USD",
     fee,

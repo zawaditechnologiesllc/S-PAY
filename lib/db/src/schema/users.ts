@@ -7,8 +7,9 @@ export const kycStatusEnum = pgEnum("kyc_status", ["pending", "approved", "rejec
 export const usersTable = pgTable("users", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash"),          // null for Google-only accounts
+  passwordHash: text("password_hash"),          // null for social-only accounts
   googleId: text("google_id").unique(),          // null for email/password accounts
+  appleId: text("apple_id").unique(),            // Sign in with Apple subject id
   fullName: text("full_name").notNull(),
   avatarUrl: text("avatar_url"),
   phoneNumber: text("phone_number"),

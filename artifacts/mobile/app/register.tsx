@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { useRegister } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 
 export default function RegisterScreen() {
   const colors = useColors();
@@ -68,6 +69,8 @@ export default function RegisterScreen() {
       </LinearGradient>
 
       <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {/* Platform-native sign-up: Google on Android, Apple on iOS */}
+        <SocialAuthButtons signupSource="mobile" />
         {[
           { label: "Full Name", value: fullName, onChange: setFullName, placeholder: "Alex Johnson", keyboard: "default" as const, icon: "user" as const },
           { label: "Email Address", value: email, onChange: setEmail, placeholder: "you@example.com", keyboard: "email-address" as const, icon: "mail" as const },

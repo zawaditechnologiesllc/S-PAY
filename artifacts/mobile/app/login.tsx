@@ -9,6 +9,7 @@ import { useRouter } from "expo-router";
 import { useLogin } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 
 export default function LoginScreen() {
   const colors = useColors();
@@ -65,6 +66,9 @@ export default function LoginScreen() {
         <Text style={[styles.title, { color: colors.foreground }]}>Welcome back</Text>
         <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Sign in to your account</Text>
 
+        {/* Platform-native sign-in: Google on Android, Apple on iOS */}
+        <SocialAuthButtons signupSource="mobile" />
+
         <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.background }]}>
           <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Email</Text>
           <TextInput
@@ -99,12 +103,6 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        <View style={[styles.demoBanner, { backgroundColor: colors.muted }]}>
-          <Text style={[styles.demoText, { color: colors.mutedForeground }]}>
-            Demo: demo@spayewallet.com / demo1234
-          </Text>
-        </View>
-
         <TouchableOpacity
           style={[styles.btn, { backgroundColor: colors.primary }]}
           onPress={handleLogin}
@@ -123,6 +121,11 @@ export default function LoginScreen() {
         <Text style={[styles.linkText, { color: colors.mutedForeground }]}>Don't have an account? </Text>
         <Text style={[styles.link, { color: colors.primary }]}>Create one</Text>
       </TouchableOpacity>
+
+      <View style={styles.celoRow}>
+        <View style={styles.celoDot} />
+        <Text style={[styles.celoText, { color: colors.mutedForeground }]}>Built on Celo</Text>
+      </View>
     </ScrollView>
   );
 }
@@ -140,11 +143,12 @@ const styles = StyleSheet.create({
   inputLabel: { fontSize: 11, fontFamily: "Inter_500Medium", textTransform: "uppercase", letterSpacing: 0.5 },
   input: { fontSize: 16, fontFamily: "Inter_400Regular", padding: 0 },
   pwRow: { flexDirection: "row", alignItems: "center" },
-  demoBanner: { borderRadius: 10, padding: 10, alignItems: "center" },
-  demoText: { fontSize: 12, fontFamily: "Inter_400Regular" },
   btn: { borderRadius: 14, paddingVertical: 16, alignItems: "center" },
   btnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
   linkRow: { flexDirection: "row", alignItems: "center" },
   linkText: { fontSize: 14, fontFamily: "Inter_400Regular" },
   link: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  celoRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: -6 },
+  celoDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FCFF52", borderWidth: 1, borderColor: "rgba(0,0,0,0.1)" },
+  celoText: { fontSize: 12, fontFamily: "Inter_600SemiBold", letterSpacing: 0.3 },
 });

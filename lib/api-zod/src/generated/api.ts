@@ -74,6 +74,71 @@ export const GetMeResponse = zod.object({
 
 
 /**
+ * @summary Permanently delete the current account and its data (required for App Store / Play Store compliance)
+ */
+export const DeleteAccountResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Sign in / sign up with a Google ID token (native mobile flow)
+ */
+export const googleTokenSignInBodySignupSourceMax = 64;
+
+
+
+export const GoogleTokenSignInBody = zod.object({
+  "idToken": zod.string().describe('Google ID token obtained on-device (Android \/ iOS)'),
+  "signupSource": zod.string().max(googleTokenSignInBodySignupSourceMax).optional()
+})
+
+export const GoogleTokenSignInResponse = zod.object({
+  "token": zod.string(),
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "fullName": zod.string(),
+  "phoneNumber": zod.string().optional(),
+  "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "isAdmin": zod.boolean(),
+  "avatarUrl": zod.string().optional(),
+  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
+  "createdAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Sign in / sign up with Apple (native iOS flow)
+ */
+export const appleTokenSignInBodySignupSourceMax = 64;
+
+
+
+export const AppleTokenSignInBody = zod.object({
+  "identityToken": zod.string().describe('Apple identity token from Sign in with Apple'),
+  "fullName": zod.string().optional().describe('Provided by Apple only on first authorization'),
+  "signupSource": zod.string().max(appleTokenSignInBodySignupSourceMax).optional()
+})
+
+export const AppleTokenSignInResponse = zod.object({
+  "token": zod.string(),
+  "user": zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "fullName": zod.string(),
+  "phoneNumber": zod.string().optional(),
+  "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "isAdmin": zod.boolean(),
+  "avatarUrl": zod.string().optional(),
+  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
+  "createdAt": zod.coerce.date()
+})
+})
+
+
+/**
  * @summary Get dashboard overview summary
  */
 export const GetDashboardSummaryResponse = zod.object({

@@ -1,13 +1,13 @@
 import React from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert, Platform,
+  ActivityIndicator, Alert, Platform, Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
+import { useGetMe, getGetMeQueryKey, useDeleteAccount } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -26,16 +26,43 @@ export default function ProfileScreen() {
     query: { queryKey: getGetMeQueryKey() },
   });
 
+  const deleteAccount = useDeleteAccount();
+
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Sign Out", style: "destructive", onPress: async () => {
           await signOut();
-          router.replace("/login");
+          router.replace("/welcome");
         },
       },
     ]);
+  };
+
+  // In-app account deletion — required by App Store 5.1.1(v) and the
+  // Google Play account-deletion policy for any app with account creation.
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "This permanently deletes your account, wallet link, and transaction history. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Forever", style: "destructive", onPress: () => {
+            deleteAccount.mutate(undefined as never, {
+              onSuccess: async () => {
+                await signOut();
+                router.replace("/welcome");
+              },
+              onError: (e: any) => {
+                Alert.alert("Deletion failed", e?.response?.data?.message ?? "Please try again or contact support@spayewallet.com");
+              },
+            });
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -110,6 +137,27 @@ export default function ProfileScreen() {
             </View>
           )}
 
+          {/* Legal */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.cardTitle, { color: colors.foreground }]}>About & Legal</Text>
+            {[
+              { icon: "shield" as const, label: "Privacy Policy", url: "https://spayewallet.com/privacy" },
+              { icon: "file-text" as const, label: "Terms of Service", url: "https://spayewallet.com/terms" },
+            ].map((item) => (
+              <TouchableOpacity key={item.label} style={[styles.infoRow, { borderBottomColor: colors.border }]} onPress={() => Linking.openURL(item.url)}>
+                <View style={[styles.infoIcon, { backgroundColor: colors.muted }]}>
+                  <Feather name={item.icon} size={15} color={colors.primary} />
+                </View>
+                <Text style={[styles.infoValue, { color: colors.foreground, flex: 1 }]}>{item.label}</Text>
+                <Feather name="external-link" size={14} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            ))}
+            <View style={[styles.infoRow, { borderBottomColor: "transparent" }]}>
+              <View style={styles.celoDot} />
+              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Built on Celo · © Zawadi Technologies LLC</Text>
+            </View>
+          </View>
+
           {/* Sign Out */}
           <TouchableOpacity
             style={[styles.signOutBtn, { borderColor: "#EF4444" }]}
@@ -118,6 +166,20 @@ export default function ProfileScreen() {
           >
             <Feather name="log-out" size={18} color="#EF4444" />
             <Text style={[styles.signOutText]}>Sign Out</Text>
+          </TouchableOpacity>
+
+          {/* Delete Account */}
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={handleDeleteAccount}
+            disabled={deleteAccount.isPending}
+            testID="button-delete-account"
+          >
+            {deleteAccount.isPending ? (
+              <ActivityIndicator size="small" color="#EF4444" />
+            ) : (
+              <Text style={styles.deleteText}>Delete my account permanently</Text>
+            )}
           </TouchableOpacity>
         </View>
       )}
@@ -143,4 +205,7 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 15, fontFamily: "Inter_500Medium" },
   signOutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, borderWidth: 1.5, borderRadius: 14, paddingVertical: 14 },
   signOutText: { color: "#EF4444", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  deleteBtn: { alignItems: "center", paddingVertical: 12 },
+  deleteText: { color: "#EF4444", fontSize: 13, fontFamily: "Inter_500Medium", textDecorationLine: "underline" },
+  celoDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#FCFF52", marginLeft: 13, marginRight: -2 },
 });
