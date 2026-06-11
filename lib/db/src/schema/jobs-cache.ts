@@ -4,6 +4,6 @@ export const jobsCacheTable = pgTable("jobs_cache", {
   key: text("key").primaryKey(),
   data: jsonb("data").notNull(),
   cachedAt: timestamp("cached_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 export type JobsCache = typeof jobsCacheTable.$inferSelect;

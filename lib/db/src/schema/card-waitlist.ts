@@ -7,7 +7,7 @@ export const cardWaitlistTable = pgTable("card_waitlist", {
   userId: text("user_id").notNull().unique(),
   email: text("email").notNull(),
   joinedAt: timestamp("joined_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 export const insertCardWaitlistSchema = createInsertSchema(cardWaitlistTable).omit({
   id: true,
