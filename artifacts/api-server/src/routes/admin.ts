@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
-import { isCardProgramEnabled, setCardProgramEnabled } from "../lib/settings";
+import { isCardProgramEnabled, setCardProgramEnabled, getFeeSchedule, setFeeSchedule, type FeeSchedule } from "../lib/settings";
 import { isStripeConfigured } from "../lib/stripe-issuing";
 import { db, usersTable, transactionsTable, cardWaitlistTable } from "@workspace/db";
 import { eq, count, desc, sql } from "drizzle-orm";
@@ -78,6 +78,7 @@ router.get("/admin/users", requireAuth, requireAdmin, async (req, res) => {
       email: usersTable.email,
       fullName: usersTable.fullName,
       phoneNumber: usersTable.phoneNumber,
+      country: usersTable.country,
       kycStatus: usersTable.kycStatus,
       avatarUrl: usersTable.avatarUrl,
       signupSource: usersTable.signupSource,
@@ -164,6 +165,43 @@ router.put("/admin/feature-flags", requireAuth, requireAdmin, async (req, res) =
   } catch (err) {
     req.log.error({ err }, "Feature flags update error");
     res.status(500).json({ error: "internal_error", message: "Failed to update feature flags" });
+  }
+});
+
+// ─── Fee schedule: provider cost + S-PAY margin = user price ──────────────────
+
+router.get("/admin/fees", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    res.json(await getFeeSchedule());
+  } catch (err) {
+    req.log.error({ err }, "Fee schedule read error");
+    res.status(500).json({ error: "internal_error", message: "Failed to read fee schedule" });
+  }
+});
+
+router.put("/admin/fees", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const body = req.body as Partial<FeeSchedule>;
+    const fields: (keyof FeeSchedule)[] = ["withdrawalFeePercent", "withdrawalFeeMin", "cardIssuanceFee", "p2pFeePercent"];
+    for (const f of fields) {
+      const v = body[f];
+      if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 100) {
+        res.status(400).json({ error: "validation_error", message: `${f} must be a number between 0 and 100` });
+        return;
+      }
+    }
+    const fees: FeeSchedule = {
+      withdrawalFeePercent: body.withdrawalFeePercent!,
+      withdrawalFeeMin: body.withdrawalFeeMin!,
+      cardIssuanceFee: body.cardIssuanceFee!,
+      p2pFeePercent: body.p2pFeePercent!,
+    };
+    await setFeeSchedule(fees);
+    req.log.info({ fees, admin: req.user!.email }, "Fee schedule updated");
+    res.json(fees);
+  } catch (err) {
+    req.log.error({ err }, "Fee schedule update error");
+    res.status(500).json({ error: "internal_error", message: "Failed to update fee schedule" });
   }
 });
 

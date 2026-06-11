@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { setToken } from "@/lib/auth";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Eye, EyeOff } from "lucide-react";
+import { POPULAR_COUNTRIES, ALL_COUNTRIES } from "@/lib/countries";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 const BENEFITS = [
@@ -27,20 +28,6 @@ const SUPPORTED_COUNTRIES_FLAGS = [
   { flag: "🇨🇴", label: "Colombia" },
 ];
 
-const COUNTRIES = [
-  "Kenya",
-  "Nigeria",
-  "Ghana",
-  "Philippines",
-  "Brazil",
-  "Colombia",
-  "Indonesia",
-  "USA",
-  "UK",
-  "Germany",
-  "France",
-  "Other",
-];
 
 // Acquisition attribution: /register?from=jobs&jobId=… (public jobs board links)
 // or /register?source=… — recorded on the account so admin can see where signups come from.
@@ -63,16 +50,29 @@ export default function Register() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [country, setCountry] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [signupSource] = useState(getSignupSource);
 
+  const passwordsMatch = password === confirmPassword;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!passwordsMatch) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please re-enter the same password in both fields.",
+        variant: "destructive",
+      });
+      return;
+    }
     registerMutation.mutate(
-      { data: { email, password, fullName, phoneNumber, signupSource } },
+      { data: { email, password, fullName, phoneNumber, country, signupSource } },
       {
         onSuccess: (data) => {
           setToken(data.token);
@@ -218,7 +218,7 @@ export default function Register() {
                 <div className="space-y-1.5">
                   <Label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700">
                     Phone Number{" "}
-                    <span className="text-gray-400 font-normal">(Optional)</span>
+                    <span className="text-gray-400 font-normal">(optional)</span>
                   </Label>
                   <Input
                     id="phoneNumber"
@@ -228,6 +228,7 @@ export default function Register() {
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
                   />
+                  <p className="text-[11px] text-gray-400">Used for M-Pesa / Mobile Money cash-outs and receiving money from friends.</p>
                 </div>
 
                 {/* Country */}
@@ -235,30 +236,84 @@ export default function Register() {
                   <Label htmlFor="country" className="text-sm font-medium text-gray-700">Country</Label>
                   <select
                     id="country"
+                    required
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
                     className="w-full h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20 transition-colors"
                   >
                     <option value="">Select your country</option>
-                    {COUNTRIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
+                    <optgroup label="Popular">
+                      {POPULAR_COUNTRIES.map((c) => (
+                        <option key={`pop-${c}`} value={c}>{c}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="All countries">
+                      {ALL_COUNTRIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </optgroup>
                   </select>
+                  <p className="text-[11px] text-gray-400">We use this to show your local cash-out methods (M-Pesa, GCash, PIX…).</p>
                 </div>
 
                 {/* Password */}
                 <div className="space-y-1.5">
                   <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    minLength={8}
-                    placeholder="Min. 8 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      minLength={8}
+                      placeholder="Min. 8 characters"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11 pr-11"
+                    />
+                    <button
+                      type="button"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      onClick={() => setShowPassword((s) => !s)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirm ? "text" : "password"}
+                      required
+                      minLength={8}
+                      placeholder="Re-enter your password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={`rounded-xl h-11 pr-11 focus:ring-[#4DC9EE]/20 ${
+                        confirmPassword && !passwordsMatch
+                          ? "border-red-300 focus:border-red-400"
+                          : "border-gray-200 focus:border-[#4DC9EE]"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      aria-label={showConfirm ? "Hide password" : "Show password"}
+                      onClick={() => setShowConfirm((s) => !s)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showConfirm ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </div>
+                  {confirmPassword && !passwordsMatch && (
+                    <p className="text-[11px] text-red-500 font-medium">Passwords don't match yet.</p>
+                  )}
+                  {confirmPassword && passwordsMatch && (
+                    <p className="text-[11px] text-green-600 font-medium flex items-center gap-1"><CheckCircle size={11} /> Passwords match</p>
+                  )}
                 </div>
 
                 {/* Terms checkbox */}

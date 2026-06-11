@@ -62,11 +62,15 @@ router.post("/auth/register", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
+    const country = typeof (req.body as Record<string, unknown>).country === "string"
+      ? String((req.body as Record<string, unknown>).country).trim().slice(0, 56)
+      : "";
     const [user] = await db.insert(usersTable).values({
       email,
       passwordHash,
       fullName,
       phoneNumber: phoneNumber || null,
+      country: country || null,
       signupSource: cleanSignupSource((req.body as Record<string, unknown>).signupSource) ?? "direct",
     }).returning();
 

@@ -35,6 +35,7 @@ import type {
   ExchangeRateResponse,
   FeatureFlagsResponse,
   FeatureFlagsUpdateRequest,
+  FeeSchedule,
   GetAdminSettings200,
   GetAdminTransactionsParams,
   GetAdminUsersParams,
@@ -2289,6 +2290,154 @@ export function useGetAdminSettings<TData = Awaited<ReturnType<typeof getAdminSe
 
 
 
+
+export const getGetFeeScheduleUrl = () => {
+
+
+
+
+  return `/api/admin/fees`
+}
+
+/**
+ * @summary Read the platform fee schedule (provider cost + S-PAY margin = user price)
+ */
+export const getFeeSchedule = async ( options?: RequestInit): Promise<FeeSchedule> => {
+
+  return customFetch<FeeSchedule>(getGetFeeScheduleUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFeeScheduleQueryKey = () => {
+    return [
+    `/api/admin/fees`
+    ] as const;
+    }
+
+
+export const getGetFeeScheduleQueryOptions = <TData = Awaited<ReturnType<typeof getFeeSchedule>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFeeSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFeeScheduleQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFeeSchedule>>> = ({ signal }) => getFeeSchedule({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFeeSchedule>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFeeScheduleQueryResult = NonNullable<Awaited<ReturnType<typeof getFeeSchedule>>>
+export type GetFeeScheduleQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read the platform fee schedule (provider cost + S-PAY margin = user price)
+ */
+
+export function useGetFeeSchedule<TData = Awaited<ReturnType<typeof getFeeSchedule>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFeeSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFeeScheduleQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateFeeScheduleUrl = () => {
+
+
+
+
+  return `/api/admin/fees`
+}
+
+/**
+ * @summary Update the platform fee schedule (applies to new quotes immediately, no deploy)
+ */
+export const updateFeeSchedule = async (feeSchedule: FeeSchedule, options?: RequestInit): Promise<FeeSchedule> => {
+
+  return customFetch<FeeSchedule>(getUpdateFeeScheduleUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      feeSchedule,)
+  }
+);}
+
+
+
+
+export const getUpdateFeeScheduleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFeeSchedule>>, TError,{data: BodyType<FeeSchedule>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFeeSchedule>>, TError,{data: BodyType<FeeSchedule>}, TContext> => {
+
+const mutationKey = ['updateFeeSchedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFeeSchedule>>, {data: BodyType<FeeSchedule>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateFeeSchedule(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFeeScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof updateFeeSchedule>>>
+    export type UpdateFeeScheduleMutationBody = BodyType<FeeSchedule>
+    export type UpdateFeeScheduleMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update the platform fee schedule (applies to new quotes immediately, no deploy)
+ */
+export const useUpdateFeeSchedule = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFeeSchedule>>, TError,{data: BodyType<FeeSchedule>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFeeSchedule>>,
+        TError,
+        {data: BodyType<FeeSchedule>},
+        TContext
+      > => {
+      return useMutation(getUpdateFeeScheduleMutationOptions(options));
+    }
 
 export const getGetFeatureFlagsUrl = () => {
 

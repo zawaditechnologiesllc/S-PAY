@@ -21,6 +21,8 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const register = useRegister();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -33,6 +35,10 @@ export default function RegisterScreen() {
     }
     if (password.length < 8) {
       Alert.alert("Weak password", "Password must be at least 8 characters");
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert("Passwords don't match", "Please re-enter the same password in both fields");
       return;
     }
     register.mutate(
@@ -74,8 +80,9 @@ export default function RegisterScreen() {
         {[
           { label: "Full Name", value: fullName, onChange: setFullName, placeholder: "Alex Johnson", keyboard: "default" as const, icon: "user" as const },
           { label: "Email Address", value: email, onChange: setEmail, placeholder: "you@example.com", keyboard: "email-address" as const, icon: "mail" as const },
-          { label: "Phone (optional)", value: phone, onChange: setPhone, placeholder: "+1 555 000 0000", keyboard: "phone-pad" as const, icon: "phone" as const },
+          { label: "Phone (optional)", value: phone, onChange: setPhone, placeholder: "+254 7XX XXX XXX", keyboard: "phone-pad" as const, icon: "phone" as const },
           { label: "Password", value: password, onChange: setPassword, placeholder: "At least 8 characters", keyboard: "default" as const, icon: "lock" as const, secure: true },
+          { label: "Confirm Password", value: confirmPassword, onChange: setConfirmPassword, placeholder: "Re-enter your password", keyboard: "default" as const, icon: "lock" as const, secure: true },
         ].map((field) => (
           <View key={field.label} style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.background }]}>
             <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>{field.label}</Text>
@@ -88,13 +95,29 @@ export default function RegisterScreen() {
                 value={field.value}
                 onChangeText={field.onChange}
                 keyboardType={field.keyboard}
-                secureTextEntry={field.secure}
-                autoCapitalize={field.keyboard === "email-address" ? "none" : "words"}
+                secureTextEntry={field.secure && !showPw}
+                autoCapitalize={field.keyboard === "email-address" || field.secure ? "none" : "words"}
                 testID={`input-${field.label.toLowerCase().replace(/\s+/g, "-")}`}
               />
+              {field.secure && (
+                <TouchableOpacity onPress={() => setShowPw((p) => !p)} style={{ padding: 4 }} testID={`toggle-${field.label.toLowerCase().replace(/\s+/g, "-")}`}>
+                  <Feather name={showPw ? "eye-off" : "eye"} size={16} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         ))}
+
+        {confirmPassword.length > 0 && (
+          <Text style={{
+            fontSize: 12,
+            fontFamily: "Inter_500Medium",
+            color: password === confirmPassword ? "#22C55E" : "#EF4444",
+            marginTop: -8,
+          }}>
+            {password === confirmPassword ? "✓ Passwords match" : "Passwords don't match yet"}
+          </Text>
+        )}
 
         <TouchableOpacity
           style={[styles.btn, { backgroundColor: colors.primary }]}

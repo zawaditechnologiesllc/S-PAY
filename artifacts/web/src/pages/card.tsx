@@ -103,13 +103,20 @@ export default function CardPage() {
                 </p>
               </div>
               {kycApproved ? (
-                <Button
-                  onClick={handleCreateCard}
-                  disabled={issueCard.isPending}
-                  className="bg-[#4DC9EE] text-white hover:bg-white hover:text-[#1A2B4A] font-bold px-8 py-6 rounded-xl text-md shadow-lg"
-                >
-                  {issueCard.isPending ? "Creating your card..." : "Create My Virtual Card"}
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    onClick={handleCreateCard}
+                    disabled={issueCard.isPending}
+                    className="bg-[#4DC9EE] text-white hover:bg-white hover:text-[#1A2B4A] font-bold px-8 py-6 rounded-xl text-md shadow-lg"
+                  >
+                    {issueCard.isPending ? "Creating your card..." : "Create My Virtual Card"}
+                  </Button>
+                  {typeof cardDetails?.issuanceFee === "number" && cardDetails.issuanceFee > 0 && (
+                    <p className="text-blue-200 text-xs">
+                      One-time creation fee: ${cardDetails.issuanceFee.toFixed(2)} — deducted from your wallet balance.
+                    </p>
+                  )}
+                </div>
               ) : (
                 <div className="space-y-3">
                   <div className="inline-flex items-center gap-2 bg-amber-400/20 border border-amber-300/40 rounded-full px-5 py-2.5 text-sm font-semibold text-amber-100">

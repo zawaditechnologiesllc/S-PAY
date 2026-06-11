@@ -13,6 +13,7 @@ export const usersTable = pgTable("users", {
   fullName: text("full_name").notNull(),
   avatarUrl: text("avatar_url"),
   phoneNumber: text("phone_number"),
+  country: text("country"),                      // self-reported at signup; drives payout method defaults
   kycStatus: kycStatusEnum("kyc_status").default("pending").notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
   celoWalletAddress: text("celo_wallet_address"),

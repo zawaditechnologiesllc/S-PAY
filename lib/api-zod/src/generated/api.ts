@@ -20,6 +20,8 @@ export const HealthCheckResponse = zod.object({
  */
 export const registerBodyPasswordMin = 8;
 
+export const registerBodyCountryMax = 56;
+
 export const registerBodySignupSourceMax = 64;
 
 
@@ -29,6 +31,7 @@ export const RegisterBody = zod.object({
   "password": zod.string().min(registerBodyPasswordMin),
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
+  "country": zod.string().max(registerBodyCountryMax).optional(),
   "signupSource": zod.string().max(registerBodySignupSourceMax).optional().describe('Where the signup came from, e.g. jobs, jobs:<jobId>, landing, mobile')
 })
 
@@ -359,7 +362,8 @@ export const GetCardDetailsResponse = zod.object({
   "currency": zod.string(),
   "cardStatus": zod.enum(['active', 'locked', 'coming_soon', 'not_issued']),
   "cardholderName": zod.string().optional(),
-  "onWaitlist": zod.boolean().optional()
+  "onWaitlist": zod.boolean().optional(),
+  "issuanceFee": zod.number().optional().describe('One-time card creation fee charged to the user (USD), admin-configurable')
 })
 
 
@@ -437,7 +441,8 @@ export const IssueCardResponse = zod.object({
   "currency": zod.string(),
   "cardStatus": zod.enum(['active', 'locked', 'coming_soon', 'not_issued']),
   "cardholderName": zod.string().optional(),
-  "onWaitlist": zod.boolean().optional()
+  "onWaitlist": zod.boolean().optional(),
+  "issuanceFee": zod.number().optional().describe('One-time card creation fee charged to the user (USD), admin-configurable')
 })
 
 
@@ -598,6 +603,35 @@ export const GetAdminTransactionsResponse = zod.object({
  * @summary System configuration status
  */
 export const GetAdminSettingsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Read the platform fee schedule (provider cost + S-PAY margin = user price)
+ */
+export const GetFeeScheduleResponse = zod.object({
+  "withdrawalFeePercent": zod.number().describe('User-facing withdrawal fee in percent (covers Noah\'s cost + S-PAY margin)'),
+  "withdrawalFeeMin": zod.number().describe('Minimum withdrawal fee in USD'),
+  "cardIssuanceFee": zod.number().describe('One-time virtual card creation fee in USD (covers Stripe\'s cost + margin)'),
+  "p2pFeePercent": zod.number().describe('Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly)')
+})
+
+
+/**
+ * @summary Update the platform fee schedule (applies to new quotes immediately, no deploy)
+ */
+export const UpdateFeeScheduleBody = zod.object({
+  "withdrawalFeePercent": zod.number().describe('User-facing withdrawal fee in percent (covers Noah\'s cost + S-PAY margin)'),
+  "withdrawalFeeMin": zod.number().describe('Minimum withdrawal fee in USD'),
+  "cardIssuanceFee": zod.number().describe('One-time virtual card creation fee in USD (covers Stripe\'s cost + margin)'),
+  "p2pFeePercent": zod.number().describe('Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly)')
+})
+
+export const UpdateFeeScheduleResponse = zod.object({
+  "withdrawalFeePercent": zod.number().describe('User-facing withdrawal fee in percent (covers Noah\'s cost + S-PAY margin)'),
+  "withdrawalFeeMin": zod.number().describe('Minimum withdrawal fee in USD'),
+  "cardIssuanceFee": zod.number().describe('One-time virtual card creation fee in USD (covers Stripe\'s cost + margin)'),
+  "p2pFeePercent": zod.number().describe('Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly)')
+})
 
 
 /**
