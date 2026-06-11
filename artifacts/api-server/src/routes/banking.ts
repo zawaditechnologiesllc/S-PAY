@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
+import { getFeeSchedule, withdrawalFee } from "../lib/settings";
 import { DEMO_BANK_ACCOUNTS, DEMO_INCOMING_PAYMENTS } from "../lib/mock-data";
 
 const router = Router();
@@ -68,16 +69,17 @@ router.get("/banking/rates", requireAuth, async (req, res) => {
     res.status(400).json({ error: "validation_error", message: "source and target currency are required" });
     return;
   }
+  const fees = await getFeeSchedule();
   res.json({
     source,
     target,
     rate: lookupRate(target),
-    fee: 0.005,
+    fee: fees.withdrawalFeePercent / 100, // fraction, e.g. 0.01 = 1%
     estimatedArrival: METHOD_ARRIVAL[method ?? ""] ?? "Within 2 hours",
   });
 });
 
-router.post("/banking/withdraw", requireAuth, (req, res) => {
+router.post("/banking/withdraw", requireAuth, async (req, res) => {
   const { amount, targetCurrency, method } = req.body;
   if (!amount || amount <= 0) {
     res.status(400).json({ error: "validation_error", message: "Invalid amount" });
@@ -89,13 +91,14 @@ router.post("/banking/withdraw", requireAuth, (req, res) => {
   }
 
   const rate = lookupRate(targetCurrency);
-  const fee = amount * 0.005;
+  // User-facing fee from the admin-set schedule: Noah's cost + S-PAY margin
+  const fee = withdrawalFee(amount, await getFeeSchedule());
 
   res.json({
     withdrawalId: `wdw-${crypto.randomUUID()}`,
     status: "pending",
     estimatedArrival: METHOD_ARRIVAL[String(method)] ?? "1–2 business days",
-    localAmount: (amount - fee) * rate,
+    localAmount: Math.max(amount - fee, 0) * rate,
     localCurrency: targetCurrency ?? "USD",
     fee,
   });

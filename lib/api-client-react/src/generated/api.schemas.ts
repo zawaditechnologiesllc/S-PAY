@@ -24,6 +24,8 @@ export interface RegisterRequest {
   password: string;
   fullName: string;
   phoneNumber?: string;
+  /** @maxLength 56 */
+  country?: string;
   /**
      * Where the signup came from, e.g. jobs, jobs:<jobId>, landing, mobile
      * @maxLength 64
@@ -335,6 +337,8 @@ export interface CardDetailsResponse {
   cardStatus: CardDetailsResponseCardStatus;
   cardholderName?: string;
   onWaitlist?: boolean;
+  /** One-time card creation fee charged to the user (USD), admin-configurable */
+  issuanceFee?: number;
 }
 
 export type CardTransactionStatus = typeof CardTransactionStatus[keyof typeof CardTransactionStatus];
@@ -478,6 +482,17 @@ export interface JobsResponse {
   jobs: Job[];
   total: number;
   remoteCom?: AffiliateCta;
+}
+
+export interface FeeSchedule {
+  /** User-facing withdrawal fee in percent (covers Noah's cost + S-PAY margin) */
+  withdrawalFeePercent: number;
+  /** Minimum withdrawal fee in USD */
+  withdrawalFeeMin: number;
+  /** One-time virtual card creation fee in USD (covers Stripe's cost + margin) */
+  cardIssuanceFee: number;
+  /** Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly) */
+  p2pFeePercent: number;
 }
 
 export interface FeatureFlagsResponse {

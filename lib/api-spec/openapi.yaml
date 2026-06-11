@@ -644,6 +644,40 @@ paths:
                 type: object
                 additionalProperties: true
 
+  /admin/fees:
+    get:
+      operationId: getFeeSchedule
+      summary: Read the platform fee schedule (provider cost + S-PAY margin = user price)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current fee schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeeSchedule"
+    put:
+      operationId: updateFeeSchedule
+      summary: Update the platform fee schedule (applies to new quotes immediately, no deploy)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeeSchedule"
+      responses:
+        "200":
+          description: Updated fee schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeeSchedule"
+
   /admin/feature-flags:
     get:
       operationId: getFeatureFlags
@@ -726,6 +760,9 @@ components:
           type: string
         phoneNumber:
           type: string
+        country:
+          type: string
+          maxLength: 56
         signupSource:
           type: string
           maxLength: 64
@@ -1160,6 +1197,9 @@ components:
           type: string
         onWaitlist:
           type: boolean
+        issuanceFee:
+          type: number
+          description: One-time card creation fee charged to the user (USD), admin-configurable
       required:
         - hasCard
         - isComingSoon
@@ -1348,6 +1388,27 @@ components:
       required:
         - jobs
         - total
+
+    FeeSchedule:
+      type: object
+      properties:
+        withdrawalFeePercent:
+          type: number
+          description: User-facing withdrawal fee in percent (covers Noah's cost + S-PAY margin)
+        withdrawalFeeMin:
+          type: number
+          description: Minimum withdrawal fee in USD
+        cardIssuanceFee:
+          type: number
+          description: One-time virtual card creation fee in USD (covers Stripe's cost + margin)
+        p2pFeePercent:
+          type: number
+          description: Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly)
+      required:
+        - withdrawalFeePercent
+        - withdrawalFeeMin
+        - cardIssuanceFee
+        - p2pFeePercent
 
     FeatureFlagsResponse:
       type: object

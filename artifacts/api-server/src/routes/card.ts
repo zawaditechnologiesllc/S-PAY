@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
-import { isCardProgramEnabled } from "../lib/settings";
+import { isCardProgramEnabled, getFeeSchedule } from "../lib/settings";
 import { isStripeConfigured, issueVirtualCard, fetchCardSummary } from "../lib/stripe-issuing";
 import { db, usersTable, cardWaitlistTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -26,6 +26,7 @@ router.get("/card/details", requireAuth, async (req, res) => {
       currency: "USD",
       cardholderName: user?.fullName ?? "",
       onWaitlist: Boolean(waitlistRow),
+      issuanceFee: (await getFeeSchedule()).cardIssuanceFee,
     };
 
     if (!enabled) {

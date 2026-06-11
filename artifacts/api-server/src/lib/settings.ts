@@ -46,3 +46,39 @@ export async function isCardProgramEnabled(): Promise<boolean> {
 export async function setCardProgramEnabled(enabled: boolean): Promise<void> {
   await setSetting(CARD_PROGRAM_KEY, { enabled });
 }
+
+// ── Platform fee schedule ─────────────────────────────────────────────────────
+// User price = provider cost + S-PAY margin. Providers bill S-PAY separately
+// (Stripe nets fees from the Stripe balance, Noah nets from settlement, Celo
+// gas is sub-cent), so these are the *user-facing* prices — the spread is
+// S-PAY revenue. Editable live from /admin/settings.
+
+export interface FeeSchedule {
+  withdrawalFeePercent: number; // % of withdrawal amount
+  withdrawalFeeMin: number;     // USD floor per withdrawal
+  cardIssuanceFee: number;      // one-time USD price for creating the virtual card
+  p2pFeePercent: number;        // internal transfers (0 = free, growth-friendly)
+}
+
+export const DEFAULT_FEES: FeeSchedule = {
+  withdrawalFeePercent: 1.0,
+  withdrawalFeeMin: 0.49,
+  cardIssuanceFee: 1.0,
+  p2pFeePercent: 0,
+};
+
+const FEES_KEY = "fee_schedule";
+
+export async function getFeeSchedule(): Promise<FeeSchedule> {
+  const stored = await getSetting<Partial<FeeSchedule>>(FEES_KEY, {});
+  return { ...DEFAULT_FEES, ...stored };
+}
+
+export async function setFeeSchedule(fees: FeeSchedule): Promise<void> {
+  await setSetting(FEES_KEY, fees);
+}
+
+/** User-facing withdrawal fee for a given USD amount. */
+export function withdrawalFee(amount: number, fees: FeeSchedule): number {
+  return Math.max(fees.withdrawalFeeMin, amount * (fees.withdrawalFeePercent / 100));
+}
