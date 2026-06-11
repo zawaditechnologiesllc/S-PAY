@@ -776,6 +776,15 @@ components:
         country:
           type: string
           maxLength: 56
+        accountType:
+          type: string
+          enum: [personal, business]
+          default: personal
+          description: "personal → Noah KYC · business → Noah KYB (business + representative verification)"
+        businessName:
+          type: string
+          maxLength: 120
+          description: Required when accountType is business — goes on the business virtual accounts
         signupSource:
           type: string
           maxLength: 64
@@ -857,6 +866,12 @@ components:
           type: string
           nullable: true
           description: "EVM wallet address on the Celo network, provisioned via Privy at signup"
+        accountType:
+          type: string
+          enum: [personal, business]
+        businessName:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -1496,6 +1511,9 @@ components:
           description: "Signup counts grouped by acquisition source (jobs, landing, google, direct...)"
           additionalProperties:
             type: integer
+        businessUsers:
+          type: integer
+          description: Number of business (KYB) accounts
       required:
         - totalUsers
         - activeUsers
@@ -1522,6 +1540,12 @@ components:
         walletBalance:
           type: number
         signupSource:
+          type: string
+          nullable: true
+        accountType:
+          type: string
+          enum: [personal, business]
+        businessName:
           type: string
           nullable: true
         createdAt:

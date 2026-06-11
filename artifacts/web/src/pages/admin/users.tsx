@@ -87,7 +87,7 @@ export default function AdminUsers() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  {["User", "Email", "Country", "KYC Status", "Source", "Balance", "Joined"].map((h) => (
+                  {["User", "Type", "Email", "Country", "KYC Status", "Source", "Balance", "Joined"].map((h) => (
                     <th key={h} className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -96,14 +96,14 @@ export default function AdminUsers() {
                 {isLoading ? (
                   Array.from({ length: 8 }).map((_, i) => (
                     <tr key={i} className="border-b border-gray-50">
-                      {Array.from({ length: 7 }).map((_, j) => (
+                      {Array.from({ length: 8 }).map((_, j) => (
                         <td key={j} className="px-5 py-3.5"><Skeleton className="h-4 w-full" /></td>
                       ))}
                     </tr>
                   ))
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-16 text-gray-400">
+                    <td colSpan={8} className="text-center py-16 text-gray-400">
                       <Filter size={32} className="mx-auto mb-3 opacity-40" />
                       No users match your filter.
                     </td>
@@ -118,6 +118,13 @@ export default function AdminUsers() {
                           </div>
                           <span className="font-semibold text-gray-900 whitespace-nowrap">{u.fullName}</span>
                         </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${
+                          u.accountType === "business" ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"
+                        }`}>
+                          {u.accountType === "business" ? `Business${u.businessName ? ` · ${u.businessName}` : ""}` : "Personal"}
+                        </span>
                       </td>
                       <td className="px-5 py-3.5 text-gray-500">{u.email}</td>
                       <td className="px-5 py-3.5 text-gray-500">{u.country ?? "—"}</td>

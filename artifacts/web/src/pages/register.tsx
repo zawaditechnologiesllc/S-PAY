@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { setToken } from "@/lib/auth";
-import { CheckCircle, Eye, EyeOff } from "lucide-react";
+import { CheckCircle, Eye, EyeOff, User, Building2 } from "lucide-react";
 import { POPULAR_COUNTRIES, ALL_COUNTRIES } from "@/lib/countries";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
@@ -58,6 +58,11 @@ export default function Register() {
   const [country, setCountry] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [signupSource] = useState(getSignupSource);
+  // /register?type=business pre-selects a business (KYB) account
+  const [accountType, setAccountType] = useState<"personal" | "business">(() =>
+    new URLSearchParams(window.location.search).get("type") === "business" ? "business" : "personal"
+  );
+  const [businessName, setBusinessName] = useState("");
 
   const passwordsMatch = password === confirmPassword;
 
@@ -71,8 +76,22 @@ export default function Register() {
       });
       return;
     }
+    if (accountType === "business" && !businessName.trim()) {
+      toast({
+        title: "Business name required",
+        description: "Enter your registered business name to open a business account.",
+        variant: "destructive",
+      });
+      return;
+    }
     registerMutation.mutate(
-      { data: { email, password, fullName, phoneNumber, country, signupSource } },
+      {
+        data: {
+          email, password, fullName, phoneNumber, country, signupSource,
+          accountType,
+          businessName: accountType === "business" ? businessName.trim() : undefined,
+        },
+      },
       {
         onSuccess: (data) => {
           setToken(data.token);
@@ -187,9 +206,59 @@ export default function Register() {
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4 pb-6">
+                {/* Account type: Personal (Noah KYC) or Business (Noah KYB) */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium text-gray-700">Account Type</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: "personal" as const, icon: <User size={16} />, title: "Personal", desc: "For remote workers & freelancers" },
+                      { value: "business" as const, icon: <Building2 size={16} />, title: "Business", desc: "For companies & partnerships" },
+                    ]).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setAccountType(opt.value)}
+                        className={`text-left rounded-xl border p-3 transition-all ${
+                          accountType === opt.value
+                            ? "border-[#4DC9EE] bg-[#4DC9EE]/5 ring-2 ring-[#4DC9EE]/20"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <div className={`flex items-center gap-1.5 text-sm font-semibold mb-0.5 ${
+                          accountType === opt.value ? "text-[#1A2B4A]" : "text-gray-700"
+                        }`}>
+                          <span className={accountType === opt.value ? "text-[#4DC9EE]" : "text-gray-400"}>{opt.icon}</span>
+                          {opt.title}
+                        </div>
+                        <p className="text-[11px] text-gray-400 leading-tight">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Business Name (business accounts only) */}
+                {accountType === "business" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="businessName" className="text-sm font-medium text-gray-700">Registered Business Name</Label>
+                    <Input
+                      id="businessName"
+                      placeholder="Acme Ltd"
+                      required
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
+                    />
+                    <p className="text-[11px] text-gray-400">
+                      You'll verify the business and its representative (KYB) after sign-up. Your virtual US account &amp; EU IBAN are issued in the business name — USDC &amp; USDT supported.
+                    </p>
+                  </div>
+                )}
+
                 {/* Full Name */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">Full Name</Label>
+                  <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
+                    {accountType === "business" ? "Representative Full Name" : "Full Name"}
+                  </Label>
                   <Input
                     id="fullName"
                     placeholder="Jane Doe"

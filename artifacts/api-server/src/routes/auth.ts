@@ -36,6 +36,8 @@ function userResponse(u: typeof usersTable.$inferSelect) {
     kycStatus: u.kycStatus,
     isAdmin: ADMIN_EMAILS.includes(u.email.toLowerCase()),
     celoWalletAddress: u.celoWalletAddress ?? null,
+    accountType: u.accountType,
+    businessName: u.businessName ?? null,
     createdAt: u.createdAt.toISOString(),
   };
 }
@@ -55,6 +57,18 @@ router.post("/auth/register", async (req, res) => {
       return;
     }
 
+    const body = req.body as Record<string, unknown>;
+    const country = typeof body.country === "string" ? body.country.trim().slice(0, 56) : "";
+
+    // Personal accounts verify with Noah KYC; business accounts verify the
+    // business + its representative with Noah KYB and get business virtual accounts.
+    const accountType = body.accountType === "business" ? "business" as const : "personal" as const;
+    const businessName = typeof body.businessName === "string" ? body.businessName.trim().slice(0, 120) : "";
+    if (accountType === "business" && !businessName) {
+      res.status(400).json({ error: "validation_error", message: "businessName is required for business accounts" });
+      return;
+    }
+
     const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email)).limit(1);
     if (existing.length > 0) {
       res.status(400).json({ error: "user_exists", message: "An account with this email already exists" });
@@ -62,16 +76,15 @@ router.post("/auth/register", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const country = typeof (req.body as Record<string, unknown>).country === "string"
-      ? String((req.body as Record<string, unknown>).country).trim().slice(0, 56)
-      : "";
     const [user] = await db.insert(usersTable).values({
       email,
       passwordHash,
       fullName,
       phoneNumber: phoneNumber || null,
       country: country || null,
-      signupSource: cleanSignupSource((req.body as Record<string, unknown>).signupSource) ?? "direct",
+      accountType,
+      businessName: accountType === "business" ? businessName : null,
+      signupSource: cleanSignupSource(body.signupSource) ?? "direct",
     }).returning();
 
     // MiniPay-style onboarding: Celo wallet provisioned instantly in the background

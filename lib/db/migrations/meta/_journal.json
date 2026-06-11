@@ -43,6 +43,13 @@
       "when": 1781154866474,
       "tag": "0005_privy_wallet_id",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781174192580,
+      "tag": "0006_business_accounts",
+      "breakpoints": true
     }
   ]
 }

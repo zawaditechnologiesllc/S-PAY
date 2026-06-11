@@ -43,21 +43,26 @@ router.post("/webhooks/noah", async (req, res) => {
 
   try {
     switch (event.event) {
+      // Personal accounts: KYC · Business accounts: KYB (business + representative)
       case "customer.kyc_approved":
+      case "business.kyb_approved":
+      case "customer.kyb_approved":
         if (event.customer_id) {
           await db.update(usersTable)
             .set({ kycStatus: "approved", updatedAt: new Date() })
             .where(eq(usersTable.noahCustomerId, event.customer_id));
-          logger.info({ customerId: event.customer_id }, "KYC approved — user account unlocked");
+          logger.info({ customerId: event.customer_id, event: event.event }, "Verification approved — account unlocked");
         }
         break;
 
       case "customer.kyc_rejected":
+      case "business.kyb_rejected":
+      case "customer.kyb_rejected":
         if (event.customer_id) {
           await db.update(usersTable)
             .set({ kycStatus: "rejected", updatedAt: new Date() })
             .where(eq(usersTable.noahCustomerId, event.customer_id));
-          logger.warn({ customerId: event.customer_id }, "KYC rejected — user notified on next login");
+          logger.warn({ customerId: event.customer_id, event: event.event }, "Verification rejected — user notified on next login");
         }
         break;
 

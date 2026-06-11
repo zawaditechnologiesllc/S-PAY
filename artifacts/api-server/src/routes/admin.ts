@@ -44,6 +44,9 @@ router.get("/admin/stats", requireAuth, requireAdmin, async (req, res) => {
     const [{ total: activeUsers }] = await db.select({ total: count() }).from(usersTable)
       .where(sql`${usersTable.createdAt} >= ${thirtyDaysAgo}`);
 
+    const [{ total: businessUsers }] = await db.select({ total: count() }).from(usersTable)
+      .where(eq(usersTable.accountType, "business"));
+
     // Acquisition breakdown: where signups come from (jobs, landing, google, direct…)
     const sourceRows = await db.select({
       source: sql<string>`COALESCE(${usersTable.signupSource}, 'unknown')`,
@@ -59,6 +62,7 @@ router.get("/admin/stats", requireAuth, requireAdmin, async (req, res) => {
     res.json({
       totalUsers,
       activeUsers,
+      businessUsers,
       pendingKyc,
       approvedKyc,
       rejectedKyc,
@@ -86,6 +90,8 @@ router.get("/admin/users", requireAuth, requireAdmin, async (req, res) => {
       kycStatus: usersTable.kycStatus,
       avatarUrl: usersTable.avatarUrl,
       signupSource: usersTable.signupSource,
+      accountType: usersTable.accountType,
+      businessName: usersTable.businessName,
       createdAt: usersTable.createdAt,
     }).from(usersTable);
 

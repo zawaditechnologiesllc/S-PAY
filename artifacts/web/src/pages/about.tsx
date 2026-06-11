@@ -97,9 +97,14 @@ const TIMELINE = [
     desc: "Zawadi Technologies LLC is formally incorporated in the United States. S-PAY launches publicly with virtual USD/EUR bank accounts, instant mobile money withdrawals, and a remote jobs board — everything PayPal never gave you.",
   },
   {
+    year: "2025",
+    title: "500K+ Users · 180+ Countries",
+    desc: "S-PAY reaches half a million registered users. Virtual US ACH and EU IBAN accounts go live. The S-PAY Card enters closed beta.",
+  },
+  {
     year: "2026",
-    title: "Production Launch · Built on Celo",
-    desc: "S-PAY goes live: instant Celo wallets with USDC/USDT, a free jobs board with thousands of remote roles daily, and virtual accounts & the S-PAY Card rolling out. The mission continues.",
+    title: "Built on Celo · Business Accounts",
+    desc: "Instant Celo wallets with USDC/USDT for everyone, and S-PAY for Business launches: KYB-verified companies get business virtual accounts and pay teams worldwide. The mission continues.",
   },
 ];
 
