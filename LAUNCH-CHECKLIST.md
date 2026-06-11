@@ -45,6 +45,16 @@
 2. ⚠️ Render's free Postgres is **deleted ~45 days after creation**. Upgrade `spay-db` → Settings → paid plan (~$7/mo), **or** use Supabase (free forever): supabase.com → New project → Connect → copy the **Session pooler URI** → paste into `DATABASE_URL`.
 3. Verify: Render → `spay-api` → Logs → `Database migrations applied`.
 
+**Supabase troubleshooting — tables not appearing automatically:**
+The API creates all tables itself at boot; if Supabase stays empty, the connection from Render is failing. Check Render → Logs right after a deploy:
+- `DATABASE_URL must be set` → the env var isn't saved on the service.
+- `Database migration failed …` → read the error beneath it; the three classic Supabase string mistakes are:
+  1. **`[YOUR-PASSWORD]` placeholder left in the URI** — replace it with the real DB password.
+  2. **Direct connection string used** (`db.<ref>.supabase.co:5432`) — that host is **IPv6-only** on Supabase and unreachable from Render. Use the **Session pooler** string instead: host `aws-0-<region>.pooler.supabase.com`, **port 5432**, username `postgres.<ref>` (Supabase → Connect → Session pooler).
+  3. **Transaction pooler used** (port **6543**) — connects but is unreliable for migrations; switch to port **5432** (session mode).
+- After fixing, **Save Changes** (Render redeploys automatically) and watch for `Database migrations applied`. The 6 tables + the `drizzle` journal schema appear in Supabase's Table Editor.
+- **Manual fallback (always safe):** every file in `lib/db/migrations/*.sql` is idempotent — you can paste them **in numeric order** into Supabase's SQL Editor and run them. The boot migrator will still reconcile harmlessly afterwards. Fix the connection anyway, or future schema changes won't auto-apply.
+
 ### B2. Privy — turns ON Celo wallets + USDC/USDT sends + exchange withdrawals
 1. [dashboard.privy.io](https://dashboard.privy.io) → create app → **App settings → API keys**.
 2. Render env: `PRIVY_APP_ID`, `PRIVY_APP_SECRET`.
