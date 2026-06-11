@@ -16,7 +16,7 @@ S-PAY was born in 2016 by a team of full-stack fintech and crypto engineers frus
 | **Virtual Bank Account** | Real US ACH routing number + European IBAN — get paid like a local business |
 | **Global Payouts** | Withdraw to M-Pesa, MTN MoMo, PIX, SEPA, bank transfers in 180+ countries |
 | **Remote Jobs Board** | 3,000–5,000 remote-only roles available daily, aggregated from 60+ sources, refreshed hourly, free for all users |
-| **Virtual Card** *(coming soon)* | Visa/Mastercard virtual card for online purchases |
+| **Virtual Card** | Complete and integration-ready: Stripe Issuing wired end-to-end (cardholder + virtual card creation, KYC-gated, DB-backed waitlist). An admin flips the **Card Program master switch** in `/admin/settings` to take it from waitlist → live — no deploy needed |
 | **KYC / Identity Verification** | Automated via Noah — no manual review, no waiting |
 
 > **The jobs board is free on purpose** — it's S-PAY's acquisition funnel. Job seekers discover S-PAY through listings, sign up to apply, and become wallet users. Every account records its `signupSource` (`jobs`, `jobs:<jobId>`, `landing`, `google`, `mobile`, `direct`), and the admin dashboard shows the **Signups by Source** breakdown so you always know which channel is converting.

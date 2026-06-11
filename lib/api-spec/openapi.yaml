@@ -452,6 +452,33 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
+  /card/issue:
+    post:
+      operationId: issueCard
+      tags: [card]
+      summary: Issue the user's virtual card (requires the card program to be enabled by an admin and KYC approval)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Card issued (or already issued)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardDetailsResponse"
+        "403":
+          description: Card program disabled or KYC not approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Stripe Issuing not configured yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /jobs:
     get:
       operationId: getJobs
@@ -616,6 +643,40 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
+
+  /admin/feature-flags:
+    get:
+      operationId: getFeatureFlags
+      summary: Read runtime feature flags (card program switch, readiness, waitlist demand)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current flags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureFlagsResponse"
+    put:
+      operationId: updateFeatureFlags
+      summary: Toggle runtime feature flags (e.g. switch the card program on)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeatureFlagsUpdateRequest"
+      responses:
+        "200":
+          description: Updated flags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureFlagsResponse"
 
 components:
   securitySchemes:
@@ -1093,7 +1154,12 @@ components:
           type: string
         cardStatus:
           type: string
-          enum: [active, locked, coming_soon]
+          # coming_soon = program switched off (waitlist) · not_issued = program live, user hasn't created a card yet
+          enum: [active, locked, coming_soon, not_issued]
+        cardholderName:
+          type: string
+        onWaitlist:
+          type: boolean
       required:
         - hasCard
         - isComingSoon
@@ -1282,6 +1348,31 @@ components:
       required:
         - jobs
         - total
+
+    FeatureFlagsResponse:
+      type: object
+      properties:
+        cardProgramEnabled:
+          type: boolean
+          description: Master switch for the virtual card program (admin-controlled)
+        stripeConfigured:
+          type: boolean
+          description: Whether STRIPE_SECRET_KEY is set — cards can only be issued when true
+        cardWaitlistCount:
+          type: integer
+          description: How many users are waiting for the card
+      required:
+        - cardProgramEnabled
+        - stripeConfigured
+        - cardWaitlistCount
+
+    FeatureFlagsUpdateRequest:
+      type: object
+      properties:
+        cardProgramEnabled:
+          type: boolean
+      required:
+        - cardProgramEnabled
 
     AdminStats:
       type: object

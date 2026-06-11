@@ -33,6 +33,8 @@ import type {
   DashboardSummary,
   ErrorResponse,
   ExchangeRateResponse,
+  FeatureFlagsResponse,
+  FeatureFlagsUpdateRequest,
   GetAdminSettings200,
   GetAdminTransactionsParams,
   GetAdminUsersParams,
@@ -1593,6 +1595,76 @@ export const useJoinCardWaitlist = <TError = ErrorType<unknown>,
       return useMutation(getJoinCardWaitlistMutationOptions(options));
     }
 
+export const getIssueCardUrl = () => {
+
+
+
+
+  return `/api/card/issue`
+}
+
+/**
+ * @summary Issue the user's virtual card (requires the card program to be enabled by an admin and KYC approval)
+ */
+export const issueCard = async ( options?: RequestInit): Promise<CardDetailsResponse> => {
+
+  return customFetch<CardDetailsResponse>(getIssueCardUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getIssueCardMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof issueCard>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof issueCard>>, TError,void, TContext> => {
+
+const mutationKey = ['issueCard'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof issueCard>>, void> = () => {
+
+
+          return  issueCard(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type IssueCardMutationResult = NonNullable<Awaited<ReturnType<typeof issueCard>>>
+
+    export type IssueCardMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Issue the user's virtual card (requires the card program to be enabled by an admin and KYC approval)
+ */
+export const useIssueCard = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof issueCard>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof issueCard>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getIssueCardMutationOptions(options));
+    }
+
 export const getGetJobsUrl = (params?: GetJobsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -2217,4 +2289,152 @@ export function useGetAdminSettings<TData = Awaited<ReturnType<typeof getAdminSe
 
 
 
+
+export const getGetFeatureFlagsUrl = () => {
+
+
+
+
+  return `/api/admin/feature-flags`
+}
+
+/**
+ * @summary Read runtime feature flags (card program switch, readiness, waitlist demand)
+ */
+export const getFeatureFlags = async ( options?: RequestInit): Promise<FeatureFlagsResponse> => {
+
+  return customFetch<FeatureFlagsResponse>(getGetFeatureFlagsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFeatureFlagsQueryKey = () => {
+    return [
+    `/api/admin/feature-flags`
+    ] as const;
+    }
+
+
+export const getGetFeatureFlagsQueryOptions = <TData = Awaited<ReturnType<typeof getFeatureFlags>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFeatureFlags>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFeatureFlagsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFeatureFlags>>> = ({ signal }) => getFeatureFlags({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFeatureFlags>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFeatureFlagsQueryResult = NonNullable<Awaited<ReturnType<typeof getFeatureFlags>>>
+export type GetFeatureFlagsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read runtime feature flags (card program switch, readiness, waitlist demand)
+ */
+
+export function useGetFeatureFlags<TData = Awaited<ReturnType<typeof getFeatureFlags>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFeatureFlags>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFeatureFlagsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateFeatureFlagsUrl = () => {
+
+
+
+
+  return `/api/admin/feature-flags`
+}
+
+/**
+ * @summary Toggle runtime feature flags (e.g. switch the card program on)
+ */
+export const updateFeatureFlags = async (featureFlagsUpdateRequest: FeatureFlagsUpdateRequest, options?: RequestInit): Promise<FeatureFlagsResponse> => {
+
+  return customFetch<FeatureFlagsResponse>(getUpdateFeatureFlagsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      featureFlagsUpdateRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateFeatureFlagsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFeatureFlags>>, TError,{data: BodyType<FeatureFlagsUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateFeatureFlags>>, TError,{data: BodyType<FeatureFlagsUpdateRequest>}, TContext> => {
+
+const mutationKey = ['updateFeatureFlags'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateFeatureFlags>>, {data: BodyType<FeatureFlagsUpdateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateFeatureFlags(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateFeatureFlagsMutationResult = NonNullable<Awaited<ReturnType<typeof updateFeatureFlags>>>
+    export type UpdateFeatureFlagsMutationBody = BodyType<FeatureFlagsUpdateRequest>
+    export type UpdateFeatureFlagsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Toggle runtime feature flags (e.g. switch the card program on)
+ */
+export const useUpdateFeatureFlags = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateFeatureFlags>>, TError,{data: BodyType<FeatureFlagsUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateFeatureFlags>>,
+        TError,
+        {data: BodyType<FeatureFlagsUpdateRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateFeatureFlagsMutationOptions(options));
+    }
 

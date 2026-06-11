@@ -1,6 +1,10 @@
 import { AdminLayout } from "./layout";
-import { useGetAdminSettings, getGetAdminSettingsQueryKey } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key } from "lucide-react";
+import {
+  useGetAdminSettings, getGetAdminSettingsQueryKey,
+  useGetFeatureFlags, getGetFeatureFlagsQueryKey, useUpdateFeatureFlags,
+} from "@workspace/api-client-react";
+import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 function StatusRow({ label, ok, note }: { label: string; ok: boolean; note?: string }) {
   return (
@@ -35,6 +39,28 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
 
 export default function AdminSettings() {
   const { data, isLoading } = useGetAdminSettings({ query: { queryKey: getGetAdminSettingsQueryKey() } });
+  const { data: flags, refetch: refetchFlags } = useGetFeatureFlags({ query: { queryKey: getGetFeatureFlagsQueryKey() } });
+  const updateFlags = useUpdateFeatureFlags();
+  const { toast } = useToast();
+
+  const toggleCardProgram = () => {
+    const next = !flags?.cardProgramEnabled;
+    updateFlags.mutate(
+      { data: { cardProgramEnabled: next } },
+      {
+        onSuccess: () => {
+          toast({
+            title: next ? "Card program switched ON" : "Card program switched OFF",
+            description: next
+              ? "Users now see “Create My Virtual Card” instead of the waitlist."
+              : "Users see the waitlist again.",
+          });
+          refetchFlags();
+        },
+        onError: () => toast({ title: "Could not update", description: "Please try again.", variant: "destructive" }),
+      },
+    );
+  };
 
   if (isLoading) {
     return (
@@ -67,11 +93,43 @@ export default function AdminSettings() {
           </div>
         </Section>
 
-        <Section icon={<CreditCard size={16} />} title="Virtual Card (Stripe)">
+        <Section icon={<CreditCard size={16} />} title="Virtual Card Program">
+          {/* The master switch — flips users between waitlist and live card creation */}
+          <div className="flex items-center justify-between py-3 border-b border-gray-50">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Card Program Master Switch</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {flags?.cardProgramEnabled
+                  ? "LIVE — users can create their virtual card"
+                  : "OFF — users see the waitlist (“coming soon”)"}
+              </p>
+            </div>
+            <button
+              onClick={toggleCardProgram}
+              disabled={updateFlags.isPending}
+              aria-label="Toggle card program"
+              className={`relative w-14 h-8 rounded-full transition-colors flex-shrink-0 disabled:opacity-60 ${
+                flags?.cardProgramEnabled ? "bg-green-500" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-all ${
+                  flags?.cardProgramEnabled ? "left-7" : "left-1"
+                }`}
+              />
+            </button>
+          </div>
+          <div className="flex items-center justify-between py-3 border-b border-gray-50">
+            <div className="flex items-center gap-2">
+              <Users size={14} className="text-[#4DC9EE]" />
+              <p className="text-sm font-medium text-gray-900">Card Waitlist</p>
+            </div>
+            <span className="text-sm font-bold text-gray-900">{(flags?.cardWaitlistCount ?? 0).toLocaleString()} waiting</span>
+          </div>
           <StatusRow label="Stripe API Key" ok={s?.stripe?.configured} note="STRIPE_SECRET_KEY — for virtual card issuance" />
           <StatusRow label="Stripe Webhook" ok={s?.stripe?.webhookConfigured} note="STRIPE_WEBHOOK_SECRET — for card authorization events" />
           <div className="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 leading-relaxed">
-            <strong>To enable Stripe:</strong> stripe.com → Developers → API keys → copy Secret key → set STRIPE_SECRET_KEY on Render. Enable Stripe Issuing in your dashboard for virtual cards. Add the webhook endpoint and set STRIPE_WEBHOOK_SECRET.
+            <strong>Launch checklist:</strong> ① stripe.com → Developers → API keys → set STRIPE_SECRET_KEY on Render (enable Stripe Issuing on the account). ② Add the webhook endpoint (<code className="bg-amber-100 px-1 rounded">/webhooks/stripe</code>) and set STRIPE_WEBHOOK_SECRET. ③ Flip the master switch above — the waitlist instantly becomes “Create My Virtual Card” for KYC-approved users.
           </div>
         </Section>
 

@@ -286,6 +286,7 @@ export const CardDetailsResponseCardStatus = {
   active: 'active',
   locked: 'locked',
   coming_soon: 'coming_soon',
+  not_issued: 'not_issued',
 } as const;
 
 export type VirtualCardNetwork = typeof VirtualCardNetwork[keyof typeof VirtualCardNetwork];
@@ -332,6 +333,8 @@ export interface CardDetailsResponse {
   totalBalance: number;
   currency: string;
   cardStatus: CardDetailsResponseCardStatus;
+  cardholderName?: string;
+  onWaitlist?: boolean;
 }
 
 export type CardTransactionStatus = typeof CardTransactionStatus[keyof typeof CardTransactionStatus];
@@ -475,6 +478,19 @@ export interface JobsResponse {
   jobs: Job[];
   total: number;
   remoteCom?: AffiliateCta;
+}
+
+export interface FeatureFlagsResponse {
+  /** Master switch for the virtual card program (admin-controlled) */
+  cardProgramEnabled: boolean;
+  /** Whether STRIPE_SECRET_KEY is set — cards can only be issued when true */
+  stripeConfigured: boolean;
+  /** How many users are waiting for the card */
+  cardWaitlistCount: number;
+}
+
+export interface FeatureFlagsUpdateRequest {
+  cardProgramEnabled: boolean;
 }
 
 /**

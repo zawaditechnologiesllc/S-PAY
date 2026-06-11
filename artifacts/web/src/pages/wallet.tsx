@@ -20,7 +20,7 @@ export default function Wallet() {
     : transactions.filter(t => t.type === filter);
 
   return (
-    <Layout title="Transaction History">
+    <Layout title="Wallet">
       <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white mt-4">
         <div className="p-4 border-b flex justify-between items-center bg-gray-50">
           <div className="flex items-center gap-2 text-sm font-medium text-gray-700">

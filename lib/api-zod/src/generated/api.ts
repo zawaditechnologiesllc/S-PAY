@@ -357,7 +357,9 @@ export const GetCardDetailsResponse = zod.object({
 })),
   "totalBalance": zod.number(),
   "currency": zod.string(),
-  "cardStatus": zod.enum(['active', 'locked', 'coming_soon'])
+  "cardStatus": zod.enum(['active', 'locked', 'coming_soon', 'not_issued']),
+  "cardholderName": zod.string().optional(),
+  "onWaitlist": zod.boolean().optional()
 })
 
 
@@ -411,6 +413,31 @@ export const GetSpendingSummaryResponse = zod.object({
  */
 export const JoinCardWaitlistResponse = zod.object({
   "message": zod.string()
+})
+
+
+/**
+ * @summary Issue the user's virtual card (requires the card program to be enabled by an admin and KYC approval)
+ */
+export const IssueCardResponse = zod.object({
+  "hasCard": zod.boolean(),
+  "isComingSoon": zod.boolean(),
+  "cards": zod.array(zod.object({
+  "id": zod.string(),
+  "last4": zod.string(),
+  "network": zod.enum(['visa', 'mastercard']),
+  "expiryMonth": zod.number(),
+  "expiryYear": zod.number(),
+  "isPrimary": zod.boolean(),
+  "status": zod.enum(['active', 'locked', 'cancelled']),
+  "cardType": zod.enum(['virtual', 'physical']),
+  "label": zod.string().optional()
+})),
+  "totalBalance": zod.number(),
+  "currency": zod.string(),
+  "cardStatus": zod.enum(['active', 'locked', 'coming_soon', 'not_issued']),
+  "cardholderName": zod.string().optional(),
+  "onWaitlist": zod.boolean().optional()
 })
 
 
@@ -571,3 +598,27 @@ export const GetAdminTransactionsResponse = zod.object({
  * @summary System configuration status
  */
 export const GetAdminSettingsResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Read runtime feature flags (card program switch, readiness, waitlist demand)
+ */
+export const GetFeatureFlagsResponse = zod.object({
+  "cardProgramEnabled": zod.boolean().describe('Master switch for the virtual card program (admin-controlled)'),
+  "stripeConfigured": zod.boolean().describe('Whether STRIPE_SECRET_KEY is set — cards can only be issued when true'),
+  "cardWaitlistCount": zod.number().describe('How many users are waiting for the card')
+})
+
+
+/**
+ * @summary Toggle runtime feature flags (e.g. switch the card program on)
+ */
+export const UpdateFeatureFlagsBody = zod.object({
+  "cardProgramEnabled": zod.boolean()
+})
+
+export const UpdateFeatureFlagsResponse = zod.object({
+  "cardProgramEnabled": zod.boolean().describe('Master switch for the virtual card program (admin-controlled)'),
+  "stripeConfigured": zod.boolean().describe('Whether STRIPE_SECRET_KEY is set — cards can only be issued when true'),
+  "cardWaitlistCount": zod.number().describe('How many users are waiting for the card')
+})

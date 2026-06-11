@@ -320,7 +320,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── WALLET SHOWCASE (id="wallet") ───────────────────────────────── */}
+      {/* ─── WALLET SHOWCASE (id="wallet"; "features" anchors the nav link) ── */}
+      <section id="features" className="scroll-mt-16" />
       <section id="wallet" className="py-16 md:py-24 px-5 md:px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">

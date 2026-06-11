@@ -9,7 +9,7 @@ export default function Dashboard() {
   const { data: summary, isLoading } = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey() } });
 
   return (
-    <Layout title="Wallet">
+    <Layout title="Dashboard">
       {/* Balance Card */}
       <Card className="bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
         <CardContent className="p-6">

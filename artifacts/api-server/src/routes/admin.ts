@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
-import { db, usersTable, transactionsTable } from "@workspace/db";
+import { isCardProgramEnabled, setCardProgramEnabled } from "../lib/settings";
+import { isStripeConfigured } from "../lib/stripe-issuing";
+import { db, usersTable, transactionsTable, cardWaitlistTable } from "@workspace/db";
 import { eq, count, desc, sql } from "drizzle-orm";
 
 const router = Router();
@@ -127,6 +129,41 @@ router.get("/admin/transactions", requireAuth, requireAdmin, async (req, res) =>
   } catch (err) {
     req.log.error({ err }, "Admin transactions error");
     res.status(500).json({ error: "internal_error", message: "Failed to fetch transactions" });
+  }
+});
+
+// ─── Feature flags: the admin master switches ─────────────────────────────────
+
+async function featureFlagsPayload() {
+  const [cardProgramEnabled, [{ total: cardWaitlistCount }]] = await Promise.all([
+    isCardProgramEnabled(),
+    db.select({ total: count() }).from(cardWaitlistTable),
+  ]);
+  return { cardProgramEnabled, stripeConfigured: isStripeConfigured(), cardWaitlistCount };
+}
+
+router.get("/admin/feature-flags", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    res.json(await featureFlagsPayload());
+  } catch (err) {
+    req.log.error({ err }, "Feature flags read error");
+    res.status(500).json({ error: "internal_error", message: "Failed to read feature flags" });
+  }
+});
+
+router.put("/admin/feature-flags", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { cardProgramEnabled } = req.body as { cardProgramEnabled?: unknown };
+    if (typeof cardProgramEnabled !== "boolean") {
+      res.status(400).json({ error: "validation_error", message: "cardProgramEnabled must be a boolean" });
+      return;
+    }
+    await setCardProgramEnabled(cardProgramEnabled);
+    req.log.info({ cardProgramEnabled, admin: req.user!.email }, "Card program switch changed");
+    res.json(await featureFlagsPayload());
+  } catch (err) {
+    req.log.error({ err }, "Feature flags update error");
+    res.status(500).json({ error: "internal_error", message: "Failed to update feature flags" });
   }
 });
 

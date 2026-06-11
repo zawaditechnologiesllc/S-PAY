@@ -11,7 +11,7 @@ import {
   useGetCardDetails, getGetCardDetailsQueryKey,
   useGetCardTransactions, getGetCardTransactionsQueryKey,
   useGetSpendingSummary, getGetSpendingSummaryQueryKey,
-  useJoinCardWaitlist,
+  useJoinCardWaitlist, useIssueCard, useGetMe, getGetMeQueryKey,
 } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -22,7 +22,7 @@ export default function CardScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const { data: cardData, isLoading: loadingCard } = useGetCardDetails({
+  const { data: cardData, isLoading: loadingCard, refetch: refetchCard } = useGetCardDetails({
     query: { queryKey: getGetCardDetailsQueryKey() },
   });
   const { data: transactions, isLoading: loadingTxns } = useGetCardTransactions(
@@ -33,18 +33,35 @@ export default function CardScreen() {
     undefined,
     { query: { queryKey: getGetSpendingSummaryQueryKey() } },
   );
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
   const joinWaitlist = useJoinCardWaitlist();
+  const issueCard = useIssueCard();
 
   const handleJoinWaitlist = () => {
     joinWaitlist.mutate(undefined, {
       onSuccess: (data: any) => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert("You're on the list!", data?.message ?? "We'll notify you when S-PAY Card launches.");
+        refetchCard();
       },
     });
   };
 
-  const networkColor = (n: string) => n === "visa" ? "#1A2B4A" : "#EB001B";
+  const handleCreateCard = () => {
+    issueCard.mutate(undefined as never, {
+      onSuccess: () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert("Card created 🎉", "Your S-PAY virtual card is ready to use.");
+        refetchCard();
+      },
+      onError: (e: any) => {
+        Alert.alert("Card not created", e?.response?.data?.message ?? "Please try again.");
+      },
+    });
+  };
+
+  const isNotIssued = cardData?.cardStatus === "not_issued";
+  const kycApproved = me?.kycStatus === "approved";
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -105,24 +122,67 @@ export default function CardScreen() {
           </>
         ) : null}
 
-        {/* Waitlist CTA */}
+        {/* Waitlist CTA (program off) */}
         {cardData?.isComingSoon && (
           <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
-            <TouchableOpacity
-              style={[styles.waitlistBtn, { backgroundColor: colors.primary }]}
-              onPress={handleJoinWaitlist}
-              disabled={joinWaitlist.isPending}
-              testID="button-join-waitlist"
-            >
-              {joinWaitlist.isPending ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Feather name="bell" size={18} color="#fff" />
-                  <Text style={styles.waitlistBtnText}>Get Early Access</Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {cardData?.onWaitlist ? (
+              <View style={[styles.waitlistBtn, { backgroundColor: colors.muted }]}>
+                <Feather name="check-circle" size={18} color="#22C55E" />
+                <Text style={[styles.waitlistBtnText, { color: colors.foreground }]}>You're on the waitlist</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.waitlistBtn, { backgroundColor: colors.primary }]}
+                onPress={handleJoinWaitlist}
+                disabled={joinWaitlist.isPending}
+                testID="button-join-waitlist"
+              >
+                {joinWaitlist.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Feather name="bell" size={18} color="#fff" />
+                    <Text style={styles.waitlistBtnText}>Get Early Access</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Create card CTA (program live, no card yet) */}
+        {!loadingCard && isNotIssued && (
+          <View style={{ paddingHorizontal: 16, marginTop: 16, gap: 10 }}>
+            <View style={[styles.comingSoonBanner, { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0", marginHorizontal: 0, marginTop: 0 }]}>
+              <Feather name="zap" size={18} color="#22C55E" />
+              <Text style={[styles.comingSoonText, { color: "#166534" }]}>
+                The S-PAY card program is live! Create your virtual Visa and spend your balance worldwide.
+              </Text>
+            </View>
+            {kycApproved ? (
+              <TouchableOpacity
+                style={[styles.waitlistBtn, { backgroundColor: colors.primary }]}
+                onPress={handleCreateCard}
+                disabled={issueCard.isPending}
+                testID="button-create-card"
+              >
+                {issueCard.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Feather name="credit-card" size={18} color="#fff" />
+                    <Text style={styles.waitlistBtnText}>Create My Virtual Card</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.comingSoonBanner, { backgroundColor: "#FFF7ED", borderColor: "#FED7AA", marginHorizontal: 0, marginTop: 0 }]}>
+                <Feather name="shield" size={18} color="#F59E0B" />
+                <Text style={[styles.comingSoonText, { color: "#92400E" }]}>
+                  Complete identity verification (KYC) in your profile to unlock your card.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
