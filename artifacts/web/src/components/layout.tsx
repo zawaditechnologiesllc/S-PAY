@@ -1,7 +1,7 @@
 import { Link, useRoute, useLocation } from "wouter";
 import {
   Wallet, Landmark, CreditCard, Briefcase,
-  CircleUser, Bell, HelpCircle, LogOut, Settings, LayoutDashboard,
+  CircleUser, Bell, HelpCircle, LogOut, LayoutDashboard,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
@@ -42,8 +42,7 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
           <NavLink href="/jobs" icon={<Briefcase size={18} />} label="Remote Jobs" />
 
           <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-3 pb-2 pt-5">Account</p>
-          <NavLink href="/profile" icon={<CircleUser size={18} />} label="Profile" />
-          <NavLink href="/profile" icon={<Settings size={18} />} label="Settings" />
+          <NavLink href="/profile" icon={<CircleUser size={18} />} label="Profile & Settings" />
         </nav>
 
         {/* Bottom actions */}
@@ -90,13 +89,13 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
         </div>
       </main>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav — mirrors the native app tabs (profile lives in the header avatar) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center px-1 h-16 z-50 safe-area-pb">
         <MobileNavLink href="/dashboard" icon={<LayoutDashboard size={22} />} label="Home" />
         <MobileNavLink href="/wallet" icon={<Wallet size={22} />} label="Wallet" />
         <MobileNavLink href="/banking" icon={<Landmark size={22} />} label="Banking" />
+        <MobileNavLink href="/card" icon={<CreditCard size={22} />} label="Card" />
         <MobileNavLink href="/jobs" icon={<Briefcase size={22} />} label="Jobs" />
-        <MobileNavLink href="/profile" icon={<CircleUser size={22} />} label="Profile" />
       </nav>
     </div>
   );
