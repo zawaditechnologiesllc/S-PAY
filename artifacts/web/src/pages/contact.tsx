@@ -1,6 +1,11 @@
 import { Mail, Clock, Briefcase, Scale, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { PublicLayout } from "@/components/public-layout";
+import { useCreateEnquiry } from "@workspace/api-client-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { CheckCircle2 } from "lucide-react";
 
 const FAQ = [
   {
@@ -146,6 +151,60 @@ export default function Contact() {
         </div>
       </section>
 
+
+        {/* One funnel for every enquiry — lands in Admin → Enquiries */}
+        <EnquiryForm />
     </PublicLayout>
+  );
+}
+
+function EnquiryForm() {
+  const enquiry = useCreateEnquiry();
+  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!/.+@.+\..+/.test(form.email) || !form.message.trim()) {
+      setError("Please add a valid email and a message.");
+      return;
+    }
+    enquiry.mutate(
+      { data: { ...form, source: "contact" } },
+      {
+        onSuccess: () => setDone(true),
+        onError: () => setError("Could not send right now — please try again in a minute."),
+      },
+    );
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 pb-16">
+      <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
+        {done ? (
+          <div className="text-center py-6 space-y-3">
+            <CheckCircle2 size={48} className="text-green-500 mx-auto" />
+            <h3 className="text-xl font-black text-[#1A2B4A]">Message received</h3>
+            <p className="text-sm text-gray-500">Our team will reply to {form.email} — usually within one business day.</p>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="space-y-4">
+            <h3 className="text-xl font-black text-[#1A2B4A]">Send us a message</h3>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Input placeholder="Your name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <Input type="email" placeholder="Email address *" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </div>
+            <Input placeholder="Subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
+            <Textarea rows={5} placeholder="How can we help? *" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+            {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+            <Button type="submit" disabled={enquiry.isPending} className="bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold px-8">
+              {enquiry.isPending ? "Sending…" : "Send message"}
+            </Button>
+          </form>
+        )}
+      </div>
+    </div>
   );
 }

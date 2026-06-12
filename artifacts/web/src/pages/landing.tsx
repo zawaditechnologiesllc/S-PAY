@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useGetSiteContent, getGetSiteContentQueryKey } from "@workspace/api-client-react";
 import {
   Wallet, Landmark, CreditCard, Briefcase, ArrowRight,
   Globe, Shield, Zap, CheckCircle,
@@ -162,6 +163,7 @@ const TRUST_BADGES = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function Landing() {
+  const { data: site } = useGetSiteContent({ query: { queryKey: getGetSiteContentQueryKey(), staleTime: 60_000 } });
   return (
     <PublicLayout>
 
@@ -186,16 +188,15 @@ export default function Landing() {
                 </div>
               </div>
               <h1 className="text-[2.1rem] sm:text-4xl md:text-5xl lg:text-[3.4rem] font-black text-white leading-[1.08] mb-5">
-                The money app that works{" "}
-                <span className="text-[#4DC9EE]">where you work.</span>
+                {site?.heroTitle ?? <>The money app that works <span className="text-[#4DC9EE]">where you work.</span></>}
               </h1>
               <p className="text-base md:text-xl text-blue-200 mb-8 leading-relaxed max-w-lg">
-                Virtual USD &amp; EUR bank accounts, a digital wallet, and instant local cash-outs — one app for remote workers in 180+ countries.
+                {site?.heroSubtitle ?? "Virtual USD & EUR bank accounts, a digital wallet, and instant local cash-outs — one app for remote workers in 180+ countries."}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mb-10">
                 <Link href="/register">
-                  <button className="flex items-center justify-center gap-2 bg-[#4DC9EE] text-white font-bold px-7 py-3.5 rounded-2xl hover:bg-[#2E8FD6] transition-all text-sm md:text-base shadow-lg shadow-[#4DC9EE]/30 w-full sm:w-auto">
-                    Open Free Account <ArrowRight size={16} />
+                  <button style={site?.primaryColor ? { backgroundColor: site.primaryColor } : undefined} className="flex items-center justify-center gap-2 bg-[#4DC9EE] text-white font-bold px-7 py-3.5 rounded-2xl hover:opacity-90 transition-all text-sm md:text-base shadow-lg shadow-[#4DC9EE]/30 w-full sm:w-auto">
+                    {site?.heroCta ?? "Open Free Account"} <ArrowRight size={16} />
                   </button>
                 </Link>
                 <a href="#how">

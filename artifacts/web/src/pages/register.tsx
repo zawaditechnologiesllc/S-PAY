@@ -109,7 +109,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-800/60">
 
       {/* ─── LEFT BRAND PANEL (desktop only) ─── */}
       <div className="hidden lg:flex lg:w-[45%] xl:w-[42%] flex-col justify-between p-12 bg-gradient-to-br from-[#1A2B4A] via-[#1e3560] to-[#0d1f38] rounded-none relative overflow-hidden flex-shrink-0">
@@ -174,16 +174,16 @@ export default function Register() {
           </div>
 
           {/* Form card */}
-          <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
             <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-2">
               <h1 className="text-2xl font-black text-[#1A2B4A] mb-1">Create your account</h1>
-              <p className="text-sm text-gray-500 mb-7">Free forever · No credit card needed</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-7">Free forever · No credit card needed</p>
 
               {/* Google button */}
               <button
                 type="button"
                 onClick={() => { window.location.href = `${import.meta.env.VITE_API_URL ?? ""}/api/auth/google?source=${encodeURIComponent(signupSource)}`; }}
-                className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-center gap-3 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -197,10 +197,10 @@ export default function Register() {
               {/* Divider */}
               <div className="relative my-5">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-100" />
+                  <div className="w-full border-t border-gray-100 dark:border-gray-800" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-white px-4 text-xs text-gray-400 font-medium">or</span>
+                  <span className="bg-white dark:bg-gray-900 px-4 text-xs text-gray-400 font-medium">or</span>
                 </div>
               </div>
 
@@ -208,7 +208,7 @@ export default function Register() {
               <form onSubmit={handleSubmit} className="space-y-4 pb-6">
                 {/* Account type: Personal (Noah KYC) or Business (Noah KYB) */}
                 <div className="space-y-1.5">
-                  <Label className="text-sm font-medium text-gray-700">Account Type</Label>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Account Type</Label>
                   <div className="grid grid-cols-2 gap-2">
                     {([
                       { value: "personal" as const, icon: <User size={16} />, title: "Personal", desc: "For remote workers & freelancers" },
@@ -221,11 +221,11 @@ export default function Register() {
                         className={`text-left rounded-xl border p-3 transition-all ${
                           accountType === opt.value
                             ? "border-[#4DC9EE] bg-[#4DC9EE]/5 ring-2 ring-[#4DC9EE]/20"
-                            : "border-gray-200 hover:border-gray-300"
+                            : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
                         }`}
                       >
                         <div className={`flex items-center gap-1.5 text-sm font-semibold mb-0.5 ${
-                          accountType === opt.value ? "text-[#1A2B4A]" : "text-gray-700"
+                          accountType === opt.value ? "text-[#1A2B4A]" : "text-gray-700 dark:text-gray-300"
                         }`}>
                           <span className={accountType === opt.value ? "text-[#4DC9EE]" : "text-gray-400"}>{opt.icon}</span>
                           {opt.title}
@@ -239,14 +239,14 @@ export default function Register() {
                 {/* Business Name (business accounts only) */}
                 {accountType === "business" && (
                   <div className="space-y-1.5">
-                    <Label htmlFor="businessName" className="text-sm font-medium text-gray-700">Registered Business Name</Label>
+                    <Label htmlFor="businessName" className="text-sm font-medium text-gray-700 dark:text-gray-300">Registered Business Name</Label>
                     <Input
                       id="businessName"
                       placeholder="Acme Ltd"
                       required
                       value={businessName}
                       onChange={(e) => setBusinessName(e.target.value)}
-                      className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
+                      className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
                     />
                     <p className="text-[11px] text-gray-400">
                       You'll verify the business and its representative (KYB) after sign-up. Your virtual US account &amp; EU IBAN are issued in the business name — USDC &amp; USDT supported.
@@ -256,7 +256,7 @@ export default function Register() {
 
                 {/* Full Name */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="fullName" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {accountType === "business" ? "Representative Full Name" : "Full Name"}
                   </Label>
                   <Input
@@ -265,13 +265,13 @@ export default function Register() {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
+                    className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
                   />
                 </div>
 
                 {/* Email */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -279,13 +279,13 @@ export default function Register() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
+                    className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
                   />
                 </div>
 
                 {/* Phone Number */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Phone Number{" "}
                     <span className="text-gray-400 font-normal">(optional)</span>
                   </Label>
@@ -295,20 +295,20 @@ export default function Register() {
                     placeholder="+254 7XX XXX XXX"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
+                    className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
                   />
                   <p className="text-[11px] text-gray-400">Used for M-Pesa / Mobile Money cash-outs and receiving money from friends.</p>
                 </div>
 
                 {/* Country */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="country" className="text-sm font-medium text-gray-700">Country</Label>
+                  <Label htmlFor="country" className="text-sm font-medium text-gray-700 dark:text-gray-300">Country</Label>
                   <select
                     id="country"
                     required
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
-                    className="w-full h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20 transition-colors"
+                    className="w-full h-11 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20 transition-colors"
                   >
                     <option value="">Select your country</option>
                     <optgroup label="Popular">
@@ -327,7 +327,7 @@ export default function Register() {
 
                 {/* Password */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
+                  <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">Password</Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -337,7 +337,7 @@ export default function Register() {
                       placeholder="Min. 8 characters"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11 pr-11"
+                      className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11 pr-11"
                     />
                     <button
                       type="button"
@@ -352,7 +352,7 @@ export default function Register() {
 
                 {/* Confirm Password */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 dark:text-gray-300">Confirm Password</Label>
                   <div className="relative">
                     <Input
                       id="confirmPassword"
@@ -365,7 +365,7 @@ export default function Register() {
                       className={`rounded-xl h-11 pr-11 focus:ring-[#4DC9EE]/20 ${
                         confirmPassword && !passwordsMatch
                           ? "border-red-300 focus:border-red-400"
-                          : "border-gray-200 focus:border-[#4DC9EE]"
+                          : "border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE]"
                       }`}
                     />
                     <button
@@ -394,7 +394,7 @@ export default function Register() {
                     onChange={(e) => setAgreedToTerms(e.target.checked)}
                     className="mt-0.5 w-4 h-4 rounded border-gray-300 accent-[#4DC9EE] flex-shrink-0"
                   />
-                  <span className="text-xs text-gray-500 leading-relaxed">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                     By creating an account, you agree to our{" "}
                     <Link href="/terms" className="text-[#4DC9EE] hover:underline font-medium">
                       Terms of Service
@@ -418,8 +418,8 @@ export default function Register() {
             </div>
 
             {/* Card footer */}
-            <div className="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
-              <p className="text-sm text-gray-500">
+            <div className="bg-gray-50 dark:bg-gray-800/60 px-8 py-4 border-t border-gray-100 dark:border-gray-800 text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 Already have an account?{" "}
                 <Link href="/login" className="text-[#4DC9EE] hover:underline font-semibold">
                   Sign in

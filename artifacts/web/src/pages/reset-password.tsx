@@ -37,7 +37,7 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-[#4DC9EE]/10 to-[#1A2B4A]/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8">
+      <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8">
         <div className="flex items-center gap-3 mb-6">
           <img src={spayLogo} alt="S-PAY" className="w-10 h-10 rounded-[22%]" />
           <div>
@@ -49,19 +49,19 @@ export default function ResetPassword() {
         {done ? (
           <div className="flex flex-col items-center text-center gap-3 py-6">
             <CheckCircle2 size={56} className="text-green-500" />
-            <h1 className="text-xl font-bold text-gray-900">Password updated 🎉</h1>
-            <p className="text-sm text-gray-500">Taking you to sign in…</p>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Password updated 🎉</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Taking you to sign in…</p>
             <Link href="/login" className="text-sm font-semibold text-[#2E8FD6] hover:underline">Sign in now</Link>
           </div>
         ) : !token ? (
           <div className="text-center py-6 space-y-3">
             <KeyRound size={40} className="text-gray-300 mx-auto" />
-            <p className="text-sm text-gray-600">This reset link is incomplete. Open the link from your email, or request a new one.</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">This reset link is incomplete. Open the link from your email, or request a new one.</p>
             <Link href="/forgot-password" className="text-sm font-semibold text-[#2E8FD6] hover:underline">Request a new link</Link>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
-            <h1 className="text-xl font-bold text-gray-900">Choose a new password</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Choose a new password</h1>
             <div className="space-y-1.5">
               <Label htmlFor="rp-pass">New password</Label>
               <div className="relative">
@@ -79,7 +79,7 @@ export default function ResetPassword() {
             <Button type="submit" disabled={reset.isPending} className="w-full bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold">
               {reset.isPending ? "Updating…" : "Update password"}
             </Button>
-            <p className="text-center"><Link href="/login" className="text-sm text-gray-500 hover:underline">Back to sign in</Link></p>
+            <p className="text-center"><Link href="/login" className="text-sm text-gray-500 dark:text-gray-400 hover:underline">Back to sign in</Link></p>
           </form>
         )}
       </div>

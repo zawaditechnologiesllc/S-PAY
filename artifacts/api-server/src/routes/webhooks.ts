@@ -1,6 +1,7 @@
 import { Router } from "express";
 import crypto from "crypto";
 import { logger } from "../lib/logger";
+import { notifyUser } from "../lib/notify";
 import { db, usersTable, transactionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -51,6 +52,9 @@ router.post("/webhooks/noah", async (req, res) => {
           await db.update(usersTable)
             .set({ kycStatus: "approved", updatedAt: new Date() })
             .where(eq(usersTable.noahCustomerId, event.customer_id));
+          const [approved] = await db.select({ id: usersTable.id }).from(usersTable)
+            .where(eq(usersTable.noahCustomerId, event.customer_id)).limit(1);
+          if (approved) notifyUser(approved.id, "Identity verified ✅", "Your account is fully unlocked: bank details, cash-outs, and higher limits are now available.", "account");
           logger.info({ customerId: event.customer_id, event: event.event }, "Verification approved — account unlocked");
         }
         break;
@@ -86,6 +90,7 @@ router.post("/webhooks/noah", async (req, res) => {
               counterparty: "Virtual account deposit",
               status: "completed",
             });
+            notifyUser(user.id, "Deposit received 🏦", `A bank deposit of ${event.amount} arrived and was credited to your balance as ${token}.`);
             logger.info({ customerId: event.customer_id, amount: event.amount, token }, "Fiat deposit converted to stablecoin and credited");
           }
         }

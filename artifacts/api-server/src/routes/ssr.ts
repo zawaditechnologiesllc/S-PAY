@@ -180,7 +180,13 @@ router.get("/jobs/:jobId", async (req, res) => {
         <h2>About this role</h2>
         <div class="desc">${descriptionHtml}</div>
         <a class="cta" href="${SITE()}/register?from=jobs&jobId=${encodeURIComponent(job.id)}">Sign up free to apply</a>
-        <p class="meta">S-PAY members apply directly and get paid globally — virtual USD/EUR accounts, USDC/USDT wallet on Celo, instant cash-out to M-Pesa, MoMo, PIX and 50+ methods.</p>`,
+        <h2>Get hired — and get paid — with S-PAY</h2>
+        <ul>
+          <li><strong>Apply free:</strong> the S-PAY jobs board lists thousands of remote ${esc(job.category.toLowerCase())} roles, refreshed hourly.</li>
+          <li><strong>Get paid like a local:</strong> verified members receive a US bank account and EU IBAN to share with employers worldwide.</li>
+          <li><strong>Cash out where you live:</strong> M-Pesa, MTN Mobile Money, GCash, PIX, SEPA and 50+ methods, usually within minutes.</li>
+        </ul>
+        <p class="meta"><a href="${SITE()}/how-it-works">How S-PAY works</a> · <a href="${SITE()}/jobs?category=${encodeURIComponent(job.category)}">More remote ${esc(job.category.toLowerCase())} jobs</a> · <a href="${SITE()}/jobs">All remote jobs</a></p>`,
     }));
   } catch (err) {
     req.log.error({ err }, "SSR job detail error");

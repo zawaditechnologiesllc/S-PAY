@@ -30,10 +30,12 @@ import type {
   BankingAccountsResponse,
   CardDetailsResponse,
   CardTransactionListResponse,
+  CreateEnquiryBody,
   CustomJob,
   CustomJobCreateRequest,
   CustomJobsResponse,
   DashboardSummary,
+  EnquiriesResponse,
   ErrorResponse,
   ExchangeRateResponse,
   FeatureFlagsResponse,
@@ -52,20 +54,27 @@ import type {
   GoogleTokenRequest,
   HealthStatus,
   IncomingPaymentsResponse,
+  InitiateDeposit200,
+  InitiateDepositBody,
   Job,
   JobsResponse,
   LoginRequest,
   MessageResponse,
   NoahWebhookBody,
+  NotificationsResponse,
   PlatformStatus,
   RegisterRequest,
   ResetPasswordBody,
+  SendAdminNotificationBody,
   SendMoneyRequest,
+  SiteContent,
+  SiteContentUpdateRequest,
   SpendingSummaryResponse,
   StartKyc200,
   StripeWebhookBody,
   Transaction,
   TransactionListResponse,
+  UpdateEnquiryBody,
   User,
   WalletBalance,
   WalletProvidersResponse,
@@ -3023,6 +3032,740 @@ export const useDeleteCustomJob = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteCustomJobMutationOptions(options));
+    }
+
+export const getGetSiteContentUrl = () => {
+
+
+
+
+  return `/api/site-content`
+}
+
+/**
+ * @summary Public marketing content (hero, footer, colours) — editable in the admin panel
+ */
+export const getSiteContent = async ( options?: RequestInit): Promise<SiteContent> => {
+
+  return customFetch<SiteContent>(getGetSiteContentUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSiteContentQueryKey = () => {
+    return [
+    `/api/site-content`
+    ] as const;
+    }
+
+
+export const getGetSiteContentQueryOptions = <TData = Awaited<ReturnType<typeof getSiteContent>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSiteContent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSiteContentQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSiteContent>>> = ({ signal }) => getSiteContent({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSiteContent>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSiteContentQueryResult = NonNullable<Awaited<ReturnType<typeof getSiteContent>>>
+export type GetSiteContentQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public marketing content (hero, footer, colours) — editable in the admin panel
+ */
+
+export function useGetSiteContent<TData = Awaited<ReturnType<typeof getSiteContent>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSiteContent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSiteContentQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetNotificationsUrl = () => {
+
+
+
+
+  return `/api/notifications`
+}
+
+/**
+ * @summary The signed-in user's notifications (personal + broadcasts) with unread count
+ */
+export const getNotifications = async ( options?: RequestInit): Promise<NotificationsResponse> => {
+
+  return customFetch<NotificationsResponse>(getGetNotificationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNotificationsQueryKey = () => {
+    return [
+    `/api/notifications`
+    ] as const;
+    }
+
+
+export const getGetNotificationsQueryOptions = <TData = Awaited<ReturnType<typeof getNotifications>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNotificationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotifications>>> = ({ signal }) => getNotifications({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNotificationsQueryResult = NonNullable<Awaited<ReturnType<typeof getNotifications>>>
+export type GetNotificationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The signed-in user's notifications (personal + broadcasts) with unread count
+ */
+
+export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotifications>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetNotificationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getMarkNotificationsReadUrl = () => {
+
+
+
+
+  return `/api/notifications/mark-read`
+}
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const markNotificationsRead = async ( options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getMarkNotificationsReadUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getMarkNotificationsReadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markNotificationsRead>>, TError,void, TContext> => {
+
+const mutationKey = ['markNotificationsRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markNotificationsRead>>, void> = () => {
+
+
+          return  markNotificationsRead(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkNotificationsReadMutationResult = NonNullable<Awaited<ReturnType<typeof markNotificationsRead>>>
+
+    export type MarkNotificationsReadMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Mark all notifications as read
+ */
+export const useMarkNotificationsRead = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markNotificationsRead>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getMarkNotificationsReadMutationOptions(options));
+    }
+
+export const getCreateEnquiryUrl = () => {
+
+
+
+
+  return `/api/enquiries`
+}
+
+/**
+ * @summary Submit an enquiry (landing page, contact page, or in-app — one funnel)
+ */
+export const createEnquiry = async (createEnquiryBody: CreateEnquiryBody, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getCreateEnquiryUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createEnquiryBody,)
+  }
+);}
+
+
+
+
+export const getCreateEnquiryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEnquiry>>, TError,{data: BodyType<CreateEnquiryBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEnquiry>>, TError,{data: BodyType<CreateEnquiryBody>}, TContext> => {
+
+const mutationKey = ['createEnquiry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEnquiry>>, {data: BodyType<CreateEnquiryBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createEnquiry(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEnquiryMutationResult = NonNullable<Awaited<ReturnType<typeof createEnquiry>>>
+    export type CreateEnquiryMutationBody = BodyType<CreateEnquiryBody>
+    export type CreateEnquiryMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit an enquiry (landing page, contact page, or in-app — one funnel)
+ */
+export const useCreateEnquiry = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEnquiry>>, TError,{data: BodyType<CreateEnquiryBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEnquiry>>,
+        TError,
+        {data: BodyType<CreateEnquiryBody>},
+        TContext
+      > => {
+      return useMutation(getCreateEnquiryMutationOptions(options));
+    }
+
+export const getInitiateDepositUrl = () => {
+
+
+
+
+  return `/api/banking/deposit`
+}
+
+/**
+ * @summary Start a mobile-money top-up (executes via the payments partner)
+ */
+export const initiateDeposit = async (initiateDepositBody: InitiateDepositBody, options?: RequestInit): Promise<InitiateDeposit200> => {
+
+  return customFetch<InitiateDeposit200>(getInitiateDepositUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      initiateDepositBody,)
+  }
+);}
+
+
+
+
+export const getInitiateDepositMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initiateDeposit>>, TError,{data: BodyType<InitiateDepositBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof initiateDeposit>>, TError,{data: BodyType<InitiateDepositBody>}, TContext> => {
+
+const mutationKey = ['initiateDeposit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof initiateDeposit>>, {data: BodyType<InitiateDepositBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  initiateDeposit(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InitiateDepositMutationResult = NonNullable<Awaited<ReturnType<typeof initiateDeposit>>>
+    export type InitiateDepositMutationBody = BodyType<InitiateDepositBody>
+    export type InitiateDepositMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Start a mobile-money top-up (executes via the payments partner)
+ */
+export const useInitiateDeposit = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initiateDeposit>>, TError,{data: BodyType<InitiateDepositBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof initiateDeposit>>,
+        TError,
+        {data: BodyType<InitiateDepositBody>},
+        TContext
+      > => {
+      return useMutation(getInitiateDepositMutationOptions(options));
+    }
+
+export const getSendAdminNotificationUrl = () => {
+
+
+
+
+  return `/api/admin/notifications`
+}
+
+/**
+ * @summary Send a manual notification — to every user, or one user by email
+ */
+export const sendAdminNotification = async (sendAdminNotificationBody: SendAdminNotificationBody, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getSendAdminNotificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      sendAdminNotificationBody,)
+  }
+);}
+
+
+
+
+export const getSendAdminNotificationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAdminNotification>>, TError,{data: BodyType<SendAdminNotificationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendAdminNotification>>, TError,{data: BodyType<SendAdminNotificationBody>}, TContext> => {
+
+const mutationKey = ['sendAdminNotification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendAdminNotification>>, {data: BodyType<SendAdminNotificationBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendAdminNotification(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendAdminNotificationMutationResult = NonNullable<Awaited<ReturnType<typeof sendAdminNotification>>>
+    export type SendAdminNotificationMutationBody = BodyType<SendAdminNotificationBody>
+    export type SendAdminNotificationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Send a manual notification — to every user, or one user by email
+ */
+export const useSendAdminNotification = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAdminNotification>>, TError,{data: BodyType<SendAdminNotificationBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendAdminNotification>>,
+        TError,
+        {data: BodyType<SendAdminNotificationBody>},
+        TContext
+      > => {
+      return useMutation(getSendAdminNotificationMutationOptions(options));
+    }
+
+export const getGetAdminEnquiriesUrl = () => {
+
+
+
+
+  return `/api/admin/enquiries`
+}
+
+/**
+ * @summary All enquiries collected from the landing page, contact page and app
+ */
+export const getAdminEnquiries = async ( options?: RequestInit): Promise<EnquiriesResponse> => {
+
+  return customFetch<EnquiriesResponse>(getGetAdminEnquiriesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminEnquiriesQueryKey = () => {
+    return [
+    `/api/admin/enquiries`
+    ] as const;
+    }
+
+
+export const getGetAdminEnquiriesQueryOptions = <TData = Awaited<ReturnType<typeof getAdminEnquiries>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminEnquiries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminEnquiriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminEnquiries>>> = ({ signal }) => getAdminEnquiries({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminEnquiries>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminEnquiriesQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminEnquiries>>>
+export type GetAdminEnquiriesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary All enquiries collected from the landing page, contact page and app
+ */
+
+export function useGetAdminEnquiries<TData = Awaited<ReturnType<typeof getAdminEnquiries>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminEnquiries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminEnquiriesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateEnquiryUrl = (enquiryId: string,) => {
+
+
+
+
+  return `/api/admin/enquiries/${enquiryId}`
+}
+
+/**
+ * @summary Resolve or reopen an enquiry
+ */
+export const updateEnquiry = async (enquiryId: string,
+    updateEnquiryBody: UpdateEnquiryBody, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getUpdateEnquiryUrl(enquiryId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateEnquiryBody,)
+  }
+);}
+
+
+
+
+export const getUpdateEnquiryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEnquiry>>, TError,{enquiryId: string;data: BodyType<UpdateEnquiryBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateEnquiry>>, TError,{enquiryId: string;data: BodyType<UpdateEnquiryBody>}, TContext> => {
+
+const mutationKey = ['updateEnquiry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEnquiry>>, {enquiryId: string;data: BodyType<UpdateEnquiryBody>}> = (props) => {
+          const {enquiryId,data} = props ?? {};
+
+          return  updateEnquiry(enquiryId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateEnquiryMutationResult = NonNullable<Awaited<ReturnType<typeof updateEnquiry>>>
+    export type UpdateEnquiryMutationBody = BodyType<UpdateEnquiryBody>
+    export type UpdateEnquiryMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Resolve or reopen an enquiry
+ */
+export const useUpdateEnquiry = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEnquiry>>, TError,{enquiryId: string;data: BodyType<UpdateEnquiryBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateEnquiry>>,
+        TError,
+        {enquiryId: string;data: BodyType<UpdateEnquiryBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateEnquiryMutationOptions(options));
+    }
+
+export const getGetAdminSiteContentUrl = () => {
+
+
+
+
+  return `/api/admin/site-content`
+}
+
+/**
+ * @summary Read the editable site content (hero, footer, colours)
+ */
+export const getAdminSiteContent = async ( options?: RequestInit): Promise<SiteContent> => {
+
+  return customFetch<SiteContent>(getGetAdminSiteContentUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminSiteContentQueryKey = () => {
+    return [
+    `/api/admin/site-content`
+    ] as const;
+    }
+
+
+export const getGetAdminSiteContentQueryOptions = <TData = Awaited<ReturnType<typeof getAdminSiteContent>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSiteContent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminSiteContentQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminSiteContent>>> = ({ signal }) => getAdminSiteContent({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminSiteContent>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminSiteContentQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminSiteContent>>>
+export type GetAdminSiteContentQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read the editable site content (hero, footer, colours)
+ */
+
+export function useGetAdminSiteContent<TData = Awaited<ReturnType<typeof getAdminSiteContent>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSiteContent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminSiteContentQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateSiteContentUrl = () => {
+
+
+
+
+  return `/api/admin/site-content`
+}
+
+/**
+ * @summary Edit the hero, footer and brand colours (live, no deploy)
+ */
+export const updateSiteContent = async (siteContentUpdateRequest: SiteContentUpdateRequest, options?: RequestInit): Promise<SiteContent> => {
+
+  return customFetch<SiteContent>(getUpdateSiteContentUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      siteContentUpdateRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateSiteContentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSiteContent>>, TError,{data: BodyType<SiteContentUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSiteContent>>, TError,{data: BodyType<SiteContentUpdateRequest>}, TContext> => {
+
+const mutationKey = ['updateSiteContent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSiteContent>>, {data: BodyType<SiteContentUpdateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateSiteContent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSiteContentMutationResult = NonNullable<Awaited<ReturnType<typeof updateSiteContent>>>
+    export type UpdateSiteContentMutationBody = BodyType<SiteContentUpdateRequest>
+    export type UpdateSiteContentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Edit the hero, footer and brand colours (live, no deploy)
+ */
+export const useUpdateSiteContent = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSiteContent>>, TError,{data: BodyType<SiteContentUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSiteContent>>,
+        TError,
+        {data: BodyType<SiteContentUpdateRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateSiteContentMutationOptions(options));
     }
 
 export const getGetWalletProvidersUrl = () => {

@@ -34,7 +34,7 @@ export default function Banking() {
         {/* Virtual Accounts */}
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Your Virtual Accounts</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Your Virtual Accounts</h2>
             <Button variant="outline" size="sm" className="rounded-full text-primary border-primary">
               <Plus size={16} className="mr-1" /> Add Account
             </Button>
@@ -52,13 +52,13 @@ export default function Banking() {
                 </Card>
               ))
             ) : !bankingData?.accounts || bankingData.accounts.length === 0 ? (
-              <Card className="border border-dashed border-gray-200 rounded-2xl md:col-span-2 bg-gray-50/60">
+              <Card className="border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl md:col-span-2 bg-gray-50/60">
                 <CardContent className="p-8 text-center space-y-3">
                   <div className="w-14 h-14 rounded-2xl bg-[#4DC9EE]/10 text-[#4DC9EE] flex items-center justify-center mx-auto">
                     <CircleDollarSign size={26} />
                   </div>
-                  <h3 className="font-semibold text-gray-900">Your virtual accounts are coming</h3>
-                  <p className="text-sm text-gray-500 max-w-md mx-auto">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Your virtual accounts are coming</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
                     Once verification is approved (KYC for personal, KYB for business accounts), S-PAY issues a real US account
                     (ACH routing + account number) and a European IBAN — in your name, or your company's name on business accounts. Every dollar or euro that lands on them is auto-converted to USDC/USDT in your wallet, ready to send or withdraw — including to Binance.
                   </p>
@@ -73,10 +73,10 @@ export default function Banking() {
                   <CardContent className="p-6 relative z-10">
                     <div className="flex justify-between items-start mb-6">
                       <div>
-                        <div className="text-xs font-bold px-2 py-1 bg-gray-100 rounded mb-2 inline-block">
+                        <div className="text-xs font-bold px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded mb-2 inline-block">
                           {account.currency} ACCOUNT
                         </div>
-                        <h3 className="font-semibold text-gray-900">{account.bankName}</h3>
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{account.bankName}</h3>
                       </div>
                       <div className={`px-2 py-1 rounded text-xs font-medium capitalize
                         ${account.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
@@ -84,10 +84,10 @@ export default function Banking() {
                       </div>
                     </div>
                     
-                    <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <div className="space-y-3 bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                       {account.accountNumber && (
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-500">Account Number</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">Account Number</span>
                           <div className="flex items-center gap-2 font-mono text-sm font-medium">
                             {account.accountNumber}
                             <button onClick={() => copyToClipboard(account.accountNumber!, `acc-${account.id}`)} className="text-gray-400 hover:text-primary transition-colors">
@@ -98,7 +98,7 @@ export default function Banking() {
                       )}
                       {account.routingNumber && (
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-500">Routing Number</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">Routing Number</span>
                           <div className="flex items-center gap-2 font-mono text-sm font-medium">
                             {account.routingNumber}
                             <button onClick={() => copyToClipboard(account.routingNumber!, `rout-${account.id}`)} className="text-gray-400 hover:text-primary transition-colors">
@@ -109,7 +109,7 @@ export default function Banking() {
                       )}
                       {account.iban && (
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-500">IBAN</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">IBAN</span>
                           <div className="flex items-center gap-2 font-mono text-sm font-medium">
                             {account.iban}
                             <button onClick={() => copyToClipboard(account.iban!, `iban-${account.id}`)} className="text-gray-400 hover:text-primary transition-colors">
@@ -133,15 +133,15 @@ export default function Banking() {
                 Withdraw Funds
               </Button>
             </Link>
-            <Button className="w-full h-14 rounded-xl text-md bg-white text-primary hover:bg-gray-50 shadow-sm border" variant="outline">
+            <Button className="w-full h-14 rounded-xl text-md bg-white dark:bg-gray-900 text-primary hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm border" variant="outline">
               Receive Payments
             </Button>
         </div>
 
         {/* Incoming Payments */}
-        <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white">
-          <CardHeader className="bg-gray-50 border-b pb-4">
-            <CardTitle className="text-md flex items-center gap-2 text-gray-800">
+        <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white dark:bg-gray-900">
+          <CardHeader className="bg-gray-50 dark:bg-gray-800/60 border-b pb-4">
+            <CardTitle className="text-md flex items-center gap-2 text-gray-800 dark:text-gray-200">
               <ArrowDownToLine className="text-primary" /> Incoming Payments
             </CardTitle>
           </CardHeader>
@@ -160,21 +160,21 @@ export default function Banking() {
                 ))}
               </div>
             ) : paymentsData?.payments.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                 <p className="text-sm">No incoming payments yet.</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
                 {paymentsData?.payments.map((payment) => (
-                  <div key={payment.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                  <div key={payment.id} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-primary">
                         <Landmark size={18} />
                       </div>
                       <div>
-                        <h4 className="font-medium text-gray-900 text-sm">{payment.sender}</h4>
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm">{payment.sender}</h4>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-wider">{payment.paymentType}</span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">{payment.paymentType}</span>
                           <span className="text-[10px] text-gray-400">
                             {new Date(payment.createdAt).toLocaleDateString()}
                           </span>
@@ -182,7 +182,7 @@ export default function Banking() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold text-gray-900 text-sm">
+                      <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
                         +{payment.currency} {payment.amount.toFixed(2)}
                       </div>
                       <div className={`text-[10px] font-medium capitalize mt-1

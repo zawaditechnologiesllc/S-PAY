@@ -33,9 +33,14 @@
 | **Maintenance mode** — 503 for users, branded screen; sign-in/admin/webhooks/SSR stay up | ✅ Live | `middlewares/maintenance.ts`, web `pages/maintenance.tsx` |
 | **Account deletion (store compliance)**, in-app legal links, Sign in with Apple | ✅ Live | profile pages, `DELETE /auth/me` |
 | **Mobile app** — MiniPay-style welcome, tabs (Wallet/Banking/Card/Jobs), platform-native auth | ✅ Code complete — needs EAS setup to ship (B7) | `artifacts/mobile/` |
-| **Auto-migrations** — schema applies itself on every boot (10 migrations) | ✅ Live | `lib/db/migrations/`, `src/lib/migrate.ts` |
+| **Notifications** — auto (money received, deposits, KYC results) + **manual from admin** (broadcast or per-user), bell with unread badge in the app header | ✅ Live | `lib/notify.ts`, `routes/notifications.ts`, web `components/notifications-bell.tsx`, Admin → Settings → Send a Notification |
+| **Enquiries funnel** — one inbox for the landing page, contact page and in-app messages; reply by email, resolve/reopen | ✅ Live | `routes/enquiries.ts`, web `pages/contact.tsx` form, Admin → Enquiries |
+| **Site content editor** — hero title/subtitle/CTA, announcement ribbon, footer tagline, brand colours; live on the landing page, no deploy | ✅ Live | `app_settings.site_content`, `GET /site-content`, Admin → Settings → Site Content |
+| **Dark & light mode** — toggle in the app header, persists per device | ✅ Live | web `components/theme.tsx` (class-based Tailwind dark variant) |
+| **Security hardening** — helmet headers, per-IP rate limits on credential endpoints (50/15min) and enquiries (10/h), trust-proxy for real IPs, HMAC webhooks, RLS deny-all, sha256-hashed email tokens | ✅ Live | `src/app.ts`, `routes/enquiries.ts`, migrations 0008+ |
+| **Auto-migrations** — schema applies itself on every boot (12 migrations) | ✅ Live | `lib/db/migrations/`, `src/lib/migrate.ts` |
 
-**Database**: PostgreSQL (Render Blueprint auto-provisions `spay-db`; Supabase supported — TLS auto-detected). Tables: `users`, `transactions`, `card_waitlist`, `jobs_cache`, `app_settings`, `custom_jobs`.
+**Database**: PostgreSQL (Render Blueprint auto-provisions `spay-db`; Supabase supported — TLS auto-detected). Tables: `users`, `transactions`, `card_waitlist`, `jobs_cache`, `app_settings`, `custom_jobs`, `notifications`, `enquiries`.
 
 ---
 
@@ -169,6 +174,7 @@ Ordered by launch impact. Each is small and isolated; the file tells you exactly
 ## E. Operating the platform (no terminal, ever)
 
 - **Admin console** `/admin`: stats + signups-by-source · **Users & KYC** (type, country, source) · **Transactions** · **Job Listings** (inject/remove pinned SPAY roles — also your SEO content lever) · **Settings**.
+- **Admin sections**: Enquiries inbox (reply + resolve) · Send a Notification (broadcast/per-user) · Site Content (hero/footer/colours).
 - **Settings switches**: Maintenance mode (+ user-facing message) · **Wallet Infrastructure** (active WaaS provider + per-provider kill switches — see `docs/WALLET-PROVIDERS.md` §5 for playbooks) · Card Program · Fees & Revenue (live repricing).
 - **Health**: `GET /api/healthz` (uptime) · `GET /api/status` (maintenance state) · `GET /api/jobs?limit=1` (`total` = live job count) · Render Logs ("Database migrations applied", "Jobs feed warmed", hourly refresh lines).
 - **Deploys**: merge to `main` → Render (API) + Vercel (web) auto-deploy. DB schema changes apply themselves on boot.

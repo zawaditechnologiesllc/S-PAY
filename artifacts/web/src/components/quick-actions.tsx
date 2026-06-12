@@ -35,7 +35,7 @@ export function QuickActions() {
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-gray-100">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
         <QuickAction icon={<ScanLine size={22} />} label="Scan" bgColor="#4DC9EE" onClick={() => setOpen("scan")} />
         <QuickAction icon={<ArrowRightLeft size={22} />} label="Transfer" bgColor="#F59E0B" onClick={() => { setPrefillAddress(""); setOpen("transfer"); }} />
         <QuickAction icon={<QrCode size={22} />} label="Recharge" bgColor="#22C55E" onClick={() => setLocation("/deposit")} />
@@ -63,7 +63,7 @@ function QuickAction({ icon, label, bgColor, onClick }: {
       >
         {icon}
       </div>
-      <span className="text-xs font-medium text-gray-700">{label}</span>
+      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{label}</span>
     </button>
   );
 }
@@ -125,8 +125,8 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
         {result ? (
           <div className="flex flex-col items-center text-center py-6 gap-3">
             <CheckCircle2 size={56} className="text-green-500" />
-            <h3 className="text-lg font-bold text-gray-900">Money sent 🎉</h3>
-            <p className="text-sm text-gray-500">USDC {amount} is on its way — settled on Celo in ~5 seconds.</p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Money sent 🎉</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">USDC {amount} is on its way — settled on Celo in ~5 seconds.</p>
             {result.txHash && (
               <a
                 href={`https://celoscan.io/tx/${result.txHash}`}
@@ -144,16 +144,16 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
               <DialogTitle>Transfer</DialogTitle>
               <DialogDescription>Send USDC to another S-PAY member or any Celo wallet.</DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+            <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
               <button
                 onClick={() => { setMode("phone"); setRecipient(""); }}
-                className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-colors ${mode === "phone" ? "bg-white shadow text-gray-900" : "text-gray-500"}`}
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-colors ${mode === "phone" ? "bg-white dark:bg-gray-900 shadow text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}`}
               >
                 <Smartphone size={14} /> Phone number
               </button>
               <button
                 onClick={() => { setMode("address"); setRecipient(""); }}
-                className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-colors ${mode === "address" ? "bg-white shadow text-gray-900" : "text-gray-500"}`}
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-colors ${mode === "address" ? "bg-white dark:bg-gray-900 shadow text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}`}
               >
                 <Wallet2 size={14} /> Wallet address
               </button>
@@ -249,7 +249,7 @@ function ScanDialog({ open, onClose, onAddress }: { open: boolean; onClose: () =
         {cameraError ? (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <CameraOff size={40} className="text-gray-300" />
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Camera unavailable or permission denied. You can paste the recipient's address in <strong>Transfer</strong> instead.
             </p>
           </div>

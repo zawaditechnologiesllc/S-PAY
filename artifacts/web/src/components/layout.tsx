@@ -5,6 +5,8 @@ import {
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import { BackButton } from "@/components/back-button";
+import { NotificationsBell } from "@/components/notifications-bell";
+import { ThemeToggle } from "@/components/theme";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 export function Layout({ children, title, back }: { children: React.ReactNode; title?: string; back?: boolean }) {
@@ -16,7 +18,7 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gray-50 flex flex-col md:flex-row pb-16 md:pb-0 overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-gray-50 dark:bg-gray-950 flex flex-col md:flex-row pb-16 md:pb-0 overflow-x-hidden">
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-[#1A2B4A] fixed h-full z-10">
@@ -91,6 +93,8 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
               <h1 className="text-xl md:text-2xl font-bold text-white truncate">{title ?? "Dashboard"}</h1>
             </div>
             <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <NotificationsBell />
               {/* My QR — one tap from anywhere to get paid (WeChat/Alipay pattern) */}
               <Link href="/deposit?m=crypto">
                 <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors" aria-label="My QR code">
@@ -111,7 +115,7 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
       </main>
 
       {/* Mobile bottom nav — mirrors the native app tabs (profile lives in the header avatar) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center px-1 h-16 z-50 safe-area-pb">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex justify-around items-center px-1 h-16 z-50 safe-area-pb">
         <MobileNavLink href="/dashboard" icon={<LayoutDashboard size={22} />} label="Home" />
         <MobileNavLink href="/wallet" icon={<Wallet size={22} />} label="History" />
         <MobileNavLink href="/banking" icon={<Landmark size={22} />} label="Banking" />

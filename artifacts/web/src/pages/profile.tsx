@@ -58,7 +58,7 @@ export default function Profile() {
     <Layout back title="Profile">
       <div className="space-y-6">
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gray-50 border-b pb-4">
+          <CardHeader className="bg-gray-50 dark:bg-gray-800/60 border-b pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
               <CircleUser className="text-primary" /> Personal Information
             </CardTitle>
@@ -73,12 +73,12 @@ export default function Profile() {
             ) : (
               <div className="space-y-6">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Full Name</p>
-                  <p className="font-medium text-gray-900">{user?.fullName}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Full Name</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{user?.fullName}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Account Type</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Account Type</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
                     {user?.accountType === "business"
                       ? `Business${user?.businessName ? ` — ${user.businessName}` : ""} (KYB)`
                       : "Personal (KYC)"}
@@ -87,16 +87,16 @@ export default function Profile() {
                 <div className="flex items-center gap-3">
                   <Mail className="text-gray-400" size={18} />
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Email</p>
-                    <p className="font-medium text-gray-900">{user?.email}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Email</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{user?.email}</p>
                   </div>
                 </div>
                 {user?.phoneNumber && (
                   <div className="flex items-center gap-3">
                     <Phone className="text-gray-400" size={18} />
                     <div>
-                      <p className="text-sm text-gray-500 mb-1">Phone Number</p>
-                      <p className="font-medium text-gray-900">{user?.phoneNumber}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Phone Number</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{user?.phoneNumber}</p>
                     </div>
                   </div>
                 )}
@@ -106,7 +106,7 @@ export default function Profile() {
         </Card>
 
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gray-50 border-b pb-4">
+          <CardHeader className="bg-gray-50 dark:bg-gray-800/60 border-b pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
               <ShieldCheck className="text-primary" /> Verification Status
             </CardTitle>
@@ -115,7 +115,7 @@ export default function Profile() {
             {isLoading ? (
               <Skeleton className="h-10 w-full" />
             ) : (
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border">
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                     user?.kycStatus === 'approved' ? 'bg-green-100 text-green-600' :
@@ -124,8 +124,8 @@ export default function Profile() {
                     <ShieldCheck size={20} />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 capitalize">{user?.kycStatus}</h4>
-                    <p className="text-sm text-gray-500">Identity Verification</p>
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100 capitalize">{user?.kycStatus}</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Identity Verification</p>
                   </div>
                 </div>
                 {user?.kycStatus !== 'approved' && (
@@ -139,7 +139,7 @@ export default function Profile() {
         </Card>
 
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gray-50 border-b pb-4">
+          <CardHeader className="bg-gray-50 dark:bg-gray-800/60 border-b pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
               <Wallet className="text-primary" /> Account & Limits
             </CardTitle>
@@ -153,43 +153,43 @@ export default function Profile() {
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 rounded-xl p-4 border">
-                    <p className="text-xs text-gray-500 mb-1">Account Tier</p>
+                  <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 border">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Account Tier</p>
                     <p className="font-bold text-[#1A2B4A]">
                       {user?.kycStatus === "approved" ? "Standard" : "Basic"}
                     </p>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-4 border">
-                    <p className="text-xs text-gray-500 mb-1">Daily Limit</p>
+                  <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 border">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Daily Limit</p>
                     <p className="font-bold text-[#1A2B4A]">
                       {user?.kycStatus === "approved" ? "$1,000" : "$200"}
                     </p>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-4 border">
-                    <p className="text-xs text-gray-500 mb-1">Monthly Limit</p>
+                  <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 border">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Monthly Limit</p>
                     <p className="font-bold text-[#1A2B4A]">
                       {user?.kycStatus === "approved" ? "$10,000" : "$1,000"}
                     </p>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-4 border">
-                    <p className="text-xs text-gray-500 mb-1">Status</p>
+                  <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 border">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
                     <p className="font-bold text-green-600">Active</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-[#4DC9EE]/8 rounded-xl border border-[#4DC9EE]/20">
                   <Globe size={18} className="text-[#4DC9EE] flex-shrink-0" />
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     {user?.kycStatus === "approved"
                       ? "Your identity is verified. You have access to full transfer limits."
                       : "Complete identity verification to unlock higher limits and all features."}
                   </p>
                 </div>
                 {user?.celoWalletAddress && (
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#FCFF52] border border-gray-200 flex-shrink-0" />
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#FCFF52] border border-gray-200 dark:border-gray-700 flex-shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-500 mb-0.5 flex items-center gap-1"><Link2 size={11} /> Celo Wallet — Built on Celo</p>
-                      <p className="font-mono text-xs text-gray-900 truncate">{user.celoWalletAddress}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 flex items-center gap-1"><Link2 size={11} /> Celo Wallet — Built on Celo</p>
+                      <p className="font-mono text-xs text-gray-900 dark:text-gray-100 truncate">{user.celoWalletAddress}</p>
                     </div>
                   </div>
                 )}
@@ -199,7 +199,7 @@ export default function Profile() {
         </Card>
 
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gray-50 border-b pb-4">
+          <CardHeader className="bg-gray-50 dark:bg-gray-800/60 border-b pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
               <HelpCircle className="text-primary" /> Support
             </CardTitle>
@@ -207,26 +207,26 @@ export default function Profile() {
           <CardContent className="p-6 space-y-3">
             <a
               href="mailto:support@spayewallet.com"
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <div>
-                <p className="font-medium text-gray-900 text-sm">Contact Support</p>
-                <p className="text-xs text-gray-500 mt-0.5">support@spayewallet.com</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">Contact Support</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">support@spayewallet.com</p>
               </div>
               <BadgeCheck size={18} className="text-gray-400" />
             </a>
             <a
               href="/privacy"
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              <p className="font-medium text-gray-900 text-sm">Privacy Policy</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">Privacy Policy</p>
               <BadgeCheck size={18} className="text-gray-400" />
             </a>
             <a
               href="/terms"
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl border hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              <p className="font-medium text-gray-900 text-sm">Terms of Service</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">Terms of Service</p>
               <BadgeCheck size={18} className="text-gray-400" />
             </a>
           </CardContent>

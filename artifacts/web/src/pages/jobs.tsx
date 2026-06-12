@@ -135,7 +135,7 @@ export default function Jobs() {
           </div>
           <Input
             type="text"
-            className="pl-11 h-14 rounded-2xl bg-white border-0 shadow-md text-base"
+            className="pl-11 h-14 rounded-2xl bg-white dark:bg-gray-900 border-0 shadow-md text-base"
             placeholder="Search jobs, roles, companies..."
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
@@ -168,7 +168,7 @@ export default function Jobs() {
         {/* Result count + affiliate banner */}
         {!isLoading && !isError && jobsData && (
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {jobsData.total > 0
                 ? `Showing ${jobsData.jobs.length} of ${jobsData.total} remote jobs`
                 : "No jobs found"}
@@ -215,10 +215,10 @@ export default function Jobs() {
               </Card>
             ))
           ) : jobsData?.jobs.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-50">
+            <div className="text-center py-16 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-50 dark:border-gray-800">
               <Briefcase size={40} className="mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900">No jobs found</h3>
-              <p className="text-gray-500 mt-1 text-sm">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">No jobs found</h3>
+              <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
                 {debouncedKeyword
                   ? `No results for "${debouncedKeyword}" — try different keywords`
                   : "Try a different category or check back later"}
@@ -233,10 +233,10 @@ export default function Jobs() {
           ) : (
             jobsData?.jobs.map((job) => (
               <Link key={job.id} href={`/jobs/${job.id}`}>
-                <Card className="border border-gray-100 shadow-sm rounded-xl hover:shadow-md transition-all cursor-pointer bg-white overflow-hidden group">
+                <Card className="border border-gray-100 dark:border-gray-800 shadow-sm rounded-xl hover:shadow-md transition-all cursor-pointer bg-white dark:bg-gray-900 overflow-hidden group">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-11 h-11 rounded-lg bg-gray-50 border flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <div className="w-11 h-11 rounded-lg bg-gray-50 dark:bg-gray-800/60 border flex items-center justify-center overflow-hidden flex-shrink-0">
                         {job.companyLogo ? (
                           <img
                             src={job.companyLogo}
@@ -251,10 +251,10 @@ export default function Jobs() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <h3 className="font-semibold text-gray-900 group-hover:text-primary transition-colors text-sm leading-tight truncate">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary transition-colors text-sm leading-tight truncate">
                               {job.title}
                             </h3>
-                            <p className="text-xs text-gray-500 mt-0.5">{job.company}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{job.company}</p>
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             {job.isNew && (
@@ -265,23 +265,23 @@ export default function Jobs() {
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-2">
-                          <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/60 px-2 py-0.5 rounded border border-gray-100 dark:border-gray-800">
                             <MapPin size={10} /> {job.location}
                           </span>
                           {job.salary && job.salary !== "Competitive" && (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
+                            <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/60 px-2 py-0.5 rounded border border-gray-100 dark:border-gray-800">
                               <DollarSign size={10} /> {job.salary}
                             </span>
                           )}
                           {job.category && (
                             <button
-                              className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded border cursor-pointer hover:opacity-80 ${CATEGORY_COLORS[job.category!] ?? "bg-gray-50 text-gray-500 border-gray-100"}`}
+                              className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded border cursor-pointer hover:opacity-80 ${CATEGORY_COLORS[job.category!] ?? "bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-gray-800"}`}
                               onClick={(e) => { e.preventDefault(); const cat = job.category; if (cat && cat in CATEGORY_MAP) setSelectedCategory(cat); }}
                             >
                               {job.category}
                             </button>
                           )}
-                          <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border ${SOURCE_COLORS[job.source] ?? "bg-gray-50 text-gray-500 border-gray-100"}`}>
+                          <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded border ${SOURCE_COLORS[job.source] ?? "bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-gray-800"}`}>
                             {job.source}
                           </span>
                         </div>
@@ -299,7 +299,7 @@ export default function Jobs() {
           <div className="text-center pt-2">
             <Button
               variant="outline"
-              className="rounded-full px-8 bg-white shadow-sm"
+              className="rounded-full px-8 bg-white dark:bg-gray-900 shadow-sm"
               disabled={isFetching}
               onClick={() => setLimit((l) => l + PAGE_SIZE)}
             >
@@ -317,11 +317,11 @@ export default function Jobs() {
           <Card className="border border-blue-100 bg-gradient-to-r from-blue-50 to-sky-50 rounded-xl overflow-hidden mt-6">
             <CardContent className="p-5 flex flex-col sm:flex-row items-center gap-4">
               <div className="flex-1 text-center sm:text-left">
-                <h4 className="font-semibold text-gray-900 text-sm">Hire globally with compliance</h4>
-                <p className="text-xs text-gray-500 mt-0.5">Manage international teams, payroll, and benefits in one place.</p>
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Hire globally with compliance</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Manage international teams, payroll, and benefits in one place.</p>
               </div>
               <a href={jobsData.remoteCom.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                <Button variant="outline" size="sm" className="bg-white flex items-center gap-2 shadow-sm">
+                <Button variant="outline" size="sm" className="bg-white dark:bg-gray-900 flex items-center gap-2 shadow-sm">
                   Remote.com <ExternalLink size={13} />
                 </Button>
               </a>

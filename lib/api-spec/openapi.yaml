@@ -839,6 +839,234 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
+  /site-content:
+    get:
+      operationId: getSiteContent
+      tags: [health]
+      summary: Public marketing content (hero, footer, colours) — editable in the admin panel
+      responses:
+        "200":
+          description: Site content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContent"
+
+  /notifications:
+    get:
+      operationId: getNotifications
+      tags: [auth]
+      summary: The signed-in user's notifications (personal + broadcasts) with unread count
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationsResponse"
+
+  /notifications/mark-read:
+    post:
+      operationId: markNotificationsRead
+      tags: [auth]
+      summary: Mark all notifications as read
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /enquiries:
+    post:
+      operationId: createEnquiry
+      tags: [health]
+      summary: Submit an enquiry (landing page, contact page, or in-app — one funnel)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 120
+                email:
+                  type: string
+                  format: email
+                subject:
+                  type: string
+                  maxLength: 160
+                message:
+                  type: string
+                  maxLength: 5000
+                source:
+                  type: string
+                  maxLength: 40
+              required: [email, message]
+      responses:
+        "201":
+          description: Received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /banking/deposit:
+    post:
+      operationId: initiateDeposit
+      tags: [banking]
+      summary: Start a mobile-money top-up (executes via the payments partner)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                method:
+                  type: string
+                phoneNumber:
+                  type: string
+              required: [amount, method]
+      responses:
+        "200":
+          description: Deposit instructions
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "503":
+          description: Partner not configured yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/notifications:
+    post:
+      operationId: sendAdminNotification
+      tags: [Admin]
+      summary: Send a manual notification — to every user, or one user by email
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  maxLength: 140
+                body:
+                  type: string
+                  maxLength: 500
+                email:
+                  type: string
+                  description: Leave empty to broadcast to all users
+              required: [title, body]
+      responses:
+        "200":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/enquiries:
+    get:
+      operationId: getAdminEnquiries
+      tags: [Admin]
+      summary: All enquiries collected from the landing page, contact page and app
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Enquiries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnquiriesResponse"
+
+  /admin/enquiries/{enquiryId}:
+    put:
+      operationId: updateEnquiry
+      tags: [Admin]
+      summary: Resolve or reopen an enquiry
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: enquiryId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [new, resolved]
+              required: [status]
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/site-content:
+    get:
+      operationId: getAdminSiteContent
+      tags: [Admin]
+      summary: Read the editable site content (hero, footer, colours)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Site content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContent"
+    put:
+      operationId: updateSiteContent
+      tags: [Admin]
+      summary: Edit the hero, footer and brand colours (live, no deploy)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteContentUpdateRequest"
+      responses:
+        "200":
+          description: Updated site content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContent"
+
   /admin/wallet-providers:
     get:
       operationId: getWalletProviders
@@ -1726,6 +1954,118 @@ components:
         maintenanceMessage:
           type: string
           maxLength: 280
+
+    SiteContent:
+      type: object
+      properties:
+        heroTitle:
+          type: string
+        heroSubtitle:
+          type: string
+        heroCta:
+          type: string
+        announcement:
+          type: string
+        footerTagline:
+          type: string
+        primaryColor:
+          type: string
+        accentColor:
+          type: string
+      required: [heroTitle, heroSubtitle, heroCta, announcement, footerTagline, primaryColor, accentColor]
+
+    SiteContentUpdateRequest:
+      type: object
+      description: Partial update — any subset of the site content fields
+      properties:
+        heroTitle:
+          type: string
+          maxLength: 160
+        heroSubtitle:
+          type: string
+          maxLength: 300
+        heroCta:
+          type: string
+          maxLength: 60
+        announcement:
+          type: string
+          maxLength: 160
+        footerTagline:
+          type: string
+          maxLength: 160
+        primaryColor:
+          type: string
+          pattern: "^#[0-9a-fA-F]{6}$"
+        accentColor:
+          type: string
+          pattern: "^#[0-9a-fA-F]{6}$"
+
+    AppNotification:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        category:
+          type: string
+          nullable: true
+        unread:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, title, body, unread, createdAt]
+
+    NotificationsResponse:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppNotification"
+        unreadCount:
+          type: integer
+      required: [notifications, unreadCount]
+
+    Enquiry:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        email:
+          type: string
+        subject:
+          type: string
+          nullable: true
+        message:
+          type: string
+        source:
+          type: string
+          nullable: true
+        status:
+          type: string
+        createdAt:
+          type: string
+      required: [id, email, message, status, createdAt]
+
+    EnquiriesResponse:
+      type: object
+      properties:
+        enquiries:
+          type: array
+          items:
+            $ref: "#/components/schemas/Enquiry"
+        total:
+          type: integer
+      required: [enquiries, total]
 
     WalletProviderInfo:
       type: object

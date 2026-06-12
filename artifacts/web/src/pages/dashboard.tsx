@@ -42,15 +42,15 @@ export default function Dashboard() {
   return (
     <Layout title="Dashboard">
       {/* Balance Card */}
-      <Card className="bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
+      <Card className="bg-white dark:bg-gray-900 shadow-lg border-0 rounded-2xl overflow-hidden">
         <CardContent className="p-6">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Total Balance</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Balance</p>
               {isLoading ? (
                 <Skeleton className="h-10 w-40" />
               ) : (
-                <h2 className="text-4xl font-bold text-gray-900 tracking-tight">
+                <h2 className="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
                   {summary?.currency} {(summary?.walletBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </h2>
               )}
@@ -73,8 +73,8 @@ export default function Dashboard() {
               <MailCheck size={20} />
             </div>
             <div className="min-w-0">
-              <h4 className="text-sm font-semibold text-gray-900">Confirm your email</h4>
-              <p className="text-xs text-gray-600 truncate">We sent a link to {me.email} — click it to secure your account</p>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Confirm your email</h4>
+              <p className="text-xs text-gray-600 dark:text-gray-400 truncate">We sent a link to {me.email} — click it to secure your account</p>
             </div>
           </div>
           <button onClick={resendEmail} disabled={resendVerification.isPending} className="text-sm font-medium text-primary hover:underline flex-shrink-0 disabled:opacity-50">
@@ -91,8 +91,8 @@ export default function Dashboard() {
               <ShieldCheck size={20} />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900">Verify your identity</h4>
-              <p className="text-xs text-gray-600">Unlocks your US bank account, EU IBAN &amp; cash-outs</p>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Verify your identity</h4>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Unlocks your US bank account, EU IBAN &amp; cash-outs</p>
             </div>
           </div>
           <button onClick={verifyIdentity} disabled={startKyc.isPending} className="text-sm font-medium text-primary hover:underline disabled:opacity-50">
@@ -102,8 +102,8 @@ export default function Dashboard() {
       )}
 
       {/* Money services — banks & mobile money front and center, crypto kept simple */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h3 className="font-semibold text-gray-900 mb-4">Money</h3>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Money</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <ServiceTile href="/banking" icon={<Landmark size={20} />} label="Bank account" hint="US ACH · EU IBAN" color="#2E8FD6" />
           <ServiceTile href="/deposit?m=momo" icon={<Smartphone size={20} />} label="Mobile money" hint="M-Pesa, MoMo…" color="#22C55E" />
@@ -113,9 +113,9 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Transactions */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="font-semibold text-gray-900">Recent Transactions</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Recent Transactions</h3>
           <Link href="/wallet" className="text-sm text-primary font-medium flex items-center">
             View All <ChevronRight size={16} />
           </Link>
@@ -142,11 +142,11 @@ export default function Dashboard() {
                     {tx.type === 'receive' || tx.type === 'recharge' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">{tx.description}</h4>
-                    <p className="text-xs text-gray-500">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">{tx.description}</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(tx.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
-                <div className={`font-semibold ${tx.type === 'receive' || tx.type === 'recharge' ? 'text-green-600' : 'text-gray-900'}`}>
+                <div className={`font-semibold ${tx.type === 'receive' || tx.type === 'recharge' ? 'text-green-600' : 'text-gray-900 dark:text-gray-100'}`}>
                   {tx.type === 'receive' || tx.type === 'recharge' ? '+' : '-'}{tx.currency} {tx.amount.toFixed(2)}
                 </div>
               </div>
@@ -154,7 +154,7 @@ export default function Dashboard() {
           )}
           
           {!isLoading && summary?.recentTransactions?.length === 0 && (
-            <div className="text-center py-8 text-gray-500 text-sm">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
               No recent transactions
             </div>
           )}
@@ -170,12 +170,12 @@ function ServiceTile({ href, icon, label, hint, color }: {
 }) {
   return (
     <Link href={href}>
-      <div className="flex flex-col items-start gap-2 p-3 rounded-2xl border border-gray-100 hover:border-[#4DC9EE]/40 hover:shadow-sm transition-all cursor-pointer h-full">
+      <div className="flex flex-col items-start gap-2 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-[#4DC9EE]/40 hover:shadow-sm transition-all cursor-pointer h-full">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: color }}>
           {icon}
         </div>
         <div>
-          <p className="text-sm font-semibold text-gray-900 leading-tight">{label}</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">{label}</p>
           <p className="text-[11px] text-gray-400">{hint}</p>
         </div>
       </div>

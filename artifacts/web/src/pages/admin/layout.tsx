@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, ArrowLeftRight, LogOut,
-  Shield, Bell, ChevronRight, Settings, Menu, X, Briefcase,
+  Shield, Bell, ChevronRight, Settings, Menu, X, Briefcase, Inbox,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
@@ -12,6 +12,7 @@ const NAV = [
   { href: "/admin/users", icon: <Users size={18} />, label: "Users & KYC" },
   { href: "/admin/transactions", icon: <ArrowLeftRight size={18} />, label: "Transactions" },
   { href: "/admin/jobs", icon: <Briefcase size={18} />, label: "Job Listings" },
+  { href: "/admin/enquiries", icon: <Inbox size={18} />, label: "Enquiries" },
   { href: "/admin/settings", icon: <Settings size={18} />, label: "Settings" },
 ];
 
@@ -81,7 +82,7 @@ export function AdminLayout({ children, title }: { children: React.ReactNode; ti
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-800/60 flex">
 
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -106,26 +107,26 @@ export function AdminLayout({ children, title }: { children: React.ReactNode; ti
       {/* Main content */}
       <main className="flex-1 md:ml-64 flex flex-col min-h-screen">
         {/* Top header */}
-        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm">
+        <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm">
           <div className="flex items-center gap-3">
             {/* Hamburger — mobile only */}
             <button
               onClick={() => setSidebarOpen(true)}
-              className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+              className="md:hidden p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <Menu size={22} />
             </button>
-            <h1 className="text-base md:text-lg font-bold text-gray-900">{title || "Admin"}</h1>
+            <h1 className="text-base md:text-lg font-bold text-gray-900 dark:text-gray-100">{title || "Admin"}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors relative">
+            <button className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-200 transition-colors relative">
               <Bell size={16} />
             </button>
-            <div className="hidden sm:flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5">
+            <div className="hidden sm:flex items-center gap-2 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-full px-3 py-1.5">
               <div className="w-6 h-6 bg-[#1A2B4A] rounded-full flex items-center justify-center">
                 <Shield size={12} className="text-white" />
               </div>
-              <span className="text-sm font-medium text-gray-700">Admin</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Admin</span>
             </div>
           </div>
         </header>

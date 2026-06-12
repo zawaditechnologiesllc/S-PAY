@@ -83,7 +83,7 @@ export default function CardPage() {
                 <Button
                   onClick={handleJoinWaitlist}
                   disabled={joinWaitlist.isPending}
-                  className="bg-white text-[#1A2B4A] hover:bg-[#A8DEFF] font-semibold px-8 py-6 rounded-xl text-md"
+                  className="bg-white dark:bg-gray-900 text-[#1A2B4A] hover:bg-[#A8DEFF] font-semibold px-8 py-6 rounded-xl text-md"
                 >
                   {joinWaitlist.isPending ? "Joining..." : "Join the Waitlist"}
                 </Button>
@@ -166,10 +166,10 @@ export default function CardPage() {
 
         {/* ── What you get (visible until a card is active) ── */}
         {!isLoadingDetails && !hasCard && (
-          <Card className="border border-gray-100 shadow-sm rounded-2xl bg-white">
+          <Card className="border border-gray-100 dark:border-gray-800 shadow-sm rounded-2xl bg-white dark:bg-gray-900">
             <CardContent className="p-5 space-y-3">
               {CARD_PERKS.map((p) => (
-                <div key={p.text} className="flex items-center gap-3 text-sm text-gray-600">
+                <div key={p.text} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
                   <span className="w-7 h-7 rounded-lg bg-[#4DC9EE]/10 text-[#4DC9EE] flex items-center justify-center flex-shrink-0">{p.icon}</span>
                   {p.text}
                 </div>
@@ -181,9 +181,9 @@ export default function CardPage() {
         {/* ── Spending & activity (only meaningful once a card exists) ── */}
         {hasCard && (
           <>
-            <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white">
-              <CardHeader className="bg-gray-50 border-b pb-4">
-                <CardTitle className="text-md flex items-center gap-2 text-gray-800">
+            <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white dark:bg-gray-900">
+              <CardHeader className="bg-gray-50 dark:bg-gray-800/60 border-b pb-4">
+                <CardTitle className="text-md flex items-center gap-2 text-gray-800 dark:text-gray-200">
                   <ShoppingCart size={18} className="text-primary" /> Monthly Spending
                 </CardTitle>
               </CardHeader>
@@ -194,14 +194,14 @@ export default function CardPage() {
                     <Skeleton className="h-4 w-3/4" />
                   </div>
                 ) : !spendData?.categories || spendData.categories.length === 0 ? (
-                  <div className="text-center py-6 text-gray-500 text-sm">No spending yet — your first purchases will show up here.</div>
+                  <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">No spending yet — your first purchases will show up here.</div>
                 ) : (
                   <div className="space-y-4">
                     <div className="flex justify-between mb-2">
                       <span className="text-sm font-medium">Total Spent</span>
-                      <span className="text-sm font-bold text-gray-900">${spendData.totalSpent.toFixed(2)}</span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100">${spendData.totalSpent.toFixed(2)}</span>
                     </div>
-                    <div className="h-3 w-full bg-gray-100 rounded-full flex overflow-hidden">
+                    <div className="h-3 w-full bg-gray-100 dark:bg-gray-800 rounded-full flex overflow-hidden">
                       {spendData.categories.map((cat, i) => (
                         <div key={i} style={{ width: `${cat.percentage}%`, backgroundColor: cat.color || "#4DC9EE" }} className="h-full" />
                       ))}
@@ -211,8 +211,8 @@ export default function CardPage() {
                         <div key={i} className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color || "#4DC9EE" }} />
                           <div className="text-xs">
-                            <span className="text-gray-600 block">{cat.category}</span>
-                            <span className="font-semibold text-gray-900">{cat.percentage}%</span>
+                            <span className="text-gray-600 dark:text-gray-400 block">{cat.category}</span>
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">{cat.percentage}%</span>
                           </div>
                         </div>
                       ))}
@@ -222,9 +222,9 @@ export default function CardPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white">
-              <CardHeader className="bg-gray-50 border-b pb-4">
-                <CardTitle className="text-md text-gray-800">Recent Card Activity</CardTitle>
+            <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white dark:bg-gray-900">
+              <CardHeader className="bg-gray-50 dark:bg-gray-800/60 border-b pb-4">
+                <CardTitle className="text-md text-gray-800 dark:text-gray-200">Recent Card Activity</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {isLoadingTx ? (
@@ -240,25 +240,25 @@ export default function CardPage() {
                     ))}
                   </div>
                 ) : txData?.transactions.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">
+                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                     <p className="text-sm">No card transactions yet.</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
                     {txData?.transactions.map((tx) => (
-                      <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                      <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                          <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
                             {tx.merchantLogo ? (
                               <img src={tx.merchantLogo} alt={tx.merchantName} className="w-full h-full object-cover" />
                             ) : (
-                              <ShoppingCart size={18} className="text-gray-500" />
+                              <ShoppingCart size={18} className="text-gray-500 dark:text-gray-400" />
                             )}
                           </div>
                           <div>
-                            <h4 className="font-medium text-gray-900 text-sm">{tx.merchantName}</h4>
+                            <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm">{tx.merchantName}</h4>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[10px] text-gray-500">{tx.category}</span>
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400">{tx.category}</span>
                               <span className="text-[10px] text-gray-400">
                                 {new Date(tx.createdAt).toLocaleDateString()}
                               </span>
@@ -266,7 +266,7 @@ export default function CardPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-semibold text-gray-900 text-sm">
+                          <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
                             -${tx.amount.toFixed(2)}
                           </div>
                         </div>

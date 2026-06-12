@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import QRCode from "qrcode";
 import { Layout } from "@/components/layout";
-import { useAddFunds, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
+import { useAddFunds, useGetMe, getGetMeQueryKey, useInitiateDeposit } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
   Smartphone, Landmark, Coins, ChevronRight, ArrowLeft, Copy, Download,
-  Share2, ShieldCheck, CheckCircle2, Clock,
+  Share2, ShieldCheck, CheckCircle2,
 } from "lucide-react";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
@@ -21,12 +22,12 @@ import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 type Method = null | "momo" | "bank" | "crypto";
 
 const MOMO_OPTIONS = [
-  { flag: "🇰🇪", name: "M-Pesa", region: "Kenya · Tanzania" },
-  { flag: "🇺🇬", name: "MTN Mobile Money", region: "Uganda · Ghana · Cameroon" },
-  { flag: "🇳🇬", name: "Airtel Money / Bank USSD", region: "Nigeria" },
-  { flag: "🇵🇭", name: "GCash", region: "Philippines" },
-  { flag: "🇧🇷", name: "PIX", region: "Brazil" },
-];
+  { flag: "🇰🇪", name: "M-Pesa", region: "Kenya · Tanzania", method: "mpesa" },
+  { flag: "🇺🇬", name: "MTN Mobile Money", region: "Uganda · Ghana · Cameroon", method: "mtn_momo" },
+  { flag: "🇳🇬", name: "Airtel Money / Bank USSD", region: "Nigeria", method: "airtel" },
+  { flag: "🇵🇭", name: "GCash", region: "Philippines", method: "gcash" },
+  { flag: "🇧🇷", name: "PIX", region: "Brazil", method: "pix" },
+] as const;
 
 export default function Deposit() {
   const initial = (new URLSearchParams(window.location.search).get("m") as Method) ?? null;
@@ -66,7 +67,6 @@ function MethodList({ onPick }: { onPick: (m: Method) => void }) {
           icon={<Coins size={22} />} color="#F59E0B"
           title="Exchange or wallet"
           subtitle="From Binance, Bybit, Coinbase or any Celo wallet — instant"
-          badge="Works now"
           onClick={() => onPick("crypto")}
         />
       </CardContent>
@@ -78,16 +78,16 @@ function MethodRow({ icon, color, title, subtitle, badge, onClick }: {
   icon: React.ReactNode; color: string; title: string; subtitle: string; badge?: string; onClick: () => void;
 }) {
   return (
-    <button onClick={onClick} className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors text-left">
+    <button onClick={onClick} className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left">
       <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white flex-shrink-0" style={{ backgroundColor: color }}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-gray-900 flex items-center gap-2">
+        <p className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
           {title}
           {badge && <span className="text-[10px] font-bold uppercase bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{badge}</span>}
         </p>
-        <p className="text-xs text-gray-500 truncate">{subtitle}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{subtitle}</p>
       </div>
       <ChevronRight size={18} className="text-gray-300 flex-shrink-0" />
     </button>
@@ -97,10 +97,10 @@ function MethodRow({ icon, color, title, subtitle, badge, onClick }: {
 function PanelHeader({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <div className="flex items-center gap-3 mb-1">
-      <button onClick={onBack} className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition-colors" aria-label="Back to methods">
+      <button onClick={onBack} className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 flex items-center justify-center text-gray-600 dark:text-gray-400 transition-colors" aria-label="Back to methods">
         <ArrowLeft size={17} />
       </button>
-      <h2 className="font-bold text-gray-900">{title}</h2>
+      <h2 className="font-bold text-gray-900 dark:text-gray-100">{title}</h2>
     </div>
   );
 }
@@ -108,25 +108,72 @@ function PanelHeader({ title, onBack }: { title: string; onBack: () => void }) {
 // ─── Mobile money ─────────────────────────────────────────────────────────────
 
 function MomoPanel({ onBack }: { onBack: () => void }) {
+  const { toast } = useToast();
+  const deposit = useInitiateDeposit();
+  const [picked, setPicked] = useState<typeof MOMO_OPTIONS[number] | null>(null);
+  const [amount, setAmount] = useState("");
+  const [phone, setPhone] = useState("");
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = parseFloat(amount);
+    if (!picked || !Number.isFinite(value) || value <= 0 || !phone.trim()) {
+      toast({ title: "Check the details", description: "Enter the amount and your mobile money number.", variant: "destructive" });
+      return;
+    }
+    deposit.mutate(
+      { data: { amount: value, method: picked.method, phoneNumber: phone.trim() } },
+      {
+        onSuccess: (r) => toast({ title: "Top-up started", description: (r as { message?: string })?.message ?? "Follow the prompt on your phone." }),
+        onError: (err) => toast({
+          title: picked.name,
+          description: (err as { data?: { message?: string } })?.data?.message ?? "Could not start the top-up — try again.",
+        }),
+      },
+    );
+  };
+
+  if (picked) {
+    return (
+      <Card className="border-0 shadow-lg rounded-2xl">
+        <CardContent className="p-5 space-y-4">
+          <PanelHeader title={`Top up with ${picked.name}`} onBack={() => setPicked(null)} />
+          <form onSubmit={submit} className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-100" htmlFor="dep-amount">Amount (USD)</label>
+              <Input id="dep-amount" type="number" min="1" step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-900 dark:text-gray-100" htmlFor="dep-phone">{picked.name} number</label>
+              <Input id="dep-phone" placeholder="+254712345678" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <Button type="submit" disabled={deposit.isPending} className="w-full bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold">
+              {deposit.isPending ? "Starting…" : `Top up with ${picked.name}`}
+            </Button>
+            <p className="text-[11px] text-gray-400 text-center">You'll get a payment prompt on your phone to approve.</p>
+          </form>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border-0 shadow-lg rounded-2xl">
       <CardContent className="p-5 space-y-2">
         <PanelHeader title="Deposit with mobile money" onBack={onBack} />
-        <p className="text-xs text-gray-500 pb-2">Top up your S-PAY balance straight from your mobile money account.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 pb-2">Top up your S-PAY balance straight from your mobile money account.</p>
         {MOMO_OPTIONS.map((o) => (
-          <div key={o.name} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+          <button key={o.name} onClick={() => setPicked(o)} className="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:bg-gray-800 transition-colors text-left">
             <span className="text-2xl">{o.flag}</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">{o.name}</p>
-              <p className="text-[11px] text-gray-500">{o.region}</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{o.name}</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">{o.region}</p>
             </div>
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-amber-700 bg-amber-50 px-2 py-1 rounded-full">
-              <Clock size={10} /> Soon
-            </span>
-          </div>
+            <ChevronRight size={16} className="text-gray-300" />
+          </button>
         ))}
-        <div className="bg-blue-50 rounded-xl p-3 text-xs text-blue-700 leading-relaxed">
-          Mobile money deposits are activating with our payments partner. Meanwhile, the <strong>Exchange or wallet</strong> method works today — many members top up via Binance with M-Pesa, then deposit here instantly.
+        <div className="bg-blue-50 dark:bg-blue-950/40 rounded-xl p-3 text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+          Tip: the <strong>Exchange or wallet</strong> method is instant today — many members top up Binance with mobile money, then deposit here in seconds.
         </div>
       </CardContent>
     </Card>
@@ -142,23 +189,23 @@ function BankPanel({ onBack }: { onBack: () => void }) {
     <Card className="border-0 shadow-lg rounded-2xl">
       <CardContent className="p-5 space-y-3">
         <PanelHeader title="Deposit by bank transfer" onBack={onBack} />
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           Verified members get a <strong>real US bank account</strong> (ACH routing + account number) and a <strong>European IBAN</strong>. Share them with your employer or clients — incoming transfers are converted to digital dollars and credited to your balance automatically.
         </p>
         <div className="space-y-2">
           {["US bank account (ACH)", "European IBAN (SEPA)"].map((label) => (
-            <div key={label} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+            <div key={label} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60">
               <Landmark size={18} className="text-[#2E8FD6]" />
-              <p className="text-sm font-semibold text-gray-900 flex-1">{label}</p>
-              {verified ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-amber-700 bg-amber-50 px-2 py-1 rounded-full"><Clock size={10} /> Provisioning</span>
-              ) : (
-                <span className="text-[10px] font-bold uppercase text-gray-400">Locked</span>
-              )}
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex-1">{label}</p>
+              <ChevronRight size={16} className="text-gray-300" />
             </div>
           ))}
         </div>
-        {!verified && (
+        {verified ? (
+          <Link href="/banking">
+            <Button className="w-full bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold mt-1">View my account details</Button>
+          </Link>
+        ) : (
           <Link href="/profile">
             <Button className="w-full bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold mt-1">
               <ShieldCheck size={16} className="mr-1.5" /> Verify identity to unlock
@@ -265,10 +312,10 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
         ) : (
           <>
             {/* MiniPay-style identity card */}
-            <div className="bg-gradient-to-b from-[#FCFF52]/40 to-white rounded-3xl border border-gray-100 p-6 flex flex-col items-center gap-3">
-              <p className="font-bold text-gray-900">{me?.fullName ?? "My S-PAY"}</p>
+            <div className="bg-gradient-to-b from-[#FCFF52]/40 to-white rounded-3xl border border-gray-100 dark:border-gray-800 p-6 flex flex-col items-center gap-3">
+              <p className="font-bold text-gray-900 dark:text-gray-100">{me?.fullName ?? "My S-PAY"}</p>
               <canvas ref={canvasRef} className="w-56 h-56 rounded-xl" aria-label="Your S-PAY receive QR code" />
-              <button onClick={copy} className="font-mono text-[11px] text-gray-600 break-all text-center hover:text-gray-900 transition-colors" title="Tap to copy">
+              <button onClick={copy} className="font-mono text-[11px] text-gray-600 dark:text-gray-400 break-all text-center hover:text-gray-900 transition-colors" title="Tap to copy">
                 {address}
               </button>
               <p className="text-[11px] text-gray-400 -mt-1">Tap the address to copy</p>

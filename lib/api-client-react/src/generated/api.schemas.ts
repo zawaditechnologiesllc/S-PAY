@@ -594,6 +594,67 @@ export interface FeatureFlagsUpdateRequest {
   maintenanceMessage?: string;
 }
 
+export interface SiteContent {
+  heroTitle: string;
+  heroSubtitle: string;
+  heroCta: string;
+  announcement: string;
+  footerTagline: string;
+  primaryColor: string;
+  accentColor: string;
+}
+
+/**
+ * Partial update — any subset of the site content fields
+ */
+export interface SiteContentUpdateRequest {
+  /** @maxLength 160 */
+  heroTitle?: string;
+  /** @maxLength 300 */
+  heroSubtitle?: string;
+  /** @maxLength 60 */
+  heroCta?: string;
+  /** @maxLength 160 */
+  announcement?: string;
+  /** @maxLength 160 */
+  footerTagline?: string;
+  /** @pattern ^#[0-9a-fA-F]{6}$ */
+  primaryColor?: string;
+  /** @pattern ^#[0-9a-fA-F]{6}$ */
+  accentColor?: string;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  category?: string | null;
+  unread: boolean;
+  createdAt: string;
+}
+
+export interface NotificationsResponse {
+  notifications: AppNotification[];
+  unreadCount: number;
+}
+
+export interface Enquiry {
+  id: string;
+  userId?: string | null;
+  name?: string | null;
+  email: string;
+  subject?: string | null;
+  message: string;
+  source?: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface EnquiriesResponse {
+  enquiries: Enquiry[];
+  total: number;
+}
+
 export type WalletProviderInfoKey = typeof WalletProviderInfoKey[keyof typeof WalletProviderInfoKey];
 
 
@@ -811,4 +872,45 @@ type?: string;
 };
 
 export type GetAdminSettings200 = { [key: string]: unknown };
+
+export type CreateEnquiryBody = {
+  /** @maxLength 120 */
+  name?: string;
+  email: string;
+  /** @maxLength 160 */
+  subject?: string;
+  /** @maxLength 5000 */
+  message: string;
+  /** @maxLength 40 */
+  source?: string;
+};
+
+export type InitiateDepositBody = {
+  amount: number;
+  method: string;
+  phoneNumber?: string;
+};
+
+export type InitiateDeposit200 = { [key: string]: unknown };
+
+export type SendAdminNotificationBody = {
+  /** @maxLength 140 */
+  title: string;
+  /** @maxLength 500 */
+  body: string;
+  /** Leave empty to broadcast to all users */
+  email?: string;
+};
+
+export type UpdateEnquiryBodyStatus = typeof UpdateEnquiryBodyStatus[keyof typeof UpdateEnquiryBodyStatus];
+
+
+export const UpdateEnquiryBodyStatus = {
+  new: 'new',
+  resolved: 'resolved',
+} as const;
+
+export type UpdateEnquiryBody = {
+  status: UpdateEnquiryBodyStatus;
+};
 

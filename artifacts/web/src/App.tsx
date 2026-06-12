@@ -26,6 +26,7 @@ import AdminUsers from "@/pages/admin/users";
 import AdminTransactions from "@/pages/admin/transactions";
 import AdminSettings from "@/pages/admin/settings";
 import AdminJobs from "@/pages/admin/jobs";
+import AdminEnquiries from "@/pages/admin/enquiries";
 import About from "@/pages/about";
 import HowItWorks from "@/pages/how-it-works";
 import ResetPassword from "@/pages/reset-password";
@@ -144,6 +145,7 @@ function Router() {
       <Route path="/admin/users"><ProtectedRoute component={AdminUsers} /></Route>
       <Route path="/admin/transactions"><ProtectedRoute component={AdminTransactions} /></Route>
       <Route path="/admin/jobs"><ProtectedRoute component={AdminJobs} /></Route>
+      <Route path="/admin/enquiries"><ProtectedRoute component={AdminEnquiries} /></Route>
       <Route path="/admin/settings"><ProtectedRoute component={AdminSettings} /></Route>
 
       <Route component={NotFound} />

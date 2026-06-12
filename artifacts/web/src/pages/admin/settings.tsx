@@ -5,16 +5,18 @@ import {
   useGetFeatureFlags, getGetFeatureFlagsQueryKey, useUpdateFeatureFlags,
   useGetFeeSchedule, getGetFeeScheduleQueryKey, useUpdateFeeSchedule,
   useGetWalletProviders, getGetWalletProvidersQueryKey, useUpdateWalletProviders,
+  useGetAdminSiteContent, getGetAdminSiteContentQueryKey, useUpdateSiteContent,
+  useSendAdminNotification,
   type WalletProvidersUpdateRequestActiveProvider,
 } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet } from "lucide-react";
+import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatusRow({ label, ok, note }: { label: string; ok: boolean; note?: string }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-gray-800 last:border-0">
       <div>
-        <p className="text-sm font-medium text-gray-900">{label}</p>
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</p>
         {note && <p className="text-xs text-gray-400 mt-0.5">{note}</p>}
       </div>
       {ok ? (
@@ -32,8 +34,8 @@ function StatusRow({ label, ok, note }: { label: string; ok: boolean; note?: str
 
 function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider text-[#1A2B4A]">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+      <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider text-[#1A2B4A]">
         <span className="text-[#4DC9EE]">{icon}</span> {title}
       </h3>
       {children}
@@ -69,22 +71,22 @@ function FeeInput({ label, hint, value, onChange, prefix, suffix }: {
   label: string; hint: string; value: string; onChange: (v: string) => void; prefix?: string; suffix?: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-gray-50 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-3 border-b border-gray-50 dark:border-gray-800 last:border-0">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-gray-900">{label}</p>
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</p>
         <p className="text-xs text-gray-400 mt-0.5">{hint}</p>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        {prefix && <span className="text-sm text-gray-500">{prefix}</span>}
+        {prefix && <span className="text-sm text-gray-500 dark:text-gray-400">{prefix}</span>}
         <input
           type="number"
           min="0"
           step="0.01"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-24 h-9 rounded-lg border border-gray-200 px-2.5 text-sm text-right focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20"
+          className="w-24 h-9 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 text-sm text-right focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20"
         />
-        {suffix && <span className="text-sm text-gray-500">{suffix}</span>}
+        {suffix && <span className="text-sm text-gray-500 dark:text-gray-400">{suffix}</span>}
       </div>
     </div>
   );
@@ -236,14 +238,14 @@ export default function AdminSettings() {
     <AdminLayout title="Settings & System Status">
       <div className="space-y-6 max-w-3xl">
 
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           This page shows which integrations are configured. Set environment variables on Render to enable each service.
         </p>
 
         <Section icon={<Wrench size={16} />} title="Maintenance Mode">
-          <div className="flex items-center justify-between py-3 border-b border-gray-50">
+          <div className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-gray-800">
             <div>
-              <p className="text-sm font-medium text-gray-900">Platform Maintenance Switch</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Platform Maintenance Switch</p>
               <p className="text-xs text-gray-400 mt-0.5">
                 {flags?.maintenanceMode
                   ? "ON — users see the maintenance screen. Sign-in, webhooks & admin stay reachable."
@@ -258,19 +260,19 @@ export default function AdminSettings() {
                 flags?.maintenanceMode ? "bg-amber-500" : "bg-gray-300"
               }`}
             >
-              <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-all ${
+              <span className={`absolute top-1 w-6 h-6 bg-white dark:bg-gray-900 rounded-full shadow transition-all ${
                 flags?.maintenanceMode ? "left-7" : "left-1"
               }`} />
             </button>
           </div>
           <div className="py-3 space-y-2">
-            <p className="text-sm font-medium text-gray-900">Message shown to users</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Message shown to users</p>
             <textarea
               value={maintMessage}
               onChange={(e) => setMaintMessage(e.target.value)}
               maxLength={280}
               rows={2}
-              className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 p-3 text-sm focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20"
               placeholder="S-PAY is undergoing scheduled maintenance. We'll be back shortly — your funds are safe."
             />
             <button
@@ -296,8 +298,11 @@ export default function AdminSettings() {
           </div>
         </Section>
 
+        <SiteContentSection />
+        <NotificationSection />
+
         <Section icon={<Wallet size={16} />} title="Wallet Infrastructure (Celo · WaaS)">
-          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
             Wallets are provisioned <strong>just-in-time on the first money action</strong> (send, deposit address,
             withdrawal) — never at signup or login. Jobs-board traffic can sign up and browse all day without
             creating a single billable wallet user; you only pay your wallet provider for people who actually move money.
@@ -305,10 +310,10 @@ export default function AdminSettings() {
           {(walletProviders?.providers ?? []).map((p) => {
             const isActive = walletProviders?.activeProvider === p.key;
             return (
-              <div key={p.key} className="py-3 border-b border-gray-50 last:border-0">
+              <div key={p.key} className="py-3 border-b border-gray-50 dark:border-gray-800 last:border-0">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2 flex-wrap">
                       {p.label}
                       {isActive && (
                         <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-[#4DC9EE] px-2 py-0.5 rounded-full">
@@ -347,7 +352,7 @@ export default function AdminSettings() {
                         p.enabled ? "bg-green-500" : "bg-gray-300"
                       }`}
                     >
-                      <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-all ${
+                      <span className={`absolute top-1 w-6 h-6 bg-white dark:bg-gray-900 rounded-full shadow transition-all ${
                         p.enabled ? "left-7" : "left-1"
                       }`} />
                     </button>
@@ -367,9 +372,9 @@ export default function AdminSettings() {
 
         <Section icon={<CreditCard size={16} />} title="Virtual Card Program">
           {/* The master switch — flips users between waitlist and live card creation */}
-          <div className="flex items-center justify-between py-3 border-b border-gray-50">
+          <div className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-gray-800">
             <div>
-              <p className="text-sm font-medium text-gray-900">Card Program Master Switch</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Card Program Master Switch</p>
               <p className="text-xs text-gray-400 mt-0.5">
                 {flags?.cardProgramEnabled
                   ? "LIVE — users can create their virtual card"
@@ -385,18 +390,18 @@ export default function AdminSettings() {
               }`}
             >
               <span
-                className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-all ${
+                className={`absolute top-1 w-6 h-6 bg-white dark:bg-gray-900 rounded-full shadow transition-all ${
                   flags?.cardProgramEnabled ? "left-7" : "left-1"
                 }`}
               />
             </button>
           </div>
-          <div className="flex items-center justify-between py-3 border-b border-gray-50">
+          <div className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-gray-800">
             <div className="flex items-center gap-2">
               <Users size={14} className="text-[#4DC9EE]" />
-              <p className="text-sm font-medium text-gray-900">Card Waitlist</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Card Waitlist</p>
             </div>
-            <span className="text-sm font-bold text-gray-900">{(flags?.cardWaitlistCount ?? 0).toLocaleString()} waiting</span>
+            <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{(flags?.cardWaitlistCount ?? 0).toLocaleString()} waiting</span>
           </div>
           <StatusRow label="Stripe API Key" ok={s?.stripe?.configured} note="STRIPE_SECRET_KEY — for virtual card issuance" />
           <StatusRow label="Stripe Webhook" ok={s?.stripe?.webhookConfigured} note="STRIPE_WEBHOOK_SECRET — for card authorization events" />
@@ -406,7 +411,7 @@ export default function AdminSettings() {
         </Section>
 
         <Section icon={<Percent size={16} />} title="Fees & Revenue">
-          <p className="text-xs text-gray-500 mb-2">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
             User price = provider cost + your margin. Providers bill S-PAY separately (Stripe nets fees from your Stripe balance,
             Noah nets from settlements, Celo gas is &lt;$0.01) — the spread below is S-PAY revenue. Changes apply to new quotes instantly.
           </p>
@@ -466,20 +471,116 @@ export default function AdminSettings() {
         </Section>
 
         <Section icon={<Shield size={16} />} title="Admin Access">
-          <div className="text-sm text-gray-700">
-            <p className="mb-2">Accounts with admin access (set via <code className="bg-gray-100 px-1 rounded text-xs">ADMIN_EMAILS</code> env var):</p>
+          <div className="text-sm text-gray-700 dark:text-gray-300">
+            <p className="mb-2">Accounts with admin access (set via <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-xs">ADMIN_EMAILS</code> env var):</p>
             <ul className="space-y-1">
               {(s?.adminEmails ?? []).map((email: string) => (
-                <li key={email} className="flex items-center gap-2 text-xs font-mono bg-gray-50 rounded-lg px-3 py-2">
+                <li key={email} className="flex items-center gap-2 text-xs font-mono bg-gray-50 dark:bg-gray-800/60 rounded-lg px-3 py-2">
                   <Shield size={12} className="text-[#4DC9EE]" /> {email}
                 </li>
               ))}
             </ul>
-            <p className="text-xs text-gray-400 mt-3">To add an admin, set <code className="bg-gray-100 px-1 rounded">ADMIN_EMAILS=email1@x.com,email2@x.com</code> on Render.</p>
+            <p className="text-xs text-gray-400 mt-3">To add an admin, set <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">ADMIN_EMAILS=email1@x.com,email2@x.com</code> on Render.</p>
           </div>
         </Section>
 
       </div>
     </AdminLayout>
+  );
+}
+
+
+// ─── Site content: hero, footer, colours — live edits, no deploy ─────────────
+
+function SiteContentSection() {
+  const { data, refetch } = useGetAdminSiteContent({ query: { queryKey: getGetAdminSiteContentQueryKey() } });
+  const save = useUpdateSiteContent();
+  const { toast } = useToast();
+  const [form, setForm] = useState({ heroTitle: "", heroSubtitle: "", heroCta: "", announcement: "", footerTagline: "", primaryColor: "#4DC9EE", accentColor: "#1A2B4A" });
+  useEffect(() => { if (data) setForm(data); }, [data]);
+
+  const submit = () => {
+    if (!/^#[0-9a-fA-F]{6}$/.test(form.primaryColor) || !/^#[0-9a-fA-F]{6}$/.test(form.accentColor)) {
+      toast({ title: "Colours must be hex", description: "Example: #4DC9EE", variant: "destructive" });
+      return;
+    }
+    save.mutate({ data: form }, {
+      onSuccess: () => { toast({ title: "Site content saved", description: "Live on the landing page within a minute." }); refetch(); },
+      onError: () => toast({ title: "Could not save", variant: "destructive" }),
+    });
+  };
+
+  const Field = ({ label, value, onChange, max = 160 }: { label: string; value: string; onChange: (v: string) => void; max?: number }) => (
+    <div className="space-y-1 py-2">
+      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</p>
+      <input value={value} maxLength={max} onChange={(e) => onChange(e.target.value)}
+        className="w-full h-10 rounded-lg border border-gray-200 dark:border-gray-700 px-3 text-sm focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20" />
+    </div>
+  );
+
+  return (
+    <Section icon={<Paintbrush size={16} />} title="Site Content (Hero · Footer · Colours)">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Edits the public landing page live — no deploy. Leave a field as-is to keep it.</p>
+      <Field label="Hero title" value={form.heroTitle} onChange={(v) => setForm((f) => ({ ...f, heroTitle: v }))} />
+      <Field label="Hero subtitle" value={form.heroSubtitle} onChange={(v) => setForm((f) => ({ ...f, heroSubtitle: v }))} max={300} />
+      <Field label="Hero button text" value={form.heroCta} onChange={(v) => setForm((f) => ({ ...f, heroCta: v }))} max={60} />
+      <Field label="Announcement ribbon (empty = hidden)" value={form.announcement} onChange={(v) => setForm((f) => ({ ...f, announcement: v }))} />
+      <Field label="Footer tagline" value={form.footerTagline} onChange={(v) => setForm((f) => ({ ...f, footerTagline: v }))} />
+      <div className="grid grid-cols-2 gap-3 py-2">
+        {(["primaryColor", "accentColor"] as const).map((k) => (
+          <div key={k} className="space-y-1">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{k === "primaryColor" ? "Primary colour" : "Accent colour"}</p>
+            <div className="flex items-center gap-2">
+              <input type="color" value={form[k]} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))} className="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer" />
+              <input value={form[k]} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))} className="flex-1 h-10 rounded-lg border border-gray-200 dark:border-gray-700 px-3 text-sm font-mono" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <button onClick={submit} disabled={save.isPending} className="bg-[#4DC9EE] hover:bg-[#2E8FD6] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-colors disabled:opacity-60 mt-2">
+        {save.isPending ? "Saving…" : "Save Site Content"}
+      </button>
+    </Section>
+  );
+}
+
+// ─── Manual notifications: message everyone, or one user by email ────────────
+
+function NotificationSection() {
+  const send = useSendAdminNotification();
+  const { toast } = useToast();
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [email, setEmail] = useState("");
+
+  const submit = () => {
+    if (!title.trim() || !body.trim()) {
+      toast({ title: "Title and message are required", variant: "destructive" });
+      return;
+    }
+    send.mutate({ data: { title: title.trim(), body: body.trim(), ...(email.trim() ? { email: email.trim() } : {}) } }, {
+      onSuccess: (r) => {
+        toast({ title: "Notification sent", description: (r as { message?: string })?.message });
+        setTitle(""); setBody(""); setEmail("");
+      },
+      onError: (err) => toast({ title: "Could not send", description: (err as { data?: { message?: string } })?.data?.message ?? "Try again.", variant: "destructive" }),
+    });
+  };
+
+  return (
+    <Section icon={<Megaphone size={16} />} title="Send a Notification">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Appears instantly in every user's in-app notification bell. Leave the email empty to broadcast to all users.</p>
+      <div className="space-y-3">
+        <input value={title} maxLength={140} onChange={(e) => setTitle(e.target.value)} placeholder="Title — e.g. New: GCash withdrawals are live 🎉"
+          className="w-full h-10 rounded-lg border border-gray-200 dark:border-gray-700 px-3 text-sm focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20" />
+        <textarea value={body} maxLength={500} rows={3} onChange={(e) => setBody(e.target.value)} placeholder="Message…"
+          className="w-full rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-sm focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20" />
+        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Specific user's email (optional — empty = everyone)"
+          className="w-full h-10 rounded-lg border border-gray-200 dark:border-gray-700 px-3 text-sm focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20" />
+        <button onClick={submit} disabled={send.isPending} className="bg-[#4DC9EE] hover:bg-[#2E8FD6] text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-colors disabled:opacity-60">
+          {send.isPending ? "Sending…" : email.trim() ? "Send to user" : "Send to everyone"}
+        </button>
+      </div>
+    </Section>
   );
 }

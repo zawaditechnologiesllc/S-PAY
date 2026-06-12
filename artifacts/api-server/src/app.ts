@@ -1,5 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import ssrRouter from "./routes/ssr";
@@ -7,6 +9,23 @@ import { maintenanceGate } from "./middlewares/maintenance";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
+
+// Behind Render's proxy: needed so rate limiting sees real client IPs
+app.set("trust proxy", 1);
+
+// Hardened HTTP headers. CSP is off because this server also renders the
+// crawler job pages with inline styles; everything else (nosniff, frame
+// denial, HSTS, referrer policy…) applies.
+app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false }));
+
+// Brute-force shield on credential endpoints (per-IP)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "rate_limited", message: "Too many attempts — try again in a few minutes." },
+});
 
 app.use(
   pinoHttp({
@@ -60,6 +79,7 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true }));
 
+app.use(["/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/resend-verification"], authLimiter);
 app.use("/api", maintenanceGate, router);
 // Server-rendered job pages for crawlers (kept up during maintenance so
 // indexing never stalls) — Vercel routes bot traffic here, humans get the SPA.
