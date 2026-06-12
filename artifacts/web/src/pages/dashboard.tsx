@@ -8,6 +8,7 @@ import { ArrowUpRight, ArrowDownLeft, ChevronRight, ShieldCheck, MailCheck } fro
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { QuickActions } from "@/components/quick-actions";
+import { Landmark, Smartphone, Coins, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
@@ -100,6 +101,17 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Money services — banks & mobile money front and center, crypto kept simple */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <h3 className="font-semibold text-gray-900 mb-4">Money</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <ServiceTile href="/banking" icon={<Landmark size={20} />} label="Bank account" hint="US ACH · EU IBAN" color="#2E8FD6" />
+          <ServiceTile href="/deposit?m=momo" icon={<Smartphone size={20} />} label="Mobile money" hint="M-Pesa, MoMo…" color="#22C55E" />
+          <ServiceTile href="/deposit?m=crypto" icon={<Coins size={20} />} label="Exchange deposit" hint="Binance, Bybit…" color="#F59E0B" />
+          <ServiceTile href="/card" icon={<CreditCard size={20} />} label="Virtual card" hint="Spend online" color="#1A2B4A" />
+        </div>
+      </div>
+
       {/* Recent Transactions */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex justify-between items-center mb-6">
@@ -152,3 +164,21 @@ export default function Dashboard() {
   );
 }
 
+
+function ServiceTile({ href, icon, label, hint, color }: {
+  href: string; icon: React.ReactNode; label: string; hint: string; color: string;
+}) {
+  return (
+    <Link href={href}>
+      <div className="flex flex-col items-start gap-2 p-3 rounded-2xl border border-gray-100 hover:border-[#4DC9EE]/40 hover:shadow-sm transition-all cursor-pointer h-full">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: color }}>
+          {icon}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-900 leading-tight">{label}</p>
+          <p className="text-[11px] text-gray-400">{hint}</p>
+        </div>
+      </div>
+    </Link>
+  );
+}
