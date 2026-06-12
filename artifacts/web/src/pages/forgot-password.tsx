@@ -31,10 +31,10 @@ export default function ForgotPassword() {
         <div className="text-center mb-8">
           <img src={spayLogo} alt="S-PAY" className="mx-auto w-20 h-20 rounded-[22%] shadow-xl mb-4 block" />
           <h1 className="text-2xl font-black text-[#1A2B4A] tracking-tight">S-PAY</h1>
-          <p className="text-sm text-gray-500 mt-1">Your global digital wallet</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Your global digital wallet</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
           <div className="px-8 pt-8 pb-6">
 
             {submitted ? (
@@ -43,7 +43,7 @@ export default function ForgotPassword() {
                   <CheckCircle size={32} className="text-[#4DC9EE]" />
                 </div>
                 <h2 className="text-xl font-black text-[#1A2B4A] mb-2">Check your inbox</h2>
-                <p className="text-gray-500 text-sm leading-relaxed mb-6">
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
                   If an account exists for <span className="font-semibold text-[#1A2B4A]">{email}</span>,
                   you'll receive a password reset link within a few minutes.
                 </p>
@@ -52,7 +52,7 @@ export default function ForgotPassword() {
                 </p>
                 <Button
                   variant="outline"
-                  className="w-full rounded-xl h-11 border-gray-200"
+                  className="w-full rounded-xl h-11 border-gray-200 dark:border-gray-700"
                   onClick={() => { setSubmitted(false); setEmail(""); }}
                 >
                   Try another email
@@ -66,13 +66,13 @@ export default function ForgotPassword() {
                   </div>
                   <div>
                     <h2 className="font-black text-[#1A2B4A] text-lg">Reset your password</h2>
-                    <p className="text-gray-500 text-xs mt-0.5">We'll send a reset link to your email</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">We'll send a reset link to your email</p>
                   </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Email address
                     </Label>
                     <Input
@@ -82,7 +82,7 @@ export default function ForgotPassword() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
+                      className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
                     />
                   </div>
                   <Button
@@ -97,9 +97,9 @@ export default function ForgotPassword() {
             )}
           </div>
 
-          <div className="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
+          <div className="bg-gray-50 dark:bg-gray-800/60 px-8 py-4 border-t border-gray-100 dark:border-gray-800 text-center">
             <Link href="/login">
-              <span className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#4DC9EE] transition-colors cursor-pointer font-medium">
+              <span className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-[#4DC9EE] transition-colors cursor-pointer font-medium">
                 <ArrowLeft size={14} /> Back to sign in
               </span>
             </Link>

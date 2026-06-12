@@ -16,6 +16,8 @@ const ALLOWED = [
   /^\/auth\/oauth\//,
   /^\/auth\/me/,
   /^\/webhooks\//,
+  /^\/site-content/,
+  /^\/enquiries/,
   /^\/admin\//,
 ];
 

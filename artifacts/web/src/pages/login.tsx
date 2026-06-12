@@ -55,18 +55,18 @@ export default function Login() {
         <div className="text-center mb-8">
           <img src={spayLogo} alt="S-PAY" className="mx-auto w-20 h-20 rounded-[22%] shadow-xl mb-4 block" />
           <h1 className="text-2xl font-black text-[#1A2B4A] tracking-tight">S-PAY</h1>
-          <p className="text-sm text-gray-500 mt-1">Your global digital wallet</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Your global digital wallet</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
 
           {/* Google button */}
           <div className="px-8 pt-8 pb-6">
             <button
               type="button"
               onClick={() => { window.location.href = `${import.meta.env.VITE_API_URL ?? ""}/api/auth/google`; }}
-              className="w-full flex items-center justify-center gap-3 border border-gray-200 rounded-xl py-3 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-center gap-3 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -80,10 +80,10 @@ export default function Login() {
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
+                <div className="w-full border-t border-gray-200 dark:border-gray-700" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-white px-4 text-xs text-gray-400 font-medium">or</span>
+                <span className="bg-white dark:bg-gray-900 px-4 text-xs text-gray-400 font-medium">or</span>
               </div>
             </div>
 
@@ -91,7 +91,7 @@ export default function Login() {
             <p className="text-sm font-semibold text-[#1A2B4A] mb-4">Sign in with email</p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -99,12 +99,12 @@ export default function Login() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
+                  className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
                 />
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
+                  <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">Password</Label>
                   <Link href="/forgot-password" className="text-xs text-[#4DC9EE] hover:underline font-medium">Forgot password?</Link>
                 </div>
                 <Input
@@ -113,7 +113,7 @@ export default function Login() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-xl border-gray-200 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
+                  className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
                 />
               </div>
               <Button
@@ -127,8 +127,8 @@ export default function Login() {
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
-            <p className="text-sm text-gray-500">
+          <div className="bg-gray-50 dark:bg-gray-800/60 px-8 py-4 border-t border-gray-100 dark:border-gray-800 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Don't have an account?{" "}
               <Link href="/register" className="text-[#4DC9EE] hover:underline font-semibold">
                 Create account

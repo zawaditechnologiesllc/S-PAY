@@ -3,6 +3,7 @@ import { requireAuth } from "../middlewares/auth";
 import { getTokenBalances, type CeloToken } from "../lib/celo-chain";
 import { ensureUserWallet, getSendableProvider } from "../lib/wallet-providers";
 import { getFeeSchedule } from "../lib/settings";
+import { notifyUser } from "../lib/notify";
 import { db, usersTable, transactionsTable } from "@workspace/db";
 import { eq, desc, count } from "drizzle-orm";
 
@@ -167,6 +168,7 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
         status: "completed",
         txHash,
       });
+      notifyUser(recipientUser.id, "Money received 💸", `${sender.fullName} sent you ${amount} ${token}. It's already in your balance.`);
     }
 
     res.json({

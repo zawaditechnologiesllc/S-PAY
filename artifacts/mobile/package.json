@@ -60,6 +60,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
-    "expo-clipboard": "^8.0.8"
+    "expo-clipboard": "^8.0.8",
+    "react-native-qrcode-svg": "^6.3.21"
   }
 }

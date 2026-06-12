@@ -3,6 +3,7 @@ import { requireAuth } from "../middlewares/auth";
 import {
   isCardProgramEnabled, setCardProgramEnabled,
   getMaintenance, setMaintenance,
+  getSiteContent, setSiteContent, type SiteContent,
   getFeeSchedule, setFeeSchedule, type FeeSchedule,
   getWalletProviderConfig, setWalletProviderConfig,
   WALLET_PROVIDER_KEYS, type WalletProviderKey,
@@ -10,7 +11,8 @@ import {
 import { walletProviderCatalog } from "../lib/wallet-providers";
 import { isStripeConfigured } from "../lib/stripe-issuing";
 import { invalidateCustomJobs, CATEGORY_LABELS } from "../lib/jobs";
-import { db, usersTable, transactionsTable, cardWaitlistTable, customJobsTable } from "@workspace/db";
+import { db, usersTable, transactionsTable, cardWaitlistTable, customJobsTable, enquiriesTable, notificationsTable } from "@workspace/db";
+import { notifyAll, notifyUser } from "../lib/notify";
 import { eq, count, desc, sql, isNotNull } from "drizzle-orm";
 
 const router = Router();
@@ -385,6 +387,102 @@ router.delete("/admin/custom-jobs/:jobId", requireAuth, requireAdmin, async (req
   } catch (err) {
     req.log.error({ err }, "Custom job delete error");
     res.status(500).json({ error: "internal_error", message: "Failed to remove listing" });
+  }
+});
+
+
+// ─── Manual notifications: message every user or one user, from the admin ────
+
+router.post("/admin/notifications", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { title, body, email } = req.body as { title?: unknown; body?: unknown; email?: unknown };
+    if (typeof title !== "string" || !title.trim() || typeof body !== "string" || !body.trim()) {
+      res.status(400).json({ error: "validation_error", message: "title and body are required" });
+      return;
+    }
+    if (email !== undefined && email !== "") {
+      if (typeof email !== "string") {
+        res.status(400).json({ error: "validation_error", message: "email must be a string" });
+        return;
+      }
+      const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email.trim())).limit(1);
+      if (!user) {
+        res.status(404).json({ error: "not_found", message: "No user with that email" });
+        return;
+      }
+      notifyUser(user.id, title.trim(), body.trim(), "announcement");
+      req.log.info({ admin: req.user!.email, to: email }, "Admin notification sent to one user");
+      res.json({ message: `Notification sent to ${email}.` });
+      return;
+    }
+    notifyAll(title.trim(), body.trim());
+    req.log.info({ admin: req.user!.email }, "Admin broadcast notification sent");
+    res.json({ message: "Notification sent to all users." });
+  } catch (err) {
+    req.log.error({ err }, "Admin notification error");
+    res.status(500).json({ error: "internal_error", message: "Failed to send notification" });
+  }
+});
+
+// ─── Enquiries inbox: everything from the landing page, contact page & app ───
+
+router.get("/admin/enquiries", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const rows = await db.select().from(enquiriesTable).orderBy(desc(enquiriesTable.createdAt)).limit(500);
+    const [{ total }] = await db.select({ total: count() }).from(enquiriesTable);
+    res.json({ enquiries: rows.map((e) => ({ ...e, createdAt: e.createdAt.toISOString() })), total });
+  } catch (err) {
+    req.log.error({ err }, "Admin enquiries error");
+    res.status(500).json({ error: "internal_error", message: "Failed to load enquiries" });
+  }
+});
+
+router.put("/admin/enquiries/:enquiryId", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const status = (req.body as { status?: string }).status === "resolved" ? "resolved" : "new";
+    await db.update(enquiriesTable).set({ status }).where(eq(enquiriesTable.id, req.params.enquiryId as string));
+    res.json({ message: status === "resolved" ? "Marked resolved." : "Reopened." });
+  } catch (err) {
+    req.log.error({ err }, "Admin enquiry update error");
+    res.status(500).json({ error: "internal_error", message: "Failed to update enquiry" });
+  }
+});
+
+// ─── Site content: hero, footer, colours — live edits, no deploy ──────────────
+
+router.get("/admin/site-content", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    res.json(await getSiteContent());
+  } catch (err) {
+    req.log.error({ err }, "Site content read error");
+    res.status(500).json({ error: "internal_error", message: "Failed to read site content" });
+  }
+});
+
+router.put("/admin/site-content", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const body = req.body as Partial<SiteContent>;
+    const update: Partial<SiteContent> = {};
+    const fields: (keyof SiteContent)[] = ["heroTitle", "heroSubtitle", "heroCta", "announcement", "footerTagline", "primaryColor", "accentColor"];
+    for (const f of fields) {
+      const v = body[f];
+      if (v === undefined) continue;
+      if (typeof v !== "string") {
+        res.status(400).json({ error: "validation_error", message: `${f} must be a string` });
+        return;
+      }
+      if ((f === "primaryColor" || f === "accentColor") && !/^#[0-9a-fA-F]{6}$/.test(v)) {
+        res.status(400).json({ error: "validation_error", message: `${f} must be a hex colour like #4DC9EE` });
+        return;
+      }
+      update[f] = v.slice(0, f === "heroSubtitle" ? 300 : 160);
+    }
+    const next = await setSiteContent(update);
+    req.log.info({ admin: req.user!.email }, "Site content updated");
+    res.json(next);
+  } catch (err) {
+    req.log.error({ err }, "Site content update error");
+    res.status(500).json({ error: "internal_error", message: "Failed to update site content" });
   }
 });
 

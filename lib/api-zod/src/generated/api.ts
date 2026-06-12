@@ -778,6 +778,185 @@ export const DeleteCustomJobResponse = zod.object({
 
 
 /**
+ * @summary Public marketing content (hero, footer, colours) — editable in the admin panel
+ */
+export const GetSiteContentResponse = zod.object({
+  "heroTitle": zod.string(),
+  "heroSubtitle": zod.string(),
+  "heroCta": zod.string(),
+  "announcement": zod.string(),
+  "footerTagline": zod.string(),
+  "primaryColor": zod.string(),
+  "accentColor": zod.string()
+})
+
+
+/**
+ * @summary The signed-in user's notifications (personal + broadcasts) with unread count
+ */
+export const GetNotificationsResponse = zod.object({
+  "notifications": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "body": zod.string(),
+  "category": zod.string().nullish(),
+  "unread": zod.boolean(),
+  "createdAt": zod.string()
+})),
+  "unreadCount": zod.number()
+})
+
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const MarkNotificationsReadResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Submit an enquiry (landing page, contact page, or in-app — one funnel)
+ */
+export const createEnquiryBodyNameMax = 120;
+
+export const createEnquiryBodySubjectMax = 160;
+
+export const createEnquiryBodyMessageMax = 5000;
+
+export const createEnquiryBodySourceMax = 40;
+
+
+
+export const CreateEnquiryBody = zod.object({
+  "name": zod.string().max(createEnquiryBodyNameMax).optional(),
+  "email": zod.string().email(),
+  "subject": zod.string().max(createEnquiryBodySubjectMax).optional(),
+  "message": zod.string().max(createEnquiryBodyMessageMax),
+  "source": zod.string().max(createEnquiryBodySourceMax).optional()
+})
+
+
+/**
+ * @summary Start a mobile-money top-up (executes via the payments partner)
+ */
+export const InitiateDepositBody = zod.object({
+  "amount": zod.number(),
+  "method": zod.string(),
+  "phoneNumber": zod.string().optional()
+})
+
+export const InitiateDepositResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Send a manual notification — to every user, or one user by email
+ */
+export const sendAdminNotificationBodyTitleMax = 140;
+
+export const sendAdminNotificationBodyBodyMax = 500;
+
+
+
+export const SendAdminNotificationBody = zod.object({
+  "title": zod.string().max(sendAdminNotificationBodyTitleMax),
+  "body": zod.string().max(sendAdminNotificationBodyBodyMax),
+  "email": zod.string().optional().describe('Leave empty to broadcast to all users')
+})
+
+export const SendAdminNotificationResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary All enquiries collected from the landing page, contact page and app
+ */
+export const GetAdminEnquiriesResponse = zod.object({
+  "enquiries": zod.array(zod.object({
+  "id": zod.string(),
+  "userId": zod.string().nullish(),
+  "name": zod.string().nullish(),
+  "email": zod.string(),
+  "subject": zod.string().nullish(),
+  "message": zod.string(),
+  "source": zod.string().nullish(),
+  "status": zod.string(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Resolve or reopen an enquiry
+ */
+export const UpdateEnquiryParams = zod.object({
+  "enquiryId": zod.coerce.string()
+})
+
+export const UpdateEnquiryBody = zod.object({
+  "status": zod.enum(['new', 'resolved'])
+})
+
+export const UpdateEnquiryResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Read the editable site content (hero, footer, colours)
+ */
+export const GetAdminSiteContentResponse = zod.object({
+  "heroTitle": zod.string(),
+  "heroSubtitle": zod.string(),
+  "heroCta": zod.string(),
+  "announcement": zod.string(),
+  "footerTagline": zod.string(),
+  "primaryColor": zod.string(),
+  "accentColor": zod.string()
+})
+
+
+/**
+ * @summary Edit the hero, footer and brand colours (live, no deploy)
+ */
+export const updateSiteContentBodyHeroTitleMax = 160;
+
+export const updateSiteContentBodyHeroSubtitleMax = 300;
+
+export const updateSiteContentBodyHeroCtaMax = 60;
+
+export const updateSiteContentBodyAnnouncementMax = 160;
+
+export const updateSiteContentBodyFooterTaglineMax = 160;
+
+export const updateSiteContentBodyPrimaryColorRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
+export const updateSiteContentBodyAccentColorRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
+
+
+export const UpdateSiteContentBody = zod.object({
+  "heroTitle": zod.string().max(updateSiteContentBodyHeroTitleMax).optional(),
+  "heroSubtitle": zod.string().max(updateSiteContentBodyHeroSubtitleMax).optional(),
+  "heroCta": zod.string().max(updateSiteContentBodyHeroCtaMax).optional(),
+  "announcement": zod.string().max(updateSiteContentBodyAnnouncementMax).optional(),
+  "footerTagline": zod.string().max(updateSiteContentBodyFooterTaglineMax).optional(),
+  "primaryColor": zod.string().regex(updateSiteContentBodyPrimaryColorRegExp).optional(),
+  "accentColor": zod.string().regex(updateSiteContentBodyAccentColorRegExp).optional()
+}).describe('Partial update — any subset of the site content fields')
+
+export const UpdateSiteContentResponse = zod.object({
+  "heroTitle": zod.string(),
+  "heroSubtitle": zod.string(),
+  "heroCta": zod.string(),
+  "announcement": zod.string(),
+  "footerTagline": zod.string(),
+  "primaryColor": zod.string(),
+  "accentColor": zod.string()
+})
+
+
+/**
  * @summary Read the wallet (WaaS) provider switches — active provider, per-provider on/off, configuration status, wallet counts
  */
 export const GetWalletProvidersResponse = zod.object({

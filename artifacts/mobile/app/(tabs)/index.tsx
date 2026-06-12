@@ -116,7 +116,7 @@ export default function WalletScreen() {
           <View style={styles.quickActions}>
             {[
               { icon: "send" as const, label: "Transfer", color: "#F59E0B", onPress: () => { Haptics.impactAsync(); setSendVisible(true); } },
-              { icon: "plus" as const, label: "Recharge", color: "#22C55E", onPress: () => router.push("/(tabs)/banking") },
+              { icon: "plus" as const, label: "Recharge", color: "#22C55E", onPress: () => router.push("/deposit") },
               { icon: "arrow-up" as const, label: "Withdraw", color: "#2E8FD6", onPress: () => router.push("/withdraw") },
               { icon: "grid" as const, label: "More", color: "#64748B", onPress: () => {} },
             ].map((a) => (

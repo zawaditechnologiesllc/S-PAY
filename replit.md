@@ -22,7 +22,7 @@ S-PAY is a digital money super app for remote workers and businesses, **built on
 
 ## Where things live
 
-- `artifacts/api-server/src/routes/` — `auth` (register/login/oauth/me/delete), `wallet` (chain balances, P2P + address sends, deposit instructions), `banking` (accounts/rates/withdraw — Noah-gated), `card` (details/issue/waitlist — flag-gated), `jobs` (+ `/sitemap.xml`), `ssr` (bot-rendered job pages), `admin` (stats/users/transactions/feature-flags/fees/custom-jobs/settings), `webhooks` (Noah KYC/KYB + deposits, Stripe), `health` (`/healthz`, `/status`)
+- `artifacts/api-server/src/routes/` — `auth` (register/login/oauth/me/delete/verify-email/reset), `notifications` (list/mark-read; helper `lib/notify.ts` — notifyUser/notifyAll, called from sends/webhooks/admin), `enquiries` (public POST, rate-limited), `kyc` (start), `wallet` (chain balances, P2P + address sends, deposit instructions), `banking` (accounts/rates/withdraw — Noah-gated), `card` (details/issue/waitlist — flag-gated), `jobs` (+ `/sitemap.xml`), `ssr` (bot-rendered job pages), `admin` (stats/users/transactions/feature-flags/fees/custom-jobs/settings), `webhooks` (Noah KYC/KYB + deposits, Stripe), `health` (`/healthz`, `/status`)
 - `artifacts/api-server/src/lib/` — `jobs` (aggregator+filters+custom listings), `wallet-providers` (WaaS abstraction: Privy/CDP/Turnkey/Openfort/thirdweb/Dynamic, JIT provisioning `ensureUserWallet`, per-wallet signing), `celo-chain` (keyless balances, token constants), `stripe-issuing`, `settings` (app_settings: flags/fees/maintenance/wallet_providers), `migrate`, `auth`
 - `artifacts/api-server/src/middlewares/` — `auth` (JWT), `maintenance` (503 gate; allows health/status/login/oauth/webhooks/admin)
 - Web pages: `artifacts/web/src/pages/` (+ `admin/`, `maintenance.tsx`, `exchange-withdraw.tsx`); layouts in `components/layout.tsx` (app), `public-layout.tsx` (marketing), `admin/layout.tsx`
@@ -39,6 +39,10 @@ S-PAY is a digital money super app for remote workers and businesses, **built on
 - **Accounts**: `personal` (Noah KYC) vs `business` (Noah KYB, requires `businessName`, virtual accounts in company name). Identical wallet/USDC/USDT rails for both.
 - **Attribution**: every signup records `signup_source` (jobs board → `jobs:<jobId>`; carried through Google OAuth `state`; mobile tags itself).
 - **Admin** access = `ADMIN_EMAILS` env (server-enforced), not a DB role.
+- **Notifications**: rows with user_id are personal, NULL = broadcast; per-user read state = users.notifications_read_at (no fan-out). Auto-fired on P2P receive, Noah deposit credit, KYC approval; manual via POST /admin/notifications.
+- **Site content** (`app_settings.site_content`): hero/footer/colours served by public GET /site-content, consumed by landing + public layout; edited in Admin → Settings.
+- **Security**: helmet (CSP off for SSR pages), trust proxy 1, rate limits on /api/auth/* (50/15min/IP) and /api/enquiries (10/h/IP).
+- **Dark mode**: class-based (`@custom-variant dark` in index.css), toggle persists in localStorage (`spay-theme`); marketing pages stay light by design.
 - **Webhooks**: HMAC over the **raw body** (captured in `app.ts`), constant-time compare; unsigned rejected once a secret is set.
 
 ## Gotchas

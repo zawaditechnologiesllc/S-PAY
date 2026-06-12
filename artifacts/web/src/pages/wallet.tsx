@@ -21,13 +21,13 @@ export default function Wallet() {
 
   return (
     <Layout back title="Transactions">
-      <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white mt-4">
-        <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-          <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+      <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white dark:bg-gray-900 mt-4">
+        <div className="p-4 border-b flex justify-between items-center bg-gray-50 dark:bg-gray-800/60">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
             <SlidersHorizontal size={16} /> Filter
           </div>
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[180px] bg-white">
+            <SelectTrigger className="w-[180px] bg-white dark:bg-gray-900">
               <SelectValue placeholder="All Transactions" />
             </SelectTrigger>
             <SelectContent>
@@ -55,11 +55,11 @@ export default function Wallet() {
               ))}
             </div>
           ) : filteredTransactions.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="p-12 text-center text-gray-500 dark:text-gray-400">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <SlidersHorizontal className="text-gray-400" size={24} />
               </div>
-              <h3 className="font-medium text-gray-900 mb-1">No transactions found</h3>
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">No transactions found</h3>
               <p className="text-sm">Try changing your filters.</p>
             </div>
           ) : (
@@ -67,16 +67,16 @@ export default function Wallet() {
               {filteredTransactions.map((tx) => {
                 const isPositive = tx.type === 'receive' || tx.type === 'recharge';
                 return (
-                  <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                  <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white
                         ${isPositive ? 'bg-green-500' : 'bg-orange-500'}`}>
                         {isPositive ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                       </div>
                       <div>
-                        <h4 className="font-medium text-gray-900">{tx.description}</h4>
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{tx.description}</h4>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             {new Date(tx.createdAt).toLocaleDateString()}
                           </span>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize font-medium
@@ -89,11 +89,11 @@ export default function Wallet() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className={`font-semibold ${isPositive ? 'text-green-600' : 'text-gray-900'}`}>
+                      <div className={`font-semibold ${isPositive ? 'text-green-600' : 'text-gray-900 dark:text-gray-100'}`}>
                         {isPositive ? '+' : '-'}{tx.currency} {tx.amount.toFixed(2)}
                       </div>
                       {tx.counterparty && (
-                        <div className="text-xs text-gray-500 mt-1">{tx.counterparty}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tx.counterparty}</div>
                       )}
                     </div>
                   </div>

@@ -124,4 +124,30 @@ router.post("/banking/withdraw", requireAuth, async (req, res) => {
   });
 });
 
+// Mobile-money top-up. Gated on the payments partner: the endpoint, quotes,
+// and UI are live — execution starts the moment NOAH_API_KEY is set.
+router.post("/banking/deposit", requireAuth, async (req, res) => {
+  try {
+    const { amount, method, phoneNumber } = req.body as { amount?: number; method?: string; phoneNumber?: string };
+    if (!amount || amount <= 0 || !method) {
+      res.status(400).json({ error: "validation_error", message: "amount and method are required" });
+      return;
+    }
+    if (!noahConfigured()) {
+      res.status(503).json({
+        error: "not_configured",
+        message: "Mobile money top-ups are being switched on. Use Exchange or wallet deposit meanwhile — it's instant.",
+      });
+      return;
+    }
+    // TODO (Noah onramp): create the collection request for `method` and
+    // return the payment instructions / STK push status.
+    req.log.info({ method, amount, phoneNumber }, "Deposit requested");
+    res.status(503).json({ error: "not_configured", message: "Deposit rails are being finalized with our payments partner." });
+  } catch (err) {
+    req.log.error({ err }, "Deposit error");
+    res.status(500).json({ error: "internal_error", message: "Could not start the deposit" });
+  }
+});
+
 export default router;

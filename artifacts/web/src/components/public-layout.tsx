@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useGetSiteContent, getGetSiteContentQueryKey } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { Globe, Mail, Menu, X, ArrowRight } from "lucide-react";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
@@ -211,6 +212,7 @@ export function PublicLayout({
   children: React.ReactNode;
   active?: string;
 }) {
+  const { data: site } = useGetSiteContent({ query: { queryKey: getGetSiteContentQueryKey(), staleTime: 60_000 } });
   return (
     <div className="min-h-screen bg-white font-sans overflow-x-hidden">
       <PublicNav active={active} />

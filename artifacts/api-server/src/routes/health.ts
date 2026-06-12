@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { HealthCheckResponse } from "@workspace/api-zod";
-import { getMaintenance } from "../lib/settings";
+import { getMaintenance, getSiteContent } from "../lib/settings";
 
 const router: IRouter = Router();
 
@@ -17,3 +17,12 @@ router.get("/status", async (_req, res) => {
 });
 
 export default router;
+
+// Public marketing content (hero/footer/colours) — editable in /admin/settings
+router.get("/site-content", async (_req, res) => {
+  try {
+    res.json(await getSiteContent());
+  } catch {
+    res.status(500).json({ error: "internal_error", message: "Failed to load site content" });
+  }
+});

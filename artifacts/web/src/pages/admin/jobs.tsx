@@ -63,48 +63,48 @@ export default function AdminJobs() {
         </div>
 
         {/* Add listing */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+          <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <Plus size={18} className="text-[#4DC9EE]" /> Publish a listing
           </h3>
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-600">Job title *</label>
+              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Job title *</label>
               <Input required value={form.title} onChange={(e) => set("title")(e.target.value)} placeholder="Senior Backend Engineer" className="rounded-xl" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-600">Company *</label>
+              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Company *</label>
               <Input required value={form.company} onChange={(e) => set("company")(e.target.value)} placeholder="S-PAY" className="rounded-xl" />
             </div>
             <div className="space-y-1 md:col-span-2">
-              <label className="text-xs font-semibold text-gray-600">Apply URL *</label>
+              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Apply URL *</label>
               <Input required type="url" value={form.applyUrl} onChange={(e) => set("applyUrl")(e.target.value)} placeholder="https://spayewallet.com/careers" className="rounded-xl" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-600">Category</label>
+              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Category</label>
               <select
                 value={form.category}
                 onChange={(e) => set("category")(e.target.value)}
-                className="w-full h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:border-[#4DC9EE]"
+                className="w-full h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm focus:outline-none focus:border-[#4DC9EE]"
               >
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-600">Location</label>
+              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Location</label>
               <Input value={form.location} onChange={(e) => set("location")(e.target.value)} placeholder="Worldwide" className="rounded-xl" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-600">Salary (optional)</label>
+              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Salary (optional)</label>
               <Input value={form.salary} onChange={(e) => set("salary")(e.target.value)} placeholder="$60k–$90k" className="rounded-xl" />
             </div>
             <div className="space-y-1 md:col-span-2">
-              <label className="text-xs font-semibold text-gray-600">Description (optional, HTML allowed)</label>
+              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Description (optional, HTML allowed)</label>
               <textarea
                 value={form.description}
                 onChange={(e) => set("description")(e.target.value)}
                 rows={4}
-                className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:outline-none focus:border-[#4DC9EE]"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 p-3 text-sm focus:outline-none focus:border-[#4DC9EE]"
                 placeholder="What the role involves, requirements, how to apply…"
               />
             </div>
@@ -117,8 +117,8 @@ export default function AdminJobs() {
         </div>
 
         {/* Active listings */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+          <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <Briefcase size={18} className="text-[#4DC9EE]" /> Active S-PAY listings
           </h3>
           {isLoading ? (
@@ -130,8 +130,8 @@ export default function AdminJobs() {
               {data.jobs.map((j) => (
                 <div key={j.id} className="flex items-center justify-between py-3 gap-4">
                   <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm truncate">{j.title}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">{j.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {j.company} · {j.category ?? "Engineering"} · {j.location ?? "Worldwide"} · added {new Date(j.createdAt).toLocaleDateString()}
                     </p>
                   </div>

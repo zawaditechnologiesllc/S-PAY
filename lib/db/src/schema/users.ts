@@ -23,6 +23,7 @@ export const usersTable = pgTable("users", {
   emailVerifyExpires: timestamp("email_verify_expires"),
   passwordResetToken: text("password_reset_token"),      // sha256 of the emailed token
   passwordResetExpires: timestamp("password_reset_expires"),
+  notificationsReadAt: timestamp("notifications_read_at"), // everything created after this is "unread"
   isAdmin: boolean("is_admin").default(false).notNull(),
   celoWalletAddress: text("celo_wallet_address"), // provisioned lazily on the first money action — never at signup/login (keeps WaaS MAU billing at zero for jobs-only users)
   // Wallet-as-a-service linkage. The DB column keeps its historical name

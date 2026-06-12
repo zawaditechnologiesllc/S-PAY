@@ -18,7 +18,7 @@ export default function Withdraw() {
   const { toast } = useToast();
   
   const [amount, setAmount] = useState<string>("100");
-  const [method, setMethod] = useState<"mpesa" | "sepa" | "pix" | "bank_transfer">("mpesa");
+  const [method, setMethod] = useState<string>("mpesa");
   const [targetCurrency, setTargetCurrency] = useState("KES");
   const [recipient, setRecipient] = useState("");
 
@@ -26,10 +26,11 @@ export default function Withdraw() {
 
   // Auto-select currency based on method
   useEffect(() => {
-    if (method === "mpesa") setTargetCurrency("KES");
-    if (method === "sepa") setTargetCurrency("EUR");
-    if (method === "pix") setTargetCurrency("BRL");
-    if (method === "bank_transfer") setTargetCurrency("USD");
+    const currency: Record<string, string> = {
+      mpesa: "KES", mtn_momo: "UGX", airtel: "NGN", gcash: "PHP", gopay: "IDR",
+      nequi: "COP", pix: "BRL", spei: "MXN", sepa: "EUR", faster_payments: "GBP", bank_transfer: "USD",
+    };
+    setTargetCurrency(currency[method] ?? "USD");
   }, [method]);
 
   const { data: fxData } = useGetExchangeRates(
@@ -57,10 +58,11 @@ export default function Withdraw() {
       method
     };
 
-    if (method === "mpesa") payload.recipientPhone = recipient;
+    const phoneMethods = ["mpesa", "mtn_momo", "airtel", "gcash", "nequi"];
+    if (phoneMethods.includes(method)) payload.recipientPhone = recipient;
     else if (method === "sepa") payload.recipientIban = recipient;
     else if (method === "pix") payload.recipientTaxId = recipient;
-    else payload.recipientAccount = recipient; // mock for bank_transfer
+    else payload.recipientAccount = recipient; // bank account / CLABE / sort code
 
     withdrawMutation.mutate({ data: payload }, {
       onSuccess: () => {
@@ -80,7 +82,8 @@ export default function Withdraw() {
     });
   };
 
-  const estimatedArrival = method === "mpesa" ? "Instant" : method === "pix" ? "Minutes" : "1-2 Business Days";
+  const fastMethods = ["mpesa", "mtn_momo", "airtel", "gcash", "pix", "nequi"];
+  const estimatedArrival = fastMethods.includes(method) ? "Within minutes" : method === "spei" ? "Same day" : "1-2 Business Days";
 
   return (
     <Layout back title="Withdraw Funds">
@@ -98,9 +101,9 @@ export default function Withdraw() {
         </div>
       </Link>
 
-      <Card className="max-w-xl mx-auto border-0 shadow-lg rounded-2xl bg-white mt-4 overflow-hidden">
-        <CardHeader className="bg-gray-50 border-b pb-4">
-          <CardTitle className="text-lg text-gray-800">Send to Local Bank</CardTitle>
+      <Card className="max-w-xl mx-auto border-0 shadow-lg rounded-2xl bg-white dark:bg-gray-900 mt-4 overflow-hidden">
+        <CardHeader className="bg-gray-50 dark:bg-gray-800/60 border-b pb-4">
+          <CardTitle className="text-lg text-gray-800 dark:text-gray-200">Send to Local Bank</CardTitle>
         </CardHeader>
         
         <CardContent className="p-6">
@@ -109,23 +112,17 @@ export default function Withdraw() {
             {/* Method Selection */}
             <div className="space-y-3">
               <Label>Withdrawal Method</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <MethodOption 
-                  id="mpesa" icon={<Smartphone />} label="M-Pesa" 
-                  selected={method === "mpesa"} onClick={() => setMethod("mpesa")} 
-                />
-                <MethodOption 
-                  id="sepa" icon={<Landmark />} label="SEPA (EUR)" 
-                  selected={method === "sepa"} onClick={() => setMethod("sepa")} 
-                />
-                <MethodOption 
-                  id="pix" icon={<Smartphone />} label="PIX (BRL)" 
-                  selected={method === "pix"} onClick={() => setMethod("pix")} 
-                />
-                <MethodOption 
-                  id="bank_transfer" icon={<Landmark />} label="Bank Wire" 
-                  selected={method === "bank_transfer"} onClick={() => setMethod("bank_transfer")} 
-                />
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <MethodOption id="mpesa" icon={<Smartphone />} label="M-Pesa" selected={method === "mpesa"} onClick={() => setMethod("mpesa")} />
+                <MethodOption id="mtn_momo" icon={<Smartphone />} label="MTN MoMo" selected={method === "mtn_momo"} onClick={() => setMethod("mtn_momo")} />
+                <MethodOption id="airtel" icon={<Smartphone />} label="Airtel / NG Bank" selected={method === "airtel"} onClick={() => setMethod("airtel")} />
+                <MethodOption id="gcash" icon={<Smartphone />} label="GCash" selected={method === "gcash"} onClick={() => setMethod("gcash")} />
+                <MethodOption id="pix" icon={<MoveRight />} label="PIX (Brazil)" selected={method === "pix"} onClick={() => setMethod("pix")} />
+                <MethodOption id="nequi" icon={<Smartphone />} label="Nequi (CO)" selected={method === "nequi"} onClick={() => setMethod("nequi")} />
+                <MethodOption id="spei" icon={<Landmark />} label="SPEI (MX)" selected={method === "spei"} onClick={() => setMethod("spei")} />
+                <MethodOption id="sepa" icon={<Landmark />} label="SEPA (EUR)" selected={method === "sepa"} onClick={() => setMethod("sepa")} />
+                <MethodOption id="faster_payments" icon={<Landmark />} label="UK Faster Pay" selected={method === "faster_payments"} onClick={() => setMethod("faster_payments")} />
+                <MethodOption id="bank_transfer" icon={<Landmark />} label="US / Intl Bank" selected={method === "bank_transfer"} onClick={() => setMethod("bank_transfer")} />
               </div>
             </div>
 
@@ -133,7 +130,7 @@ export default function Withdraw() {
             <div className="space-y-2">
               <Label>Amount (USDC)</Label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none font-medium text-gray-500">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none font-medium text-gray-500 dark:text-gray-400">
                   $
                 </div>
                 <Input 
@@ -165,32 +162,32 @@ export default function Withdraw() {
             </div>
 
             {/* Rate Preview */}
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3">
-               <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 border border-gray-100 dark:border-gray-800 space-y-3">
+               <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
                  Conversion Preview
                </h4>
                
                <div className="flex justify-between text-sm">
-                 <span className="text-gray-500">Exchange Rate</span>
-                 <span className="font-medium text-gray-900">
+                 <span className="text-gray-500 dark:text-gray-400">Exchange Rate</span>
+                 <span className="font-medium text-gray-900 dark:text-gray-100">
                    {fxData ? `1 USDC = ${fxData.rate} ${targetCurrency}` : "Loading..."}
                  </span>
                </div>
                
                <div className="flex justify-between text-sm">
-                 <span className="text-gray-500">Network Fee</span>
-                 <span className="font-medium text-gray-900">
+                 <span className="text-gray-500 dark:text-gray-400">Network Fee</span>
+                 <span className="font-medium text-gray-900 dark:text-gray-100">
                    {fxData ? `${fxData.fee} USDC` : "-"}
                  </span>
                </div>
 
                <div className="flex justify-between text-sm">
-                 <span className="text-gray-500">Estimated Arrival</span>
-                 <span className="font-medium text-gray-900 text-right">{estimatedArrival}</span>
+                 <span className="text-gray-500 dark:text-gray-400">Estimated Arrival</span>
+                 <span className="font-medium text-gray-900 dark:text-gray-100 text-right">{estimatedArrival}</span>
                </div>
 
-               <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
-                 <span className="font-semibold text-gray-900">You Receive</span>
+               <div className="pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                 <span className="font-semibold text-gray-900 dark:text-gray-100">You Receive</span>
                  <span className="text-lg font-bold text-green-600">
                    {fxData && numAmount > 0 
                      ? `${(numAmount * fxData.rate).toFixed(2)} ${targetCurrency}` 
@@ -219,7 +216,7 @@ function MethodOption({ id, icon, label, selected, onClick }: any) {
     <div 
       onClick={onClick}
       className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all ${
-        selected ? 'border-primary bg-primary/5 text-primary' : 'border-gray-100 bg-white hover:border-gray-200 text-gray-500'
+        selected ? 'border-primary bg-primary/5 text-primary' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-200 text-gray-500 dark:text-gray-400'
       }`}
     >
       <div className="mb-2">{icon}</div>

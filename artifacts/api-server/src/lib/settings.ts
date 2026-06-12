@@ -157,3 +157,41 @@ export async function setFeeSchedule(fees: FeeSchedule): Promise<void> {
 export function withdrawalFee(amount: number, fees: FeeSchedule): number {
   return Math.max(fees.withdrawalFeeMin, amount * (fees.withdrawalFeePercent / 100));
 }
+
+// ── Site content (hero, footer, colours) ──────────────────────────────────────
+// Marketing copy an admin edits live from /admin/settings — no deploy. The
+// public GET /site-content endpoint serves it to the landing page and footer.
+
+export interface SiteContent {
+  heroTitle: string;
+  heroSubtitle: string;
+  heroCta: string;
+  announcement: string;     // empty = no announcement ribbon
+  footerTagline: string;
+  primaryColor: string;     // brand primary (hex)
+  accentColor: string;      // brand accent (hex)
+}
+
+export const DEFAULT_SITE_CONTENT: SiteContent = {
+  heroTitle: "Get paid like a local, anywhere on Earth",
+  heroSubtitle: "Your digital dollar account: receive bank transfers, hold USD, and cash out to M-Pesa, MoMo, PIX & more — in minutes.",
+  heroCta: "Open your free account",
+  announcement: "",
+  footerTagline: "The digital money super app for remote workers and businesses.",
+  primaryColor: "#4DC9EE",
+  accentColor: "#1A2B4A",
+};
+
+const SITE_CONTENT_KEY = "site_content";
+
+export async function getSiteContent(): Promise<SiteContent> {
+  const stored = await getSetting<Partial<SiteContent>>(SITE_CONTENT_KEY, {});
+  return { ...DEFAULT_SITE_CONTENT, ...stored };
+}
+
+export async function setSiteContent(update: Partial<SiteContent>): Promise<SiteContent> {
+  const current = await getSiteContent();
+  const next = { ...current, ...update };
+  await setSetting(SITE_CONTENT_KEY, next);
+  return next;
+}

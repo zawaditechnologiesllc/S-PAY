@@ -29,7 +29,7 @@ export default function JobDetail() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800">
         {isLoading ? (
           <div className="p-8 space-y-6">
             <div className="flex items-center gap-4">
@@ -50,7 +50,7 @@ export default function JobDetail() {
             </div>
           </div>
         ) : !job ? (
-          <div className="p-12 text-center text-gray-500">
+          <div className="p-12 text-center text-gray-500 dark:text-gray-400">
             Job not found.
           </div>
         ) : (
@@ -58,7 +58,7 @@ export default function JobDetail() {
             <div className="p-6 md:p-8 border-b">
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 rounded-xl bg-gray-50 border flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="w-16 h-16 rounded-xl bg-gray-50 dark:bg-gray-800/60 border flex items-center justify-center overflow-hidden flex-shrink-0">
                     {job.companyLogo ? (
                       <img src={job.companyLogo} alt={job.company} className="w-full h-full object-cover" />
                     ) : (
@@ -66,17 +66,17 @@ export default function JobDetail() {
                     )}
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-1">{job.title}</h1>
-                    <p className="text-lg text-gray-600 font-medium">{job.company}</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{job.title}</h1>
+                    <p className="text-lg text-gray-600 dark:text-gray-400 font-medium">{job.company}</p>
                     
                     <div className="flex flex-wrap gap-3 mt-4">
-                      <div className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border">
+                      <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 px-3 py-1.5 rounded-lg border">
                         <MapPin size={14} className="text-gray-400" /> {job.location}
                       </div>
-                      <div className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border">
+                      <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 px-3 py-1.5 rounded-lg border">
                         <DollarSign size={14} className="text-gray-400" /> {job.salary}
                       </div>
-                      <div className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border capitalize">
+                      <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 px-3 py-1.5 rounded-lg border capitalize">
                         <Briefcase size={14} className="text-gray-400" /> {job.jobType.replace('_', ' ')}
                       </div>
                     </div>
@@ -88,7 +88,7 @@ export default function JobDetail() {
                      <Button className="w-full md:w-auto h-12 px-8 text-base shadow-md">Apply Now</Button>
                    </a>
                    {job.postedAt && (
-                     <p className="text-xs text-gray-500 text-center mt-3 flex items-center justify-center gap-1">
+                     <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-3 flex items-center justify-center gap-1">
                        <Clock size={12} /> Posted {new Date(job.postedAt).toLocaleDateString()}
                      </p>
                    )}
@@ -97,8 +97,8 @@ export default function JobDetail() {
             </div>
 
             <div className="p-6 md:p-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">About the Role</h3>
-              <div className="prose prose-blue max-w-none text-gray-600">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">About the Role</h3>
+              <div className="prose prose-blue max-w-none text-gray-600 dark:text-gray-400">
                 {job.description ? (
                   <div dangerouslySetInnerHTML={{ __html: sanitizeDescription(job.description) }} />
                 ) : (
@@ -107,11 +107,11 @@ export default function JobDetail() {
               </div>
               
               <div className="mt-8 pt-8 border-t flex flex-col items-center justify-center text-center">
-                 <p className="text-sm text-gray-500 mb-4">
-                   This job is sourced from <span className="font-semibold text-gray-700">{job.source}</span>
+                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                   This job is sourced from <span className="font-semibold text-gray-700 dark:text-gray-300">{job.source}</span>
                  </p>
                  <a href={job.sourceUrl} target="_blank" rel="noopener noreferrer">
-                   <Button variant="outline" className="text-gray-600 bg-gray-50">
+                   <Button variant="outline" className="text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/60">
                      View Original Posting <ExternalLink size={16} className="ml-2" />
                    </Button>
                  </a>

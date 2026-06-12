@@ -1,3 +1,4 @@
+import * as WebBrowser from "expo-web-browser";
 import React from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
@@ -28,7 +29,7 @@ export default function JobDetailScreen() {
   });
 
   const apply = () => {
-    if (job?.applyUrl) Linking.openURL(job.applyUrl);
+    if (job?.applyUrl) WebBrowser.openBrowserAsync(job.applyUrl);
   };
 
   const sourceColor = sourceColors[job?.source ?? ""] ?? "#64748B";
@@ -112,7 +113,7 @@ export default function JobDetailScreen() {
             {job.affiliateCta && (
               <TouchableOpacity
                 style={[styles.affiliateBanner, { backgroundColor: "#EFF6FF", borderColor: "#BFDBFE" }]}
-                onPress={() => Linking.openURL(job.affiliateCta!.url)}
+                onPress={() => WebBrowser.openBrowserAsync(job.affiliateCta!.url)}
               >
                 <Feather name="globe" size={16} color="#3B82F6" />
                 <Text style={[styles.affiliateText, { color: "#1E40AF" }]}>{job.affiliateCta.label}</Text>
