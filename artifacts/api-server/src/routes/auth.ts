@@ -21,8 +21,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:5173";
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:5000";
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "admin@spayewallet.com")
-  .split(",").map((e) => e.trim().toLowerCase());
+import { effectiveRole } from "../lib/admin-roles";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -35,7 +34,8 @@ function userResponse(u: typeof usersTable.$inferSelect) {
     avatarUrl: u.avatarUrl ?? null,
     kycStatus: u.kycStatus,
     emailVerified: u.emailVerified,
-    isAdmin: ADMIN_EMAILS.includes(u.email.toLowerCase()),
+    isAdmin: effectiveRole(u) !== null,
+    adminRole: effectiveRole(u),
     celoWalletAddress: u.celoWalletAddress ?? null,
     accountType: u.accountType,
     businessName: u.businessName ?? null,

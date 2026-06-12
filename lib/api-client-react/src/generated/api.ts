@@ -23,6 +23,7 @@ import type {
   AddFundsRequest,
   AddFundsResponse,
   AdminStats,
+  AdminTeamResponse,
   AdminTransactionsResponse,
   AdminUsersResponse,
   AppleTokenRequest,
@@ -52,6 +53,7 @@ import type {
   GetSpendingSummaryParams,
   GetWalletTransactionsParams,
   GoogleTokenRequest,
+  GrantAdminRoleBody,
   HealthStatus,
   IncomingPaymentsResponse,
   InitiateDeposit200,
@@ -3766,6 +3768,224 @@ export const useUpdateSiteContent = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateSiteContentMutationOptions(options));
+    }
+
+export const getGetAdminTeamUrl = () => {
+
+
+
+
+  return `/api/admin/admins`
+}
+
+/**
+ * @summary List the admin team (env owners + appointed admins) and your own role
+ */
+export const getAdminTeam = async ( options?: RequestInit): Promise<AdminTeamResponse> => {
+
+  return customFetch<AdminTeamResponse>(getGetAdminTeamUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminTeamQueryKey = () => {
+    return [
+    `/api/admin/admins`
+    ] as const;
+    }
+
+
+export const getGetAdminTeamQueryOptions = <TData = Awaited<ReturnType<typeof getAdminTeam>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminTeam>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminTeamQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminTeam>>> = ({ signal }) => getAdminTeam({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminTeam>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminTeamQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminTeam>>>
+export type GetAdminTeamQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the admin team (env owners + appointed admins) and your own role
+ */
+
+export function useGetAdminTeam<TData = Awaited<ReturnType<typeof getAdminTeam>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminTeam>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminTeamQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGrantAdminRoleUrl = () => {
+
+
+
+
+  return `/api/admin/admins`
+}
+
+/**
+ * @summary Grant or change an admin role by email (superadmin only; account must exist)
+ */
+export const grantAdminRole = async (grantAdminRoleBody: GrantAdminRoleBody, options?: RequestInit): Promise<AdminTeamResponse> => {
+
+  return customFetch<AdminTeamResponse>(getGrantAdminRoleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      grantAdminRoleBody,)
+  }
+);}
+
+
+
+
+export const getGrantAdminRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof grantAdminRole>>, TError,{data: BodyType<GrantAdminRoleBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof grantAdminRole>>, TError,{data: BodyType<GrantAdminRoleBody>}, TContext> => {
+
+const mutationKey = ['grantAdminRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof grantAdminRole>>, {data: BodyType<GrantAdminRoleBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  grantAdminRole(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GrantAdminRoleMutationResult = NonNullable<Awaited<ReturnType<typeof grantAdminRole>>>
+    export type GrantAdminRoleMutationBody = BodyType<GrantAdminRoleBody>
+    export type GrantAdminRoleMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Grant or change an admin role by email (superadmin only; account must exist)
+ */
+export const useGrantAdminRole = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof grantAdminRole>>, TError,{data: BodyType<GrantAdminRoleBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof grantAdminRole>>,
+        TError,
+        {data: BodyType<GrantAdminRoleBody>},
+        TContext
+      > => {
+      return useMutation(getGrantAdminRoleMutationOptions(options));
+    }
+
+export const getRevokeAdminRoleUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/admins/${userId}`
+}
+
+/**
+ * @summary Remove an appointed admin's role (superadmin only; env owners and yourself are protected)
+ */
+export const revokeAdminRole = async (userId: string, options?: RequestInit): Promise<AdminTeamResponse> => {
+
+  return customFetch<AdminTeamResponse>(getRevokeAdminRoleUrl(userId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRevokeAdminRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAdminRole>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeAdminRole>>, TError,{userId: string}, TContext> => {
+
+const mutationKey = ['revokeAdminRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeAdminRole>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  revokeAdminRole(userId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeAdminRoleMutationResult = NonNullable<Awaited<ReturnType<typeof revokeAdminRole>>>
+
+    export type RevokeAdminRoleMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove an appointed admin's role (superadmin only; env owners and yourself are protected)
+ */
+export const useRevokeAdminRole = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAdminRole>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeAdminRole>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+      return useMutation(getRevokeAdminRoleMutationOptions(options));
     }
 
 export const getGetWalletProvidersUrl = () => {
