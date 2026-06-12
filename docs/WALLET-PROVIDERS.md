@@ -2,7 +2,7 @@
 
 > Everything about how S-PAY creates and operates Celo wallets: **why a wallet
 > provider exists at all**, why signups/logins never touch one, how to set up
-> each of the three supported providers step by step, and how the admin
+> each of the six supported providers step by step, and how the admin
 > switches work. Companion to [`LAUNCH-CHECKLIST.md`](../LAUNCH-CHECKLIST.md)
 > (ops master doc) and [`README.md`](../README.md) (product/deploy reference).
 
@@ -24,7 +24,7 @@ three options, and S-PAY's product constraints decide between them:
 |---|---|---|---|
 | **User's device** (MiniPay, MetaMask) | The user's phone/browser | Free | ❌ The server can't sign anything — every send, withdrawal, and future Noah payout debit would require the user's device online and tapping. Web + mobile parity breaks, lost phone = lost funds without backup flows. MiniPay can do this because Opera controls the whole client. |
 | **S-PAY's own database** (self-custody of user keys) | Our Postgres, encrypted with a master key | Free | ❌ One leaked `DATABASE_URL` + master key drains **every user simultaneously**. We'd become a regulated custodian with a single point of catastrophic failure, carrying full security/compliance burden in-house. Not worth saving the WaaS fee at our stage. |
-| **Wallet-as-a-Service (WaaS)** — Privy, Coinbase CDP, Turnkey | Provider's TEE/HSM hardware; we call an API to sign | Paid | ✅ The server can execute money flows 24/7, S-PAY never touches key material (only public addresses are stored), and a breach of our DB exposes **zero** keys. |
+| **Wallet-as-a-Service (WaaS)** — Privy, Coinbase CDP, Turnkey, Openfort, thirdweb, Dynamic | Provider's TEE/HSM hardware; we call an API to sign | Paid | ✅ The server can execute money flows 24/7, S-PAY never touches key material (only public addresses are stored), and a breach of our DB exposes **zero** keys. |
 
 **So yes — some signer infrastructure is required; "Celo" alone is not enough.**
 What is *not* required is paying a WaaS **per monthly-active user**, which is
@@ -32,7 +32,7 @@ where Privy got expensive. S-PAY now fixes the cost problem two ways:
 
 1. **Lazy (just-in-time) wallet provisioning** — the provider is only ever
    called when money actually moves (§3), so jobs-board traffic costs $0.
-2. **Three interchangeable providers** (§4) — two of which don't bill by MAU
+2. **Six interchangeable providers** (§4) — five of which don't bill by MAU
    at all — switchable live from `/admin/settings` (§5).
 
 ---
@@ -47,6 +47,9 @@ budgeting — these numbers move):
 | **Privy** | Per monthly-active wallet user (MAU) tiers | Free under ~500 MAUs, then **$299/mo** (Core, up to 2,500 MAUs), usage-based beyond 10K MAUs |
 | **Coinbase CDP** | Per wallet *operation* (create/sign/broadcast) | **$0.005 per operation, first 5,000 ops/month free** — no MAU billing |
 | **Turnkey** | Per *signature* | 25 free signatures/mo, PAYG **$0.10/signature**, Pro $99/mo at ~$0.01/signature — no MAU billing |
+| **Openfort** | Per *operation* (create/transaction) | **First 2,000 operations/month free**, up to 1,000 monthly-active wallets on the free tier — no MAU billing |
+| **thirdweb** | Plan tiers + usage | **No free tier since 2026-01-01**: Starter ~$9/mo, Growth $99/mo; server wallets included, queued Transactions API — no MAU billing |
+| **Dynamic** | "Onchain Automation" operations | Free tier to 1,000 MAUs; **server-wallet operation rates not public** — confirm with their dashboard/sales before committing |
 
 The jobs board is S-PAY's acquisition funnel: thousands of people sign up just
 to apply for jobs. Under the old "wallet at signup + backfill at login" flow,
@@ -187,6 +190,96 @@ How S-PAY uses it: `createWallet` with the standard Ethereum derivation
 (`m/44'/60'/0'/0/0`); sends are signed by Turnkey (viem signer) and broadcast
 through the public Celo RPC. Same gas note as CDP: wallets pay gas in CELO.
 
+### 4d. Openfort (backend wallets, per-operation pricing)
+
+Why pick it: same shape as CDP (TEE-held EOA keys, chain-agnostic signing,
+we broadcast to Celo ourselves), generous free tier (~2,000 operations/month).
+Why not: younger product, SDK still 0.x, and a second credential to manage.
+
+1. Go to [dashboard.openfort.io](https://dashboard.openfort.io) → create a
+   project → **API keys** → copy the **secret key** (`sk_test_…`/`sk_live_…`).
+2. Create a **wallet secret**: install their CLI and run
+   `openfort wallet-keys create` (registers an ECDSA keypair that authorizes
+   signing — Openfort's equivalent of CDP's Wallet Secret). Store it safely.
+3. Render env:
+   ```
+   OPENFORT_API_KEY=<sk_... secret key>
+   OPENFORT_WALLET_SECRET=<wallet secret>
+   ```
+4. `/admin/settings` → Wallet Infrastructure → Openfort shows **Configured** →
+   **Make active** when ready.
+
+How S-PAY uses it: `accounts.evm.backend.create({ idempotencyKey: <user id> })`
+(retry-safe); sends are signed in Openfort's TEE via a viem signer and
+broadcast through the public Celo RPC. Wallets pay gas in CELO (dust them, or
+keep Openfort for users you fund operationally).
+
+### 4e. thirdweb (server wallets in Vault, plan-tier pricing)
+
+Why pick it: one secret key is the whole integration; wallets live in
+thirdweb's Vault (TEE) and creation is idempotent per user. Why not: **no free
+tier since Jan 2026** (Starter ~$9/mo), and sends go through their queued
+Transactions API — S-PAY polls a few seconds for the on-chain hash.
+
+1. Go to [thirdweb.com/dashboard](https://thirdweb.com/dashboard) → create a
+   project → **Settings → API keys** → copy the **secret key**.
+2. Render env:
+   ```
+   THIRDWEB_SECRET_KEY=<secret key>
+   ```
+3. `/admin/settings` → Wallet Infrastructure → thirdweb shows **Configured**.
+4. ⚠️ **Before making it active, run one small test send.** Each thirdweb
+   server wallet has both a plain EOA address (what S-PAY stores and shows for
+   deposits) and a smart-account address. S-PAY pins EOA execution on sends
+   (falling back to thirdweb's default if their API rejects the option) — the
+   test send proves the debit comes from the same address deposits land on.
+   Send a few USDC to a test user's address, send it back out, check the
+   balance went to zero.
+
+How S-PAY uses it: `POST /v1/wallets/server { identifier: spay-<user id> }`
+(idempotent); sends via `POST /v1/wallets/send` on chain 42220, then polls
+`GET /v1/transactions/{id}` (up to 60s) for the transaction hash.
+
+### 4f. Dynamic (TSS-MPC server wallets)
+
+Why pick it: MPC threshold signing (no single TEE holds the whole key),
+viem-native, chain-agnostic. Why not: the **most operationally complex** of
+the six — S-PAY's server is an MPC *participant* (native signer binary), their
+server-wallet pricing isn't public, and the SDK had breaking changes days
+before this integration. Treat it as the experimental option.
+
+1. Go to [app.dynamic.xyz](https://app.dynamic.xyz) → create a project → copy
+   the **Environment ID** → **Developers → API tokens** → create an **API
+   token**.
+2. Generate a strong random secret for share-backup passwords:
+   `openssl rand -hex 32`.
+3. Render env:
+   ```
+   DYNAMIC_ENVIRONMENT_ID=<environment id>
+   DYNAMIC_API_TOKEN=<api token>
+   DYNAMIC_WALLET_PASSWORD_SECRET=<random 64-char hex>
+   ```
+4. `/admin/settings` → Wallet Infrastructure → Dynamic shows **Configured** →
+   **Make active** only after a test send (same drill as thirdweb).
+
+How S-PAY uses it: `createWalletAccount` (2-of-2 TSS) with the MPC key shares
+**backed up to Dynamic**, protected by a per-wallet password derived as
+HMAC-SHA256(`DYNAMIC_WALLET_PASSWORD_SECRET`, user id) — so the database still
+stores no key material, only the wallet *metadata* JSON (in the wallet-id
+column). Sends run the MPC protocol via Dynamic's native signer and broadcast
+to Celo through viem.
+
+⚠️ Two Dynamic-specific warnings:
+- **`DYNAMIC_WALLET_PASSWORD_SECRET` is as important as a key.** If it is lost
+  or changed, existing Dynamic wallets can't sign until recovered through
+  Dynamic's own export/recovery tooling. Back it up like you back up
+  `JWT_SECRET`.
+- **Deployment constraint (already handled in this repo):** Dynamic's MPC
+  signer is a native glibc binary that can't be bundled — the Dockerfile uses
+  `node:20-slim` and installs `@dynamic-labs-wallet/node-evm` +
+  `@dynamic-labs-wallet/node` into the production image. If you ever slim the
+  image or change the base, keep those two facts.
+
 ---
 
 ## 5. The admin switches — exact semantics
@@ -236,6 +329,8 @@ Practical playbooks:
 | Send fails with a gas error (CDP/Turnkey wallets) | Wallet has no CELO for gas | Dust the wallet with CELO, or use Privy with gas sponsorship for those users |
 | Admin panel shows wallets under "privy" you don't recognize | Wallets created before multi-provider support are recorded as Privy (migration 0009 backfilled them) | Expected — they are Privy wallets |
 | Provisioning errors in Render logs (`Wallet provisioning failed`) | Provider API down / wrong credentials | The money action that triggered it just retries provisioning on its next attempt — fix credentials and it self-heals |
+| thirdweb send returns "still pending after 60s" | Their Transactions API queue is slow/stuck | The transfer may still confirm — check the wallet on celoscan.io before retrying, or thirdweb's dashboard → Transactions |
+| Dynamic sends fail with share/password errors | `DYNAMIC_WALLET_PASSWORD_SECRET` changed since the wallet was created | Restore the original secret (it derives each wallet's share-backup password) — see §4f |
 
 ---
 

@@ -7,11 +7,14 @@ import type { User } from "@workspace/db";
 /**
  * Pluggable wallet-as-a-service (WaaS) layer for Celo wallets.
  *
- * Three interchangeable providers — the admin picks which one creates NEW
+ * Six interchangeable providers — the admin picks which one creates NEW
  * wallets and can switch each on/off live from /admin/settings:
  *   privy    — Privy server wallets (TEE).   Bills per monthly-active wallet user.
- *   cdp      — Coinbase Developer Platform.  Wallet creation + signing are free.
- *   turnkey  — Turnkey (TEE, non-custodial). Free tier, then per-signer pricing.
+ *   cdp      — Coinbase Developer Platform.  $0.005/operation, 5K free ops/month.
+ *   turnkey  — Turnkey (TEE, non-custodial). Free tier, then per-signature pricing.
+ *   openfort — Openfort backend wallets (TEE). 2,000 free operations/month.
+ *   thirdweb — thirdweb server wallets (Vault TEE) via REST; queued transactions.
+ *   dynamic  — Dynamic TSS-MPC server wallets (native MPC signer; see caveats inline).
  *
  * THE COST RULE (why this file exists):
  * WaaS providers bill for wallet *users*, so the provider is only ever called
@@ -210,12 +213,218 @@ const turnkeyProvider: WalletProvider = {
   },
 };
 
+// ─── Openfort ─────────────────────────────────────────────────────────────────
+// Backend wallets: EOAs whose keys live in Openfort's TEE. Signing is
+// chain-agnostic (viem TransactionSerializable in/out), so it drops into the
+// same viem→Forno path as CDP/Turnkey. Two credentials, like CDP: the sk_ API
+// key plus a wallet secret (generated with `openfort wallet-keys create`).
+
+const OPENFORT_API_KEY = process.env.OPENFORT_API_KEY ?? "";
+const OPENFORT_WALLET_SECRET = process.env.OPENFORT_WALLET_SECRET ?? "";
+
+async function openfortClient() {
+  const { default: Openfort } = await import("@openfort/openfort-node");
+  return new Openfort(OPENFORT_API_KEY, { walletSecret: OPENFORT_WALLET_SECRET });
+}
+
+const openfortProvider: WalletProvider = {
+  key: "openfort",
+  label: "Openfort",
+  envHint: "OPENFORT_API_KEY + OPENFORT_WALLET_SECRET",
+  isConfigured: () => Boolean(OPENFORT_API_KEY && OPENFORT_WALLET_SECRET),
+
+  async createWallet(ref): Promise<{ id: string; address: string }> {
+    const openfort = await openfortClient();
+    // idempotencyKey = user id, so a retried money action can't double-create
+    const account = await openfort.accounts.evm.backend.create({ idempotencyKey: ref });
+    if (!account?.address) throw new Error("Openfort returned no wallet address");
+    return { id: account.id, address: account.address };
+  },
+
+  async sendToken(wallet, to, token, amount): Promise<string> {
+    const openfort = await openfortClient();
+    const acct = await openfort.accounts.evm.backend.get({ id: wallet.walletId });
+    const { toAccount } = await import("viem/accounts");
+    const account = toAccount({
+      address: wallet.address as `0x${string}`,
+      signMessage: (args) => acct.signMessage(args),
+      signTransaction: (tx) => acct.signTransaction(tx),
+      signTypedData: (td) => acct.signTypedData(td),
+    });
+    return viemSendToken(account, to, token, amount);
+  },
+};
+
+// ─── thirdweb ─────────────────────────────────────────────────────────────────
+// Server wallets secured in thirdweb Vault (TEE), driven over plain REST with
+// the project secret key. Sends are QUEUED by their Transactions API — we get
+// a transaction id back and poll briefly for the on-chain hash.
+//
+// We store (and fund) the wallet's plain EOA `address`. The send request pins
+// EOA execution so the debit happens from that same address; if thirdweb's API
+// rejects the executionOptions field (it is newer than the wallets/send docs),
+// we retry once without it and log — verify with a small test send before
+// making thirdweb the active provider (see docs/WALLET-PROVIDERS.md).
+
+const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY ?? "";
+const THIRDWEB_API_BASE = process.env.THIRDWEB_API_BASE ?? "https://api.thirdweb.com";
+const CELO_CHAIN_ID = Number((process.env.CELO_CAIP2 ?? "eip155:42220").split(":")[1] ?? 42220);
+
+const thirdwebHeaders = () => ({ "x-secret-key": THIRDWEB_SECRET_KEY, "Content-Type": "application/json" });
+
+async function thirdwebAwaitTxHash(transactionId: string): Promise<string> {
+  const deadline = Date.now() + 60_000;
+  for (;;) {
+    const res = await axios.get(
+      `${THIRDWEB_API_BASE}/v1/transactions/${transactionId}`,
+      { timeout: 10000, headers: thirdwebHeaders() },
+    );
+    const result = res.data?.result ?? {};
+    if (result.transactionHash) return result.transactionHash as string;
+    if (result.status === "FAILED") {
+      throw new Error(`thirdweb transaction failed: ${result.errorMessage ?? "unknown error"}`);
+    }
+    if (Date.now() > deadline) {
+      throw new Error(`thirdweb transaction ${transactionId} still ${result.status ?? "pending"} after 60s`);
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+}
+
+const thirdwebProvider: WalletProvider = {
+  key: "thirdweb",
+  label: "thirdweb",
+  envHint: "THIRDWEB_SECRET_KEY",
+  isConfigured: () => Boolean(THIRDWEB_SECRET_KEY),
+
+  async createWallet(ref): Promise<{ id: string; address: string }> {
+    const identifier = `spay-${ref}`;
+    // Idempotent: the same identifier always returns the same wallet
+    const res = await axios.post(
+      `${THIRDWEB_API_BASE}/v1/wallets/server`,
+      { identifier },
+      { timeout: 15000, headers: thirdwebHeaders() },
+    );
+    const address: string | undefined = res.data?.result?.address;
+    if (!address) throw new Error("thirdweb returned no wallet address");
+    return { id: identifier, address };
+  },
+
+  async sendToken(wallet, to, token, amount): Promise<string> {
+    const body: Record<string, unknown> = {
+      from: wallet.address,
+      chainId: CELO_CHAIN_ID,
+      recipients: [{ address: to, quantity: tokenUnits(token, amount).toString() }],
+      tokenAddress: CELO_TOKENS[token].address,
+      executionOptions: { type: "EOA" }, // debit the stored EOA, not a 4337 account
+    };
+    let res;
+    try {
+      res = await axios.post(`${THIRDWEB_API_BASE}/v1/wallets/send`, body, { timeout: 30000, headers: thirdwebHeaders() });
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 400) {
+        logger.warn({ data: err.response.data }, "thirdweb rejected executionOptions — retrying with provider defaults");
+        delete body.executionOptions;
+        res = await axios.post(`${THIRDWEB_API_BASE}/v1/wallets/send`, body, { timeout: 30000, headers: thirdwebHeaders() });
+      } else {
+        throw err;
+      }
+    }
+    const txId: string | undefined = res.data?.result?.transactionIds?.[0];
+    if (!txId) throw new Error("thirdweb did not return a transaction id");
+    return thirdwebAwaitTxHash(txId);
+  },
+};
+
+// ─── Dynamic ──────────────────────────────────────────────────────────────────
+// TSS-MPC server wallets: our server is one MPC party (a native signer binary —
+// the package is NOT bundled; see build.mjs externals + the Dockerfile install).
+// The MPC key shares are backed up to Dynamic, protected by a per-wallet
+// password we derive from DYNAMIC_WALLET_PASSWORD_SECRET — so the DB still
+// holds no key material, only the (non-sensitive) wallet metadata, which we
+// keep JSON-encoded in the wallet-id column.
+//
+// ⚠ Treat DYNAMIC_WALLET_PASSWORD_SECRET like a key: losing it means Dynamic
+// wallets can no longer sign (recover via Dynamic's dashboard/export tooling).
+
+const DYNAMIC_ENVIRONMENT_ID = process.env.DYNAMIC_ENVIRONMENT_ID ?? "";
+const DYNAMIC_API_TOKEN = process.env.DYNAMIC_API_TOKEN ?? "";
+const DYNAMIC_WALLET_PASSWORD_SECRET = process.env.DYNAMIC_WALLET_PASSWORD_SECRET ?? "";
+
+interface DynamicWalletRef {
+  v: 1;
+  ref: string; // user id — input to the per-wallet password derivation
+  metadata: Record<string, unknown>; // Dynamic WalletMetadata incl. share-backup pointers
+}
+
+async function dynamicClient() {
+  const { DynamicEvmWalletClient } = await import("@dynamic-labs-wallet/node-evm");
+  const client = new DynamicEvmWalletClient({ environmentId: DYNAMIC_ENVIRONMENT_ID });
+  await client.authenticateApiToken(DYNAMIC_API_TOKEN);
+  return client;
+}
+
+async function dynamicWalletPassword(ref: string): Promise<string> {
+  const { createHmac } = await import("node:crypto");
+  return createHmac("sha256", DYNAMIC_WALLET_PASSWORD_SECRET).update(ref).digest("hex");
+}
+
+const dynamicProvider: WalletProvider = {
+  key: "dynamic",
+  label: "Dynamic",
+  envHint: "DYNAMIC_ENVIRONMENT_ID + DYNAMIC_API_TOKEN + DYNAMIC_WALLET_PASSWORD_SECRET",
+  isConfigured: () =>
+    Boolean(DYNAMIC_ENVIRONMENT_ID && DYNAMIC_API_TOKEN && DYNAMIC_WALLET_PASSWORD_SECRET),
+
+  async createWallet(ref): Promise<{ id: string; address: string }> {
+    const [client, { ThresholdSignatureScheme }] = await Promise.all([
+      dynamicClient(),
+      import("@dynamic-labs-wallet/node"),
+    ]);
+    const created = await client.createWalletAccount({
+      thresholdSignatureScheme: ThresholdSignatureScheme.TWO_OF_TWO,
+      password: await dynamicWalletPassword(ref),
+      backUpToDynamic: true, // shares live with Dynamic, recoverable with the derived password
+    });
+    const metadata = created.walletMetadata;
+    if (!metadata?.accountAddress) throw new Error("Dynamic returned no wallet address");
+    const idPayload: DynamicWalletRef = { v: 1, ref, metadata: metadata as unknown as Record<string, unknown> };
+    return { id: JSON.stringify(idPayload), address: metadata.accountAddress };
+  },
+
+  async sendToken(wallet, to, token, amount): Promise<string> {
+    let parsed: DynamicWalletRef;
+    try {
+      parsed = JSON.parse(wallet.walletId) as DynamicWalletRef;
+    } catch {
+      throw new Error("Dynamic wallet metadata is corrupted — cannot sign for this wallet");
+    }
+    const client = await dynamicClient();
+    const { celo } = await import("viem/chains");
+    const walletClient = await client.getWalletClient({
+      walletMetadata: parsed.metadata as never,
+      chain: celo,
+      rpcUrl: CELO_RPC,
+      password: await dynamicWalletPassword(parsed.ref),
+    });
+    return walletClient.writeContract({
+      address: CELO_TOKENS[token].address as `0x${string}`,
+      abi: erc20Abi,
+      functionName: "transfer",
+      args: [to as `0x${string}`, tokenUnits(token, amount)],
+    });
+  },
+};
+
 // ─── Registry + config-aware helpers ──────────────────────────────────────────
 
 const PROVIDERS: Record<WalletProviderKey, WalletProvider> = {
   privy: privyProvider,
   cdp: cdpProvider,
   turnkey: turnkeyProvider,
+  openfort: openfortProvider,
+  thirdweb: thirdwebProvider,
+  dynamic: dynamicProvider,
 };
 
 /** Static provider facts for the admin panel (configured = env keys present). */

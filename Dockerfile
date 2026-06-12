@@ -41,12 +41,21 @@ RUN pnpm -w run typecheck:libs
 RUN pnpm --filter @workspace/api-server run build
 
 # ── Production image ─────────────────────────────────────────────────────────
-FROM node:20-alpine
+# node:20-slim (glibc), NOT alpine: Dynamic's TSS-MPC signer is a glibc-linked
+# native binary (libmpc_executor_linux_*.node) that cannot load under musl.
+FROM node:20-slim
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# esbuild bundles all JS deps; pino transport workers land alongside index.mjs
+# esbuild bundles all JS deps EXCEPT @dynamic-labs-wallet/* (native MPC signer,
+# externalized in build.mjs) — install those two so the runtime import in
+# lib/wallet-providers.ts resolves. Pinned to the exact bundled versions.
+RUN npm install --no-save --omit=dev --no-audit --no-fund \
+      @dynamic-labs-wallet/node-evm@1.0.29 \
+      @dynamic-labs-wallet/node@1.0.29
+
+# esbuild bundles all other JS deps; pino transport workers land alongside index.mjs
 COPY --from=builder /workspace/artifacts/api-server/dist ./dist
 
 # SQL migrations applied automatically on boot (see src/lib/migrate.ts)

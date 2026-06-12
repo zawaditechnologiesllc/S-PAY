@@ -599,6 +599,9 @@ export const WalletProviderInfoKey = {
   privy: 'privy',
   cdp: 'cdp',
   turnkey: 'turnkey',
+  openfort: 'openfort',
+  thirdweb: 'thirdweb',
+  dynamic: 'dynamic',
 } as const;
 
 export interface WalletProviderInfo {
@@ -625,6 +628,9 @@ export const WalletProvidersResponseActiveProvider = {
   privy: 'privy',
   cdp: 'cdp',
   turnkey: 'turnkey',
+  openfort: 'openfort',
+  thirdweb: 'thirdweb',
+  dynamic: 'dynamic',
 } as const;
 
 export interface WalletProvidersResponse {
@@ -640,6 +646,9 @@ export const WalletProvidersUpdateRequestActiveProvider = {
   privy: 'privy',
   cdp: 'cdp',
   turnkey: 'turnkey',
+  openfort: 'openfort',
+  thirdweb: 'thirdweb',
+  dynamic: 'dynamic',
 } as const;
 
 /**
@@ -649,6 +658,9 @@ export type WalletProvidersUpdateRequestEnabled = {
   privy?: boolean;
   cdp?: boolean;
   turnkey?: boolean;
+  openfort?: boolean;
+  thirdweb?: boolean;
+  dynamic?: boolean;
 };
 
 /**

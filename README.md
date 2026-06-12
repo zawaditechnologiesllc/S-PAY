@@ -2,7 +2,7 @@
 
 **Built by Zawadi Technologies LLC · Built on [Celo](https://celo.org)**
 
-> 📋 **Start here for operations:** [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) — what's live, how to activate each provider (wallets/Noah/Stripe/Google/Apple/EAS), every remaining task with file paths, and how to run the platform without a terminal. For wallets specifically (Privy vs Coinbase CDP vs Turnkey, switching, costs): [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md).
+> 📋 **Start here for operations:** [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) — what's live, how to activate each provider (wallets/Noah/Stripe/Google/Apple/EAS), every remaining task with file paths, and how to run the platform without a terminal. For wallets specifically (the six switchable providers, costs, setup): [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md).
 
 Like MiniPay, S-PAY is built on the Celo network: stablecoin-first balances (USDC), sub-cent fees, 5-second finality, and no seed phrase, ever — a wallet appears automatically the first time money moves.
 
@@ -30,7 +30,7 @@ S-PAY was born in 2016 by a team of full-stack fintech and crypto engineers frus
 S-PAY's onboarding follows the [MiniPay](https://www.opera.com/products/minipay) playbook: a wallet in seconds, no seed phrase, no crypto knowledge required.
 
 1. **Sign up in under 2 minutes** — email + password, or one tap with Google. Phone number optional (used for P2P transfers, M-Pesa/MoMo payouts). Signup and login run **entirely on S-PAY's own database + JWT** — no third-party wallet service is contacted.
-2. **Celo wallet created invisibly at the first money action** — the first time a user asks for a deposit address, sends money, or withdraws, S-PAY provisions an EVM wallet on the **Celo network** through the admin-selected wallet provider (**Privy**, **Coinbase CDP**, or **Turnkey** — switchable live in `/admin/settings`). No seed phrase to write down; private keys live in the provider's TEE infrastructure and **never touch S-PAY servers or the database** — we store only the public address (`celoWalletAddress`).
+2. **Celo wallet created invisibly at the first money action** — the first time a user asks for a deposit address, sends money, or withdraws, S-PAY provisions an EVM wallet on the **Celo network** through the admin-selected wallet provider (**Privy**, **Coinbase CDP**, **Turnkey**, **Openfort**, **thirdweb**, or **Dynamic** — switchable live in `/admin/settings`). No seed phrase to write down; private keys live in the provider's TEE infrastructure and **never touch S-PAY servers or the database** — we store only the public address (`celoWalletAddress`).
    *Why lazy? Wallet providers bill for active wallet users. The jobs board brings thousands of signups who may never move money — they cost zero this way, and only paying users ever appear on the WaaS bill. Full rationale: [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md).*
 3. **Receiving is one tap away** — tap "Add funds" and the wallet (created on the spot if needed) holds **USDC on Celo** (stablecoin-first, like MiniPay's cUSD/USDC). Friends and clients can pay you by phone number or wallet address; P2P recipients get their wallet auto-created the moment someone first pays them.
 4. **KYC when you need more** — Noah's automated verification (government ID + selfie) unlocks the virtual US ACH account, the European IBAN, and local cash-outs. Approval is webhook-driven — no manual review queue.
@@ -79,8 +79,9 @@ Users send USDC/USDT peer-to-peer within S-PAY by entering a recipient phone num
 │  Database: PostgreSQL           → Render Postgres        │
 │  ORM: Drizzle                                            │
 ├─────────────────────────────────────────────────────────┤
-│  Wallets: Privy / Coinbase CDP / Turnkey (admin-switch-  │
-│           able WaaS) → USDC/USDT on Celo, JIT-provisioned│
+│  Wallets: 6 admin-switchable WaaS providers (Privy, CDP, │
+│   Turnkey, Openfort, thirdweb, Dynamic) → USDC on Celo,  │
+│   provisioned just-in-time at the first money action     │
 │  KYC/KYB + Payouts:  Noah       (single integration)     │
 │  Virtual Cards:  Stripe Issuing (admin master switch)    │
 │  Auth: JWT 30d · Google (web+Android) · Apple (iOS)      │
@@ -115,7 +116,7 @@ S-PAY/
 | **Transport** | TLS enforced by Render (API) and Vercel (web) — HTTP redirects to HTTPS |
 | **Webhooks** | HMAC-SHA256 over the raw request body, constant-time compare; unsigned requests rejected once a secret is configured |
 | **KYC** | Noah verifies government ID + selfie; all KYC docs stay on Noah's servers |
-| **Celo wallet keys** | Provisioned via the active wallet provider (Privy, Coinbase CDP, or Turnkey) — private keys sealed in the provider's TEE; S-PAY stores only the public address + the provider's wallet id, never key material or seed phrases |
+| **Celo wallet keys** | Provisioned via the active wallet provider (Privy / Coinbase CDP / Turnkey / Openfort / thirdweb / Dynamic) — private keys sealed in the provider's TEE or MPC infrastructure; S-PAY stores only the public address + the provider's wallet reference, never key material or seed phrases |
 | **On-chain settlement** | USDC on Celo — auditable, 5s finality, sub-cent fees; no custom bridge or contract risk |
 | **Database** | PostgreSQL on Render private network; `DATABASE_URL` never exposed to client |
 | **Admin access** | Controlled by `ADMIN_EMAILS` env var — not a role in the DB |
@@ -228,6 +229,9 @@ Wallets need **one** of the three providers below configured (admin picks the ac
 | `PRIVY_APP_ID` + `PRIVY_APP_SECRET` | Celo wallets + USDC/USDT sends via **Privy** | From dashboard.privy.io → your app → API keys. Enable gas sponsorship for gasless sends. MAU-tier pricing |
 | `CDP_API_KEY_ID` + `CDP_API_KEY_SECRET` + `CDP_WALLET_SECRET` | Celo wallets + sends via **Coinbase CDP** | From portal.cdp.coinbase.com → API Keys + Server Wallets → Wallet Secret. $0.005/operation, 5K free ops/month — no MAU billing |
 | `TURNKEY_API_PUBLIC_KEY` + `TURNKEY_API_PRIVATE_KEY` + `TURNKEY_ORGANIZATION_ID` | Celo wallets + sends via **Turnkey** | From app.turnkey.com → API keys + organization id. Per-signature pricing — no MAU billing |
+| `OPENFORT_API_KEY` + `OPENFORT_WALLET_SECRET` | Celo wallets + sends via **Openfort** | From dashboard.openfort.io (sk_ key) + `openfort wallet-keys create`. ~2,000 free ops/month — no MAU billing |
+| `THIRDWEB_SECRET_KEY` | Celo wallets + sends via **thirdweb** | From thirdweb.com/dashboard → project secret key. Plan tiers (no free tier since 2026); queued sends — no MAU billing |
+| `DYNAMIC_ENVIRONMENT_ID` + `DYNAMIC_API_TOKEN` + `DYNAMIC_WALLET_PASSWORD_SECRET` | Celo wallets + sends via **Dynamic** (TSS-MPC) | From app.dynamic.xyz + `openssl rand -hex 32` for the password secret (back it up like JWT_SECRET) |
 | `NOAH_API_KEY` | KYC + virtual accounts + cash-outs | From the Noah partner dashboard |
 | `NOAH_WEBHOOK_SECRET` | KYC auto-approval | From Noah webhook endpoint config (`/api/webhooks/noah`) |
 | `STRIPE_SECRET_KEY` | Virtual cards (with the admin switch) | Stripe → Developers → API keys (Issuing enabled) |
@@ -475,7 +479,7 @@ See the detailed deployment guide below. Summary:
 4. Download APK from the Expo dashboard
 5. For production: `eas build --platform all --profile production` → submit to stores
 
-### 5. Setting up the wallet provider (Privy / Coinbase CDP / Turnkey)
+### 5. Setting up the wallet provider (Privy / CDP / Turnkey / Openfort / thirdweb / Dynamic)
 
 Wallets and on-chain sends activate when **one** provider's keys are set — the admin chooses which provider creates new wallets and can toggle each on/off live in `/admin/settings → Wallet Infrastructure`. Signups/logins never call the provider (that's deliberate — providers bill for active wallet users; S-PAY only provisions a wallet at the user's **first money action**, so free jobs-board traffic costs nothing).
 
@@ -484,6 +488,9 @@ Step-by-step setup for each provider, switching semantics, pricing comparison, a
 - **Privy:** dashboard.privy.io → API keys → set `PRIVY_APP_ID`, `PRIVY_APP_SECRET` on Render
 - **Coinbase CDP:** portal.cdp.coinbase.com → API key + Wallet Secret → set `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET`, `CDP_WALLET_SECRET`
 - **Turnkey:** app.turnkey.com → API key pair + org id → set `TURNKEY_API_PUBLIC_KEY`, `TURNKEY_API_PRIVATE_KEY`, `TURNKEY_ORGANIZATION_ID`
+- **Openfort:** dashboard.openfort.io → sk_ key + wallet secret → set `OPENFORT_API_KEY`, `OPENFORT_WALLET_SECRET`
+- **thirdweb:** thirdweb.com/dashboard → secret key → set `THIRDWEB_SECRET_KEY` (run a test send before making it active)
+- **Dynamic:** app.dynamic.xyz → env id + API token → set `DYNAMIC_ENVIRONMENT_ID`, `DYNAMIC_API_TOKEN`, `DYNAMIC_WALLET_PASSWORD_SECRET`
 
 > ⚠️ Existing wallets always keep the provider that created them (private keys can't move). Switching the active provider only affects new wallets — keep the old provider's env keys set while it still holds wallets.
 

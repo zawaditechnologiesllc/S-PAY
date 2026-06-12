@@ -734,9 +734,9 @@ export const DeleteCustomJobResponse = zod.object({
  * @summary Read the wallet (WaaS) provider switches — active provider, per-provider on/off, configuration status, wallet counts
  */
 export const GetWalletProvidersResponse = zod.object({
-  "activeProvider": zod.enum(['privy', 'cdp', 'turnkey']).describe('Provider used to create NEW wallets (existing wallets always keep the provider that holds their key)'),
+  "activeProvider": zod.enum(['privy', 'cdp', 'turnkey', 'openfort', 'thirdweb', 'dynamic']).describe('Provider used to create NEW wallets (existing wallets always keep the provider that holds their key)'),
   "providers": zod.array(zod.object({
-  "key": zod.enum(['privy', 'cdp', 'turnkey']),
+  "key": zod.enum(['privy', 'cdp', 'turnkey', 'openfort', 'thirdweb', 'dynamic']),
   "label": zod.string().describe('Human-readable provider name'),
   "configured": zod.boolean().describe('Whether the provider\'s API credentials are set in the environment'),
   "enabled": zod.boolean().describe('Admin on\/off switch — OFF blocks new wallets AND sends signed via this provider'),
@@ -750,18 +750,21 @@ export const GetWalletProvidersResponse = zod.object({
  * @summary Switch the active wallet provider and/or toggle providers on/off (live, no deploy)
  */
 export const UpdateWalletProvidersBody = zod.object({
-  "activeProvider": zod.enum(['privy', 'cdp', 'turnkey']).optional(),
+  "activeProvider": zod.enum(['privy', 'cdp', 'turnkey', 'openfort', 'thirdweb', 'dynamic']).optional(),
   "enabled": zod.object({
   "privy": zod.boolean().optional(),
   "cdp": zod.boolean().optional(),
-  "turnkey": zod.boolean().optional()
+  "turnkey": zod.boolean().optional(),
+  "openfort": zod.boolean().optional(),
+  "thirdweb": zod.boolean().optional(),
+  "dynamic": zod.boolean().optional()
 }).optional().describe('Per-provider on\/off, e.g. {\"privy\": false, \"cdp\": true}')
 }).describe('Partial update — switch the active provider and\/or toggle providers on\/off')
 
 export const UpdateWalletProvidersResponse = zod.object({
-  "activeProvider": zod.enum(['privy', 'cdp', 'turnkey']).describe('Provider used to create NEW wallets (existing wallets always keep the provider that holds their key)'),
+  "activeProvider": zod.enum(['privy', 'cdp', 'turnkey', 'openfort', 'thirdweb', 'dynamic']).describe('Provider used to create NEW wallets (existing wallets always keep the provider that holds their key)'),
   "providers": zod.array(zod.object({
-  "key": zod.enum(['privy', 'cdp', 'turnkey']),
+  "key": zod.enum(['privy', 'cdp', 'turnkey', 'openfort', 'thirdweb', 'dynamic']),
   "label": zod.string().describe('Human-readable provider name'),
   "configured": zod.boolean().describe('Whether the provider\'s API credentials are set in the environment'),
   "enabled": zod.boolean().describe('Admin on\/off switch — OFF blocks new wallets AND sends signed via this provider'),

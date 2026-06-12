@@ -1636,7 +1636,7 @@ components:
       properties:
         key:
           type: string
-          enum: [privy, cdp, turnkey]
+          enum: [privy, cdp, turnkey, openfort, thirdweb, dynamic]
         label:
           type: string
           description: Human-readable provider name
@@ -1665,7 +1665,7 @@ components:
       properties:
         activeProvider:
           type: string
-          enum: [privy, cdp, turnkey]
+          enum: [privy, cdp, turnkey, openfort, thirdweb, dynamic]
           description: Provider used to create NEW wallets (existing wallets always keep the provider that holds their key)
         providers:
           type: array
@@ -1681,7 +1681,7 @@ components:
       properties:
         activeProvider:
           type: string
-          enum: [privy, cdp, turnkey]
+          enum: [privy, cdp, turnkey, openfort, thirdweb, dynamic]
         enabled:
           type: object
           description: "Per-provider on/off, e.g. {\"privy\": false, \"cdp\": true}"
@@ -1691,6 +1691,12 @@ components:
             cdp:
               type: boolean
             turnkey:
+              type: boolean
+            openfort:
+              type: boolean
+            thirdweb:
+              type: boolean
+            dynamic:
               type: boolean
 
     PlatformStatus:

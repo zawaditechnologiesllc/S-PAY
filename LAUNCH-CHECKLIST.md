@@ -20,7 +20,7 @@
 | **Auth** — email/password (confirm + show/hide), Google web OAuth, native Google (Android) & Apple (iOS) token sign-in, JWT 30d | ✅ Live (Google/Apple need client IDs, see B4/B5) | `routes/auth.ts`, web `pages/register.tsx`/`login.tsx`, mobile `components/SocialAuthButtons.tsx` |
 | **Personal & Business accounts** — type chooser at sign-up, business name, KYB-ready | ✅ Live | `routes/auth.ts`, register pages, `users.account_type/business_name` |
 | **Signup attribution** — `jobs / jobs:<id> / landing / google / mobile / direct` + country, shown in admin | ✅ Live | `users.signup_source`, Admin → Dashboard "Signups by Source" |
-| **Celo wallet provisioning** — just-in-time at the user's **first money action** (deposit address / send / withdraw), never at signup/login, via the admin-selected provider (**Privy / Coinbase CDP / Turnkey**), no seed phrase | ✅ Code complete — activates with any provider's keys (B2) | `lib/wallet-providers.ts` |
+| **Celo wallet provisioning** — just-in-time at the user's **first money action** (deposit address / send / withdraw), never at signup/login, via the admin-selected provider (**Privy / Coinbase CDP / Turnkey / Openfort / thirdweb / Dynamic**), no seed phrase | ✅ Code complete — activates with any provider's keys (B2) | `lib/wallet-providers.ts` |
 | **Wallet provider switches** — active provider for new wallets + per-provider kill switches, wallet counts, live from admin | ✅ Live | Admin → Settings → Wallet Infrastructure; `GET/PUT /admin/wallet-providers` |
 | **USDC/USDT wallet** — live on-chain balances (keyless reads), P2P send by phone (recipient wallet auto-provisioned), send to any address, real ledger | ✅ Live for balances/receives; sends activate with a wallet provider's keys | `lib/celo-chain.ts`, `lib/wallet-providers.ts`, `routes/wallet.ts` |
 | **Withdraw to Binance/Bybit/OKX/any wallet** — MiniPay-style guided flow, CELO-network safety gates, CeloScan receipt | ✅ Live (executes once a wallet provider's keys are set) | web `pages/exchange-withdraw.tsx` |
@@ -60,7 +60,7 @@ The API creates all tables itself at boot; if Supabase stays empty, the connecti
 
 ### B2. Wallet provider — turns ON Celo wallets + USDC/USDT sends + exchange withdrawals
 
-Pick **one** of the three supported providers (full walkthroughs, pricing comparison, and switching semantics in [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md)). Wallets are provisioned **just-in-time at a user's first money action — never at signup/login** — so jobs-board signups cost zero WaaS MAUs; you only pay for users who actually move money.
+Pick **one** of the six supported providers (full walkthroughs, pricing comparison, and switching semantics in [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md)). Wallets are provisioned **just-in-time at a user's first money action — never at signup/login** — so jobs-board signups cost zero WaaS MAUs; you only pay for users who actually move money.
 
 **Option 1 — Privy** (MAU-tier pricing: free <~500 MAUs, then $299/mo):
 1. [dashboard.privy.io](https://dashboard.privy.io) → create app → **App settings → API keys**.
@@ -78,6 +78,21 @@ Pick **one** of the three supported providers (full walkthroughs, pricing compar
 2. Create an **API key pair** → copy public + private key hex.
 3. Render env: `TURNKEY_API_PUBLIC_KEY`, `TURNKEY_API_PRIVATE_KEY`, `TURNKEY_ORGANIZATION_ID`.
 4. Same gas note as CDP.
+
+**Option 4 — Openfort** (~2,000 free operations/month, no MAU billing):
+1. [dashboard.openfort.io](https://dashboard.openfort.io) → project → API keys → copy the `sk_` **secret key**.
+2. Their CLI: `openfort wallet-keys create` → copy the **wallet secret**.
+3. Render env: `OPENFORT_API_KEY`, `OPENFORT_WALLET_SECRET`.
+
+**Option 5 — thirdweb** (plan tiers, no free tier since Jan 2026; queued sends):
+1. [thirdweb.com/dashboard](https://thirdweb.com/dashboard) → project → copy the **secret key**.
+2. Render env: `THIRDWEB_SECRET_KEY`.
+3. ⚠️ Run one small test send before making it active (EOA vs smart-account execution — see docs/WALLET-PROVIDERS.md §4e).
+
+**Option 6 — Dynamic** (TSS-MPC; experimental — pricing not public):
+1. [app.dynamic.xyz](https://app.dynamic.xyz) → Environment ID + API token.
+2. Generate a password secret: `openssl rand -hex 32` — **back it up like JWT_SECRET** (it derives each wallet's share-backup password).
+3. Render env: `DYNAMIC_ENVIRONMENT_ID`, `DYNAMIC_API_TOKEN`, `DYNAMIC_WALLET_PASSWORD_SECRET`.
 
 **Then activate it:**
 5. `/admin/settings` → **Wallet Infrastructure** → your provider shows green **Configured** → press **Make active** (Privy is the default active provider).
@@ -164,4 +179,4 @@ Ordered by launch impact. Each is small and isolated; the file tells you exactly
 
 See **README → Environment Variables** for the full annotated tables (launch-critical, money rails, sign-in, tuning, Vercel, EAS). Quick reference of every key:
 
-`DATABASE_URL` · `JWT_SECRET` · `SESSION_SECRET` · `CORS_ORIGIN` · `ADMIN_EMAILS` · `SITE_URL` · `PRIVY_APP_ID` · `PRIVY_APP_SECRET` · `CDP_API_KEY_ID` · `CDP_API_KEY_SECRET` · `CDP_WALLET_SECRET` · `TURNKEY_API_PUBLIC_KEY` · `TURNKEY_API_PRIVATE_KEY` · `TURNKEY_ORGANIZATION_ID` · `NOAH_API_KEY` · `NOAH_WEBHOOK_SECRET` · `STRIPE_SECRET_KEY` · `STRIPE_WEBHOOK_SECRET` · `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` · `GOOGLE_ANDROID_CLIENT_ID` · `GOOGLE_IOS_CLIENT_ID` · `APPLE_BUNDLE_ID` · `FRONTEND_URL` · `API_BASE_URL` · `CELO_RPC_URL` · `CELO_CAIP2` · `PRIVY_API_BASE` · `TURNKEY_API_BASE` · `DATABASE_SSL` · `CARD_PROGRAM_ADDRESS_*` · `REMOTIVE_AFFILIATE_URL` · `REMOTE_COM_AFFILIATE_URL` · `MIGRATIONS_DIR` · `TREASURY_CELO_ADDRESS` (reserved for D10) — plus Vercel `VITE_API_URL`, EAS `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID`.
+`DATABASE_URL` · `JWT_SECRET` · `SESSION_SECRET` · `CORS_ORIGIN` · `ADMIN_EMAILS` · `SITE_URL` · `PRIVY_APP_ID` · `PRIVY_APP_SECRET` · `CDP_API_KEY_ID` · `CDP_API_KEY_SECRET` · `CDP_WALLET_SECRET` · `TURNKEY_API_PUBLIC_KEY` · `TURNKEY_API_PRIVATE_KEY` · `TURNKEY_ORGANIZATION_ID` · `OPENFORT_API_KEY` · `OPENFORT_WALLET_SECRET` · `THIRDWEB_SECRET_KEY` · `THIRDWEB_API_BASE` · `DYNAMIC_ENVIRONMENT_ID` · `DYNAMIC_API_TOKEN` · `DYNAMIC_WALLET_PASSWORD_SECRET` · `NOAH_API_KEY` · `NOAH_WEBHOOK_SECRET` · `STRIPE_SECRET_KEY` · `STRIPE_WEBHOOK_SECRET` · `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` · `GOOGLE_ANDROID_CLIENT_ID` · `GOOGLE_IOS_CLIENT_ID` · `APPLE_BUNDLE_ID` · `FRONTEND_URL` · `API_BASE_URL` · `CELO_RPC_URL` · `CELO_CAIP2` · `PRIVY_API_BASE` · `TURNKEY_API_BASE` · `DATABASE_SSL` · `CARD_PROGRAM_ADDRESS_*` · `REMOTIVE_AFFILIATE_URL` · `REMOTE_COM_AFFILIATE_URL` · `MIGRATIONS_DIR` · `TREASURY_CELO_ADDRESS` (reserved for D10) — plus Vercel `VITE_API_URL`, EAS `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID`.

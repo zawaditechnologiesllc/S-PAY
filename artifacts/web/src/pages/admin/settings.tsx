@@ -5,6 +5,7 @@ import {
   useGetFeatureFlags, getGetFeatureFlagsQueryKey, useUpdateFeatureFlags,
   useGetFeeSchedule, getGetFeeScheduleQueryKey, useUpdateFeeSchedule,
   useGetWalletProviders, getGetWalletProvidersQueryKey, useUpdateWalletProviders,
+  type WalletProvidersUpdateRequestActiveProvider,
 } from "@workspace/api-client-react";
 import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -46,11 +47,22 @@ const PROVIDER_COSTS = {
   withdrawalPercentNoah: 0.5, // Noah payout rails: typically ~0.3–0.7% depending on corridor
 };
 
-// Cost notes shown next to each WaaS so the admin can pick on price
+// Display names + cost notes shown next to each WaaS so the admin can pick on price
+const WALLET_PROVIDER_LABELS: Record<string, string> = {
+  privy: "Privy",
+  cdp: "Coinbase CDP",
+  turnkey: "Turnkey",
+  openfort: "Openfort",
+  thirdweb: "thirdweb",
+  dynamic: "Dynamic",
+};
 const WALLET_PROVIDER_NOTES: Record<string, string> = {
   privy: "MAU-tier pricing: free under ~500 monthly-active wallet users, then $299/mo (Core, up to 2,500 MAU) — the expensive one. Keys in a TEE.",
   cdp: "Coinbase Developer Platform: $0.005 per wallet operation, first 5,000 ops/month free — no MAU billing. Keys in Coinbase's TEE.",
   turnkey: "Per-signature pricing: 25 free signatures/mo, then ~$0.10 each (Pro $99/mo → ~$0.01) — no MAU billing. Non-custodial TEE.",
+  openfort: "Self-hostable wallet infra: free dev tier, then flat platform pricing (no per-MAU wallet billing). Keys via configurable signer.",
+  thirdweb: "Usage-based: free tier, server wallets in Vault (TEE) + Transactions API billed per usage — no MAU billing.",
+  dynamic: "TSS-MPC server wallets: free dev tier, then per-wallet/usage pricing (embedded-wallet MAU tiers don't apply to server wallets).",
 };
 
 function FeeInput({ label, hint, value, onChange, prefix, suffix }: {
@@ -90,11 +102,11 @@ export default function AdminSettings() {
 
   const setActiveProvider = (key: string) => {
     updateWalletProviders.mutate(
-      { data: { activeProvider: key as "privy" | "cdp" | "turnkey" } },
+      { data: { activeProvider: key as WalletProvidersUpdateRequestActiveProvider } },
       {
         onSuccess: () => {
           toast({
-            title: `New wallets now use ${key === "cdp" ? "Coinbase CDP" : key.charAt(0).toUpperCase() + key.slice(1)}`,
+            title: `New wallets now use ${WALLET_PROVIDER_LABELS[key] ?? key}`,
             description: "Existing wallets keep their current provider — keys never move. Live within 15 seconds.",
           });
           refetchWalletProviders();
