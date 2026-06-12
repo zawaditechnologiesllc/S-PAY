@@ -35,6 +35,7 @@
 | **Account deletion (store compliance)**, in-app legal links, Sign in with Apple | ✅ Live | profile pages, `DELETE /auth/me` |
 | **Mobile app** — MiniPay-style welcome, tabs (Wallet/Banking/Card/Jobs), platform-native auth | ✅ Code complete — needs EAS setup to ship (B7) | `artifacts/mobile/` |
 | **Notifications** — auto (money received, deposits, KYC results) + **manual from admin** (broadcast or per-user), bell with unread badge in the app header | ✅ Live | `lib/notify.ts`, `routes/notifications.ts`, web `components/notifications-bell.tsx`, Admin → Settings → Send a Notification |
+| **Help & Support in-app** — FAQ + message-the-team form on web (/support) and mobile, feeding the same Enquiries inbox; sidebar/profile links never leave the app | ✅ Live | web `pages/support.tsx`, mobile `app/support.tsx` |
 | **Enquiries funnel** — one inbox for the landing page, contact page and in-app messages; reply by email, resolve/reopen | ✅ Live | `routes/enquiries.ts`, web `pages/contact.tsx` form, Admin → Enquiries |
 | **Site content editor** — hero title/subtitle/CTA, announcement ribbon, footer tagline, brand colours; live on the landing page, no deploy | ✅ Live | `app_settings.site_content`, `GET /site-content`, Admin → Settings → Site Content |
 | **Dark & light mode** — toggle in the app header, persists per device | ✅ Live | web `components/theme.tsx` (class-based Tailwind dark variant) |
