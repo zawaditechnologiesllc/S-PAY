@@ -97,7 +97,7 @@ export interface User {
   kycStatus: UserKycStatus;
   isAdmin: boolean;
   avatarUrl?: string;
-  /** EVM wallet address on the Celo network, provisioned via Privy at signup */
+  /** EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user's first money action (never at signup/login, so jobs-only users cost zero WaaS MAUs) */
   celoWalletAddress?: string | null;
   accountType?: UserAccountType;
   businessName?: string | null;
@@ -590,6 +590,74 @@ export interface FeatureFlagsUpdateRequest {
   maintenanceMode?: boolean;
   /** @maxLength 280 */
   maintenanceMessage?: string;
+}
+
+export type WalletProviderInfoKey = typeof WalletProviderInfoKey[keyof typeof WalletProviderInfoKey];
+
+
+export const WalletProviderInfoKey = {
+  privy: 'privy',
+  cdp: 'cdp',
+  turnkey: 'turnkey',
+} as const;
+
+export interface WalletProviderInfo {
+  key: WalletProviderInfoKey;
+  /** Human-readable provider name */
+  label: string;
+  /** Whether the provider's API credentials are set in the environment */
+  configured: boolean;
+  /** Admin on/off switch — OFF blocks new wallets AND sends signed via this provider */
+  enabled: boolean;
+  /** How many user wallets this provider currently holds keys for */
+  wallets: number;
+  /** The environment variables that activate this provider */
+  envHint: string;
+}
+
+/**
+ * Provider used to create NEW wallets (existing wallets always keep the provider that holds their key)
+ */
+export type WalletProvidersResponseActiveProvider = typeof WalletProvidersResponseActiveProvider[keyof typeof WalletProvidersResponseActiveProvider];
+
+
+export const WalletProvidersResponseActiveProvider = {
+  privy: 'privy',
+  cdp: 'cdp',
+  turnkey: 'turnkey',
+} as const;
+
+export interface WalletProvidersResponse {
+  /** Provider used to create NEW wallets (existing wallets always keep the provider that holds their key) */
+  activeProvider: WalletProvidersResponseActiveProvider;
+  providers: WalletProviderInfo[];
+}
+
+export type WalletProvidersUpdateRequestActiveProvider = typeof WalletProvidersUpdateRequestActiveProvider[keyof typeof WalletProvidersUpdateRequestActiveProvider];
+
+
+export const WalletProvidersUpdateRequestActiveProvider = {
+  privy: 'privy',
+  cdp: 'cdp',
+  turnkey: 'turnkey',
+} as const;
+
+/**
+ * Per-provider on/off, e.g. {"privy": false, "cdp": true}
+ */
+export type WalletProvidersUpdateRequestEnabled = {
+  privy?: boolean;
+  cdp?: boolean;
+  turnkey?: boolean;
+};
+
+/**
+ * Partial update — switch the active provider and/or toggle providers on/off
+ */
+export interface WalletProvidersUpdateRequest {
+  activeProvider?: WalletProvidersUpdateRequestActiveProvider;
+  /** Per-provider on/off, e.g. {"privy": false, "cdp": true} */
+  enabled?: WalletProvidersUpdateRequestEnabled;
 }
 
 export interface PlatformStatus {

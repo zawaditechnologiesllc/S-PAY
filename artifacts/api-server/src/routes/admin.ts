@@ -4,11 +4,14 @@ import {
   isCardProgramEnabled, setCardProgramEnabled,
   getMaintenance, setMaintenance,
   getFeeSchedule, setFeeSchedule, type FeeSchedule,
+  getWalletProviderConfig, setWalletProviderConfig,
+  WALLET_PROVIDER_KEYS, type WalletProviderKey,
 } from "../lib/settings";
+import { walletProviderCatalog } from "../lib/wallet-providers";
 import { isStripeConfigured } from "../lib/stripe-issuing";
 import { invalidateCustomJobs, CATEGORY_LABELS } from "../lib/jobs";
 import { db, usersTable, transactionsTable, cardWaitlistTable, customJobsTable } from "@workspace/db";
-import { eq, count, desc, sql } from "drizzle-orm";
+import { eq, count, desc, sql, isNotNull } from "drizzle-orm";
 
 const router = Router();
 
@@ -209,6 +212,87 @@ router.put("/admin/feature-flags", requireAuth, requireAdmin, async (req, res) =
   }
 });
 
+// ─── Wallet provider switches (WaaS: Privy / Coinbase CDP / Turnkey) ──────────
+// The active provider creates NEW wallets; per-provider toggles are kill
+// switches (OFF = no new wallets and no sends signed via it). Existing wallets
+// always keep the provider that holds their key — switching never moves funds.
+
+async function walletProvidersPayload() {
+  const config = await getWalletProviderConfig();
+
+  // How many user wallets each provider holds keys for (legacy rows = Privy)
+  const countRows = await db.select({
+    provider: sql<string>`COALESCE(${usersTable.walletProvider}, 'privy')`,
+    total: count(),
+  }).from(usersTable)
+    .where(isNotNull(usersTable.celoWalletAddress))
+    .groupBy(sql`COALESCE(${usersTable.walletProvider}, 'privy')`);
+  const walletCounts: Record<string, number> = {};
+  for (const row of countRows) walletCounts[row.provider] = row.total;
+
+  return {
+    activeProvider: config.activeProvider,
+    providers: walletProviderCatalog().map((p) => ({
+      key: p.key,
+      label: p.label,
+      configured: p.configured,
+      enabled: config.enabled[p.key],
+      wallets: walletCounts[p.key] ?? 0,
+      envHint: p.envHint,
+    })),
+  };
+}
+
+router.get("/admin/wallet-providers", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    res.json(await walletProvidersPayload());
+  } catch (err) {
+    req.log.error({ err }, "Wallet providers read error");
+    res.status(500).json({ error: "internal_error", message: "Failed to read wallet provider settings" });
+  }
+});
+
+router.put("/admin/wallet-providers", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { activeProvider, enabled } = req.body as { activeProvider?: unknown; enabled?: unknown };
+    if (activeProvider === undefined && enabled === undefined) {
+      res.status(400).json({ error: "validation_error", message: "Provide activeProvider and/or enabled to update" });
+      return;
+    }
+    if (activeProvider !== undefined && !WALLET_PROVIDER_KEYS.includes(activeProvider as WalletProviderKey)) {
+      res.status(400).json({ error: "validation_error", message: `activeProvider must be one of: ${WALLET_PROVIDER_KEYS.join(", ")}` });
+      return;
+    }
+    const enabledUpdate: Partial<Record<WalletProviderKey, boolean>> = {};
+    if (enabled !== undefined) {
+      if (typeof enabled !== "object" || enabled === null) {
+        res.status(400).json({ error: "validation_error", message: "enabled must be an object of provider→boolean" });
+        return;
+      }
+      for (const [key, value] of Object.entries(enabled as Record<string, unknown>)) {
+        if (!WALLET_PROVIDER_KEYS.includes(key as WalletProviderKey)) {
+          res.status(400).json({ error: "validation_error", message: `Unknown provider "${key}"` });
+          return;
+        }
+        if (typeof value !== "boolean") {
+          res.status(400).json({ error: "validation_error", message: `enabled.${key} must be a boolean` });
+          return;
+        }
+        enabledUpdate[key as WalletProviderKey] = value;
+      }
+    }
+    await setWalletProviderConfig({
+      ...(activeProvider !== undefined ? { activeProvider: activeProvider as WalletProviderKey } : {}),
+      ...(enabled !== undefined ? { enabled: enabledUpdate } : {}),
+    });
+    req.log.warn({ activeProvider, enabled: enabledUpdate, admin: req.user!.email }, "Wallet provider switches changed");
+    res.json(await walletProvidersPayload());
+  } catch (err) {
+    req.log.error({ err }, "Wallet providers update error");
+    res.status(500).json({ error: "internal_error", message: "Failed to update wallet provider settings" });
+  }
+});
+
 // ─── Fee schedule: provider cost + S-PAY margin = user price ──────────────────
 
 router.get("/admin/fees", requireAuth, requireAdmin, async (req, res) => {
@@ -317,6 +401,7 @@ router.get("/admin/settings", requireAuth, requireAdmin, (req, res) => {
       configured: check("NOAH_API_KEY"),
       webhookConfigured: check("NOAH_WEBHOOK_SECRET"),
     },
+    wallet: Object.fromEntries(walletProviderCatalog().map((p) => [p.key, { configured: p.configured }])),
     stripe: {
       configured: check("STRIPE_SECRET_KEY"),
       webhookConfigured: check("STRIPE_WEBHOOK_SECRET"),

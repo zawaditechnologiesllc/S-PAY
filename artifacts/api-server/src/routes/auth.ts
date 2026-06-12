@@ -4,7 +4,6 @@ import axios from "axios";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { signToken } from "../lib/auth";
 import { requireAuth } from "../middlewares/auth";
-import { ensureCeloWallet } from "../lib/celo";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -87,9 +86,9 @@ router.post("/auth/register", async (req, res) => {
       signupSource: cleanSignupSource(body.signupSource) ?? "direct",
     }).returning();
 
-    // MiniPay-style onboarding: Celo wallet provisioned instantly in the background
-    ensureCeloWallet(user.id, user.celoWalletAddress);
-
+    // Deliberately NO wallet-provider call here: signups/logins must never touch
+    // the WaaS (it bills per monthly-active wallet user). The Celo wallet is
+    // provisioned just-in-time by the first money action — see lib/wallet-providers.ts.
     const token = signToken({ userId: user.id, email: user.email });
     res.status(201).json({ token, user: userResponse(user) });
   } catch (err) {
@@ -126,9 +125,8 @@ router.post("/auth/login", async (req, res) => {
       return;
     }
 
-    // Backfill the Celo wallet for accounts created before Privy was configured
-    ensureCeloWallet(user.id, user.celoWalletAddress);
-
+    // No wallet call on login either — wallets are provisioned (or backfilled)
+    // lazily by the first money action, so jobs-only traffic costs zero WaaS MAUs.
     const token = signToken({ userId: user.id, email: user.email });
     res.json({ token, user: userResponse(user) });
   } catch (err) {
@@ -230,7 +228,6 @@ router.post("/auth/oauth/google", async (req, res) => {
       }
     }
 
-    ensureCeloWallet(user.id, user.celoWalletAddress);
     const token = signToken({ userId: user.id, email: user.email });
     res.json({ token, user: userResponse(user) });
   } catch (err) {
@@ -281,7 +278,6 @@ router.post("/auth/oauth/apple", async (req, res) => {
       }).returning();
     }
 
-    ensureCeloWallet(user.id, user.celoWalletAddress);
     const token = signToken({ userId: user.id, email: user.email });
     res.json({ token, user: userResponse(user) });
   } catch (err) {
@@ -371,9 +367,7 @@ router.get("/auth/google/callback", async (req, res) => {
       }
     }
 
-    // MiniPay-style onboarding: Celo wallet provisioned instantly in the background
-    ensureCeloWallet(user.id, user.celoWalletAddress);
-
+    // No wallet call in the OAuth flow — provisioned lazily at first money action
     const token = signToken({ userId: user.id, email: user.email });
     res.redirect(`${FRONTEND_URL}/auth/callback?token=${encodeURIComponent(token)}`);
   } catch (err) {

@@ -74,6 +74,53 @@ export async function setMaintenance(state: Partial<MaintenanceState>): Promise<
   await setSetting(MAINTENANCE_KEY, { ...current, ...state });
 }
 
+// ── Wallet provider switches ──────────────────────────────────────────────────
+// Which wallet-as-a-service (WaaS) provisions NEW Celo wallets, and per-provider
+// kill switches. Toggled live from /admin/settings — no redeploy. Existing
+// wallets always keep the provider that holds their key (keys cannot move);
+// the active provider only affects wallets created from now on.
+
+export type WalletProviderKey = "privy" | "cdp" | "turnkey";
+export const WALLET_PROVIDER_KEYS: readonly WalletProviderKey[] = ["privy", "cdp", "turnkey"] as const;
+
+export interface WalletProviderConfig {
+  /** Provider used to create NEW wallets (existing wallets keep theirs). */
+  activeProvider: WalletProviderKey;
+  /** Per-provider on/off. OFF = no new wallets AND no sends signed via it. */
+  enabled: Record<WalletProviderKey, boolean>;
+}
+
+const DEFAULT_WALLET_PROVIDERS: WalletProviderConfig = {
+  activeProvider: "privy",
+  enabled: { privy: true, cdp: true, turnkey: true },
+};
+
+const WALLET_PROVIDERS_KEY = "wallet_providers";
+
+export async function getWalletProviderConfig(): Promise<WalletProviderConfig> {
+  const stored = await getSetting<Partial<WalletProviderConfig>>(WALLET_PROVIDERS_KEY, {});
+  const active = WALLET_PROVIDER_KEYS.includes(stored.activeProvider as WalletProviderKey)
+    ? (stored.activeProvider as WalletProviderKey)
+    : DEFAULT_WALLET_PROVIDERS.activeProvider;
+  return {
+    activeProvider: active,
+    enabled: { ...DEFAULT_WALLET_PROVIDERS.enabled, ...(stored.enabled ?? {}) },
+  };
+}
+
+export async function setWalletProviderConfig(update: {
+  activeProvider?: WalletProviderKey;
+  enabled?: Partial<Record<WalletProviderKey, boolean>>;
+}): Promise<WalletProviderConfig> {
+  const current = await getWalletProviderConfig();
+  const next: WalletProviderConfig = {
+    activeProvider: update.activeProvider ?? current.activeProvider,
+    enabled: { ...current.enabled, ...(update.enabled ?? {}) },
+  };
+  await setSetting(WALLET_PROVIDERS_KEY, next);
+  return next;
+}
+
 // ── Platform fee schedule ─────────────────────────────────────────────────────
 // User price = provider cost + S-PAY margin. Providers bill S-PAY separately
 // (Stripe nets fees from the Stripe balance, Noah nets from settlement, Celo

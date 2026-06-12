@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
-import { getTokenBalances, sendToken, isOnchainSendConfigured, type CeloToken } from "../lib/celo-chain";
+import { getTokenBalances, type CeloToken } from "../lib/celo-chain";
+import { ensureUserWallet, getSendableProvider } from "../lib/wallet-providers";
 import { getFeeSchedule } from "../lib/settings";
 import { db, usersTable, transactionsTable } from "@workspace/db";
 import { eq, desc, count } from "drizzle-orm";
@@ -8,8 +9,13 @@ import { eq, desc, count } from "drizzle-orm";
 const router = Router();
 
 // Production-honest wallet: balances come from the Celo chain (USDC + USDT),
-// history from the transactions table, sends go on-chain via Privy.
-// New users see zero — never demo money.
+// history from the transactions table, sends are signed by the user's wallet
+// provider (Privy / Coinbase CDP / Turnkey). New users see zero — never demo money.
+//
+// Cost rule: READ endpoints (balance, transactions, dashboard) never call the
+// wallet provider — balances are keyless RPC reads, so browsing the app costs
+// zero WaaS MAUs. Wallets are provisioned just-in-time by MONEY actions only
+// (send, deposit-address request, withdrawal).
 
 router.get("/wallet/balance", requireAuth, async (req, res) => {
   try {
@@ -87,12 +93,20 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
     const token: CeloToken = currency?.toUpperCase() === "USDT" ? "USDT" : "USDC";
 
     const [sender] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
-    if (!sender?.celoWalletAddress || !sender.privyWalletId) {
-      res.status(503).json({ error: "wallet_pending", message: "Your wallet is still being set up. Try again shortly." });
+    if (!sender) {
+      res.status(404).json({ error: "not_found", message: "User not found" });
       return;
     }
-    if (!isOnchainSendConfigured()) {
+
+    // Money action → JIT-provision the sender's wallet if they don't have one yet
+    const senderWallet = await ensureUserWallet(sender);
+    if (!senderWallet) {
       res.status(503).json({ error: "not_configured", message: "Transfers are activating soon — your balance is safe and ready." });
+      return;
+    }
+    const signer = await getSendableProvider(senderWallet.provider);
+    if (!signer) {
+      res.status(503).json({ error: "provider_disabled", message: "Transfers are briefly paused for maintenance. Your funds are safe — try again soon." });
       return;
     }
 
@@ -101,18 +115,24 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
     let recipientUser: typeof sender | undefined;
     if (recipientPhone) {
       [recipientUser] = await db.select().from(usersTable).where(eq(usersTable.phoneNumber, recipientPhone.trim())).limit(1);
-      if (!recipientUser?.celoWalletAddress) {
+      if (!recipientUser) {
         res.status(404).json({ error: "recipient_not_found", message: "No S-PAY member with that phone number. Ask them to join — it's free!" });
         return;
       }
-      toAddress = recipientUser.celoWalletAddress;
+      // Receiving money is a money action too — JIT-provision the recipient
+      const recipientWallet = await ensureUserWallet(recipientUser);
+      if (!recipientWallet) {
+        res.status(503).json({ error: "recipient_wallet_unavailable", message: "The recipient's wallet couldn't be prepared. Try again shortly." });
+        return;
+      }
+      toAddress = recipientWallet.address;
     }
     if (!/^0x[0-9a-fA-F]{40}$/.test(toAddress)) {
       res.status(400).json({ error: "validation_error", message: "Invalid recipient wallet address" });
       return;
     }
 
-    const balances = await getTokenBalances(sender.celoWalletAddress);
+    const balances = await getTokenBalances(senderWallet.address);
     const available = token === "USDT" ? balances?.usdt ?? 0 : balances?.usdc ?? 0;
     const fees = await getFeeSchedule();
     const fee = amount * (fees.p2pFeePercent / 100);
@@ -121,7 +141,7 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
       return;
     }
 
-    const txHash = await sendToken(sender.privyWalletId, toAddress, token, amount);
+    const txHash = await signer.sendToken(senderWallet, toAddress, token, amount);
 
     const description = note?.trim() || `Sent to ${recipientPhone ?? `${toAddress.slice(0, 6)}…${toAddress.slice(-4)}`}`;
     const [tx] = await db.insert(transactionsTable).values({
@@ -143,7 +163,7 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
         amount: String(amount),
         currency: token,
         description: `Received from ${sender.fullName}`,
-        counterparty: sender.phoneNumber ?? sender.celoWalletAddress,
+        counterparty: sender.phoneNumber ?? senderWallet.address,
         status: "completed",
         txHash,
       });
@@ -170,13 +190,19 @@ router.post("/wallet/add-funds", requireAuth, async (req, res) => {
   try {
     const { amount, currency } = req.body as { amount?: number; currency?: string };
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "not_found", message: "User not found" });
+      return;
+    }
 
-    if (user?.celoWalletAddress) {
+    // Asking for a deposit address is a money action — JIT-provision the wallet
+    const wallet = await ensureUserWallet(user);
+    if (wallet) {
       // Real deposits work today: any USDC/USDT sent on Celo to this address lands in the balance
       res.json({
         depositId: `dep-${crypto.randomUUID()}`,
         instructions: `Send USDC or USDT on the Celo network to your S-PAY address below. Funds appear in your balance within seconds. You can also withdraw to it from any exchange that supports Celo (Binance, Coinbase…).`,
-        celoAddress: user.celoWalletAddress,
+        celoAddress: wallet.address,
         network: "Celo",
         amount: amount ?? 0,
         currency: currency ?? "USDC",
