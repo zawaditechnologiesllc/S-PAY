@@ -7,9 +7,10 @@ import {
   useGetWalletProviders, getGetWalletProvidersQueryKey, useUpdateWalletProviders,
   useGetAdminSiteContent, getGetAdminSiteContentQueryKey, useUpdateSiteContent,
   useSendAdminNotification,
+  useGetAdminTeam, getGetAdminTeamQueryKey, useGrantAdminRole, useRevokeAdminRole,
   type WalletProvidersUpdateRequestActiveProvider,
 } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone } from "lucide-react";
+import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone, UserPlus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatusRow({ label, ok, note }: { label: string; ok: boolean; note?: string }) {
@@ -298,6 +299,7 @@ export default function AdminSettings() {
           </div>
         </Section>
 
+        <TeamSection />
         <SiteContentSection />
         <NotificationSection />
 
@@ -581,6 +583,94 @@ function NotificationSection() {
           {send.isPending ? "Sending…" : email.trim() ? "Send to user" : "Send to everyone"}
         </button>
       </div>
+    </Section>
+  );
+}
+
+
+// ─── Team & roles: superadmins appoint managers/support, everyone sees the team ─
+
+const ROLE_HELP: Record<string, string> = {
+  superadmin: "Everything — switches, fees, site content, and managing this team",
+  manager: "Operations — users & KYC, transactions, job listings, enquiries, notifications",
+  support: "Enquiries inbox + read-only users, transactions and stats",
+};
+
+function TeamSection() {
+  const { data, refetch } = useGetAdminTeam({ query: { queryKey: getGetAdminTeamQueryKey() } });
+  const grant = useGrantAdminRole();
+  const revoke = useRevokeAdminRole();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"superadmin" | "manager" | "support">("support");
+  const isSuper = data?.myRole === "superadmin";
+
+  const apiMsg = (err: unknown, fb: string) => (err as { data?: { message?: string } })?.data?.message ?? fb;
+
+  const add = () => {
+    if (!email.trim()) { toast({ title: "Enter the person's email", variant: "destructive" }); return; }
+    grant.mutate({ data: { email: email.trim(), role } }, {
+      onSuccess: () => { toast({ title: "Role granted", description: `${email.trim()} is now ${role}.` }); setEmail(""); refetch(); },
+      onError: (err) => toast({ title: "Could not grant role", description: apiMsg(err, "Try again."), variant: "destructive" }),
+    });
+  };
+
+  const remove = (userId: string, who: string) => {
+    revoke.mutate({ userId }, {
+      onSuccess: () => { toast({ title: "Role removed", description: `${who} no longer has admin access.` }); refetch(); },
+      onError: (err) => toast({ title: "Could not remove", description: apiMsg(err, "Try again."), variant: "destructive" }),
+    });
+  };
+
+  return (
+    <Section icon={<Users size={16} />} title="Team & Roles">
+      <p className="text-xs text-gray-500 mb-3">
+        Your role: <strong className="uppercase">{data?.myRole ?? "…"}</strong>. Owners from <code className="bg-gray-100 px-1 rounded">ADMIN_EMAILS</code> are permanent superadmins; appoint more admins below (they must register an account first). Revoked roles lose access immediately.
+      </p>
+
+      <div className="space-y-2 mb-4">
+        {(data?.admins ?? []).map((a) => (
+          <div key={a.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">{a.fullName} <span className="text-gray-400 font-normal">· {a.email}</span></p>
+              <p className="text-[11px] text-gray-400">{ROLE_HELP[a.role]}</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${
+                a.role === "superadmin" ? "bg-purple-50 text-purple-700" : a.role === "manager" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-600"
+              }`}>{a.role}</span>
+              {a.source === "env" ? (
+                <span className="text-[10px] font-bold uppercase bg-amber-50 text-amber-700 px-2 py-1 rounded-full" title="Set via ADMIN_EMAILS on Render">Owner</span>
+              ) : isSuper ? (
+                <button onClick={() => remove(a.id, a.email)} disabled={revoke.isPending} className="text-red-400 hover:text-red-600 p-1" aria-label={`Remove ${a.email}`}>
+                  <Trash2 size={15} />
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {isSuper && (
+        <div className="border-t border-gray-100 pt-4 space-y-2">
+          <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5"><UserPlus size={15} className="text-[#4DC9EE]" /> Add an admin</p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="registered-user@email.com"
+              className="flex-1 h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-[#4DC9EE] focus:ring-2 focus:ring-[#4DC9EE]/20" />
+            <select value={role} onChange={(e) => setRole(e.target.value as typeof role)}
+              className="h-10 rounded-lg border border-gray-200 px-3 text-sm bg-white">
+              <option value="support">Support</option>
+              <option value="manager">Manager</option>
+              <option value="superadmin">Superadmin</option>
+            </select>
+            <button onClick={add} disabled={grant.isPending}
+              className="bg-[#4DC9EE] hover:bg-[#2E8FD6] text-white text-sm font-bold px-5 h-10 rounded-xl transition-colors disabled:opacity-60">
+              {grant.isPending ? "Granting…" : "Grant role"}
+            </button>
+          </div>
+          <p className="text-[11px] text-gray-400">{ROLE_HELP[role]}</p>
+        </div>
+      )}
     </Section>
   );
 }

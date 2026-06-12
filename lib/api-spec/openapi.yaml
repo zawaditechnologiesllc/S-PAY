@@ -1067,6 +1067,68 @@ paths:
               schema:
                 $ref: "#/components/schemas/SiteContent"
 
+  /admin/admins:
+    get:
+      operationId: getAdminTeam
+      tags: [Admin]
+      summary: List the admin team (env owners + appointed admins) and your own role
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Admin team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTeamResponse"
+    post:
+      operationId: grantAdminRole
+      tags: [Admin]
+      summary: Grant or change an admin role by email (superadmin only; account must exist)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                role:
+                  type: string
+                  enum: [superadmin, manager, support]
+              required: [email, role]
+      responses:
+        "200":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTeamResponse"
+
+  /admin/admins/{userId}:
+    delete:
+      operationId: revokeAdminRole
+      tags: [Admin]
+      summary: Remove an appointed admin's role (superadmin only; env owners and yourself are protected)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTeamResponse"
+
   /admin/wallet-providers:
     get:
       operationId: getWalletProviders
@@ -1271,6 +1333,11 @@ components:
         emailVerified:
           type: boolean
           description: Soft email confirmation — login is never blocked; the app shows a banner until confirmed
+        adminRole:
+          type: string
+          enum: [superadmin, manager, support]
+          nullable: true
+          description: Present only for admin-tier accounts
         isAdmin:
           type: boolean
         avatarUrl:
@@ -1954,6 +2021,36 @@ components:
         maintenanceMessage:
           type: string
           maxLength: 280
+
+    AdminTeamMember:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+          enum: [superadmin, manager, support]
+        source:
+          type: string
+          enum: [env, appointed]
+          description: env = permanent owner from ADMIN_EMAILS; appointed = granted in the panel
+      required: [id, email, fullName, role, source]
+
+    AdminTeamResponse:
+      type: object
+      properties:
+        myRole:
+          type: string
+          enum: [superadmin, manager, support]
+        admins:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminTeamMember"
+      required: [myRole, admins]
 
     SiteContent:
       type: object

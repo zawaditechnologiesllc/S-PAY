@@ -38,7 +38,7 @@ S-PAY is a digital money super app for remote workers and businesses, **built on
 - **Feature flags** (`app_settings`, 15s cache): `card_program_enabled`, `maintenance_mode`, `fee_schedule`, `wallet_providers` (active + enabled map). Toggled live from `/admin/settings`, no deploy.
 - **Accounts**: `personal` (Noah KYC) vs `business` (Noah KYB, requires `businessName`, virtual accounts in company name). Identical wallet/USDC/USDT rails for both.
 - **Attribution**: every signup records `signup_source` (jobs board → `jobs:<jobId>`; carried through Google OAuth `state`; mobile tags itself).
-- **Admin** access = `ADMIN_EMAILS` env (server-enforced), not a DB role.
+- **Admin roles** (`lib/admin-roles.ts`): superadmin / manager / support in `users.admin_role`, resolved from DB per request (instant revocation). `ADMIN_EMAILS` env = permanent superadmins (bootstrap + recovery, immutable from UI). Matrix: any-admin = reads + enquiries; manager+ = custom-jobs, notifications; superadmin = all PUT switches (flags/fees/wallet-providers/site-content) + team CRUD (no self-demote, env-admins protected).
 - **Notifications**: rows with user_id are personal, NULL = broadcast; per-user read state = users.notifications_read_at (no fan-out). Auto-fired on P2P receive, Noah deposit credit, KYC approval; manual via POST /admin/notifications.
 - **Site content** (`app_settings.site_content`): hero/footer/colours served by public GET /site-content, consumed by landing + public layout; edited in Admin → Settings.
 - **Security**: helmet (CSP off for SSR pages), trust proxy 1, rate limits on /api/auth/* (50/15min/IP) and /api/enquiries (10/h/IP).

@@ -178,7 +178,7 @@ Navigate to `https://your-app.vercel.app/admin` while logged in with that email.
 
 ### Option B — Promote yourself to admin
 
-After registering, add your email to `ADMIN_EMAILS` on Render and redeploy. No role change in the DB needed — admin access is purely env-var based.
+After registering, add your email to `ADMIN_EMAILS` on Render and redeploy — that makes you a **permanent superadmin (owner)**. From there you appoint everyone else in the panel: **Admin → Settings → Team & Roles** → enter a registered user's email → pick a role → Grant. Roles: **superadmin** (everything incl. switches and team management), **manager** (operations: users/KYC, transactions, job listings, enquiries, notifications), **support** (enquiries inbox + read-only). Revoked roles lose access immediately — no redeploy.
 
 ### Option C — Simulate KYC approval (for testing)
 

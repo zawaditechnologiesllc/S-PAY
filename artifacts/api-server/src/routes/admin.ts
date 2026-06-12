@@ -9,28 +9,23 @@ import {
   WALLET_PROVIDER_KEYS, type WalletProviderKey,
 } from "../lib/settings";
 import { walletProviderCatalog } from "../lib/wallet-providers";
+import {
+  requireAnyAdmin, requireManager, requireSuperadmin,
+  effectiveRole, isEnvAdmin, ENV_ADMIN_EMAILS, ADMIN_ROLES, type AdminRole,
+} from "../lib/admin-roles";
 import { isStripeConfigured } from "../lib/stripe-issuing";
 import { invalidateCustomJobs, CATEGORY_LABELS } from "../lib/jobs";
 import { db, usersTable, transactionsTable, cardWaitlistTable, customJobsTable, enquiriesTable, notificationsTable } from "@workspace/db";
 import { notifyAll, notifyUser } from "../lib/notify";
-import { eq, count, desc, sql, isNotNull } from "drizzle-orm";
+import { eq, count, desc, sql, isNotNull, or, isNull } from "drizzle-orm";
 
 const router = Router();
 
-// Comma-separated admin emails configured via env var
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "admin@spayewallet.com")
-  .split(",").map((e) => e.trim().toLowerCase());
+// Role tiers (superadmin / manager / support) live in lib/admin-roles.ts.
+// ADMIN_EMAILS env accounts are permanent superadmins; further admins are
+// appointed from Admin → Settings → Team & Roles.
 
-function requireAdmin(req: any, res: any, next: any) {
-  if (!req.user) { res.status(401).json({ error: "unauthorized" }); return; }
-  if (!ADMIN_EMAILS.includes(req.user.email.toLowerCase())) {
-    res.status(403).json({ error: "forbidden", message: "Admin access required" });
-    return;
-  }
-  next();
-}
-
-router.get("/admin/stats", requireAuth, requireAdmin, async (req, res) => {
+router.get("/admin/stats", requireAuth, requireAnyAdmin, async (req, res) => {
   try {
     const [{ total: totalUsers }] = await db.select({ total: count() }).from(usersTable);
     const [{ total: pendingKyc }] = await db.select({ total: count() }).from(usersTable).where(eq(usersTable.kycStatus, "pending"));
@@ -83,7 +78,7 @@ router.get("/admin/stats", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.get("/admin/users", requireAuth, requireAdmin, async (req, res) => {
+router.get("/admin/users", requireAuth, requireAnyAdmin, async (req, res) => {
   try {
     const kycStatus = typeof req.query["kycStatus"] === "string" ? req.query["kycStatus"] : undefined;
 
@@ -123,7 +118,7 @@ router.get("/admin/users", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.get("/admin/transactions", requireAuth, requireAdmin, async (req, res) => {
+router.get("/admin/transactions", requireAuth, requireAnyAdmin, async (req, res) => {
   try {
     const type = typeof req.query["type"] === "string" ? req.query["type"] : undefined;
 
@@ -166,7 +161,7 @@ async function featureFlagsPayload() {
   };
 }
 
-router.get("/admin/feature-flags", requireAuth, requireAdmin, async (req, res) => {
+router.get("/admin/feature-flags", requireAuth, requireAnyAdmin, async (req, res) => {
   try {
     res.json(await featureFlagsPayload());
   } catch (err) {
@@ -175,7 +170,7 @@ router.get("/admin/feature-flags", requireAuth, requireAdmin, async (req, res) =
   }
 });
 
-router.put("/admin/feature-flags", requireAuth, requireAdmin, async (req, res) => {
+router.put("/admin/feature-flags", requireAuth, requireSuperadmin, async (req, res) => {
   try {
     const { cardProgramEnabled, maintenanceMode, maintenanceMessage } = req.body as {
       cardProgramEnabled?: unknown; maintenanceMode?: unknown; maintenanceMessage?: unknown;
@@ -245,7 +240,7 @@ async function walletProvidersPayload() {
   };
 }
 
-router.get("/admin/wallet-providers", requireAuth, requireAdmin, async (req, res) => {
+router.get("/admin/wallet-providers", requireAuth, requireAnyAdmin, async (req, res) => {
   try {
     res.json(await walletProvidersPayload());
   } catch (err) {
@@ -254,7 +249,7 @@ router.get("/admin/wallet-providers", requireAuth, requireAdmin, async (req, res
   }
 });
 
-router.put("/admin/wallet-providers", requireAuth, requireAdmin, async (req, res) => {
+router.put("/admin/wallet-providers", requireAuth, requireSuperadmin, async (req, res) => {
   try {
     const { activeProvider, enabled } = req.body as { activeProvider?: unknown; enabled?: unknown };
     if (activeProvider === undefined && enabled === undefined) {
@@ -297,7 +292,7 @@ router.put("/admin/wallet-providers", requireAuth, requireAdmin, async (req, res
 
 // ─── Fee schedule: provider cost + S-PAY margin = user price ──────────────────
 
-router.get("/admin/fees", requireAuth, requireAdmin, async (req, res) => {
+router.get("/admin/fees", requireAuth, requireAnyAdmin, async (req, res) => {
   try {
     res.json(await getFeeSchedule());
   } catch (err) {
@@ -306,7 +301,7 @@ router.get("/admin/fees", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.put("/admin/fees", requireAuth, requireAdmin, async (req, res) => {
+router.put("/admin/fees", requireAuth, requireSuperadmin, async (req, res) => {
   try {
     const body = req.body as Partial<FeeSchedule>;
     const fields: (keyof FeeSchedule)[] = ["withdrawalFeePercent", "withdrawalFeeMin", "cardIssuanceFee", "p2pFeePercent"];
@@ -334,7 +329,7 @@ router.put("/admin/fees", requireAuth, requireAdmin, async (req, res) => {
 
 // ─── S-PAY's own job listings (pinned to the feed top; SEO content) ───────────
 
-router.get("/admin/custom-jobs", requireAuth, requireAdmin, async (req, res) => {
+router.get("/admin/custom-jobs", requireAuth, requireAnyAdmin, async (req, res) => {
   try {
     const rows = await db.select().from(customJobsTable)
       .where(eq(customJobsTable.active, true))
@@ -346,7 +341,7 @@ router.get("/admin/custom-jobs", requireAuth, requireAdmin, async (req, res) => 
   }
 });
 
-router.post("/admin/custom-jobs", requireAuth, requireAdmin, async (req, res) => {
+router.post("/admin/custom-jobs", requireAuth, requireManager, async (req, res) => {
   try {
     const { title, company, applyUrl, category, location, salary, description } = req.body as Record<string, unknown>;
     if (typeof title !== "string" || !title.trim() || typeof company !== "string" || !company.trim()) {
@@ -377,7 +372,7 @@ router.post("/admin/custom-jobs", requireAuth, requireAdmin, async (req, res) =>
   }
 });
 
-router.delete("/admin/custom-jobs/:jobId", requireAuth, requireAdmin, async (req, res) => {
+router.delete("/admin/custom-jobs/:jobId", requireAuth, requireManager, async (req, res) => {
   try {
     await db.update(customJobsTable)
       .set({ active: false })
@@ -393,7 +388,7 @@ router.delete("/admin/custom-jobs/:jobId", requireAuth, requireAdmin, async (req
 
 // ─── Manual notifications: message every user or one user, from the admin ────
 
-router.post("/admin/notifications", requireAuth, requireAdmin, async (req, res) => {
+router.post("/admin/notifications", requireAuth, requireManager, async (req, res) => {
   try {
     const { title, body, email } = req.body as { title?: unknown; body?: unknown; email?: unknown };
     if (typeof title !== "string" || !title.trim() || typeof body !== "string" || !body.trim()) {
@@ -426,7 +421,7 @@ router.post("/admin/notifications", requireAuth, requireAdmin, async (req, res) 
 
 // ─── Enquiries inbox: everything from the landing page, contact page & app ───
 
-router.get("/admin/enquiries", requireAuth, requireAdmin, async (req, res) => {
+router.get("/admin/enquiries", requireAuth, requireAnyAdmin, async (req, res) => {
   try {
     const rows = await db.select().from(enquiriesTable).orderBy(desc(enquiriesTable.createdAt)).limit(500);
     const [{ total }] = await db.select({ total: count() }).from(enquiriesTable);
@@ -437,7 +432,7 @@ router.get("/admin/enquiries", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.put("/admin/enquiries/:enquiryId", requireAuth, requireAdmin, async (req, res) => {
+router.put("/admin/enquiries/:enquiryId", requireAuth, requireAnyAdmin, async (req, res) => {
   try {
     const status = (req.body as { status?: string }).status === "resolved" ? "resolved" : "new";
     await db.update(enquiriesTable).set({ status }).where(eq(enquiriesTable.id, req.params.enquiryId as string));
@@ -450,7 +445,7 @@ router.put("/admin/enquiries/:enquiryId", requireAuth, requireAdmin, async (req,
 
 // ─── Site content: hero, footer, colours — live edits, no deploy ──────────────
 
-router.get("/admin/site-content", requireAuth, requireAdmin, async (req, res) => {
+router.get("/admin/site-content", requireAuth, requireAnyAdmin, async (req, res) => {
   try {
     res.json(await getSiteContent());
   } catch (err) {
@@ -459,7 +454,7 @@ router.get("/admin/site-content", requireAuth, requireAdmin, async (req, res) =>
   }
 });
 
-router.put("/admin/site-content", requireAuth, requireAdmin, async (req, res) => {
+router.put("/admin/site-content", requireAuth, requireSuperadmin, async (req, res) => {
   try {
     const body = req.body as Partial<SiteContent>;
     const update: Partial<SiteContent> = {};
@@ -486,8 +481,95 @@ router.put("/admin/site-content", requireAuth, requireAdmin, async (req, res) =>
   }
 });
 
+
+// ─── Team & roles: superadmins appoint other admins ───────────────────────────
+
+async function adminsPayload(myRole: AdminRole) {
+  const rows = await db.select({
+    id: usersTable.id, email: usersTable.email, fullName: usersTable.fullName,
+    adminRole: usersTable.adminRole, createdAt: usersTable.createdAt,
+  }).from(usersTable)
+    .where(or(isNotNull(usersTable.adminRole), ...ENV_ADMIN_EMAILS.map((e) => eq(sql`lower(${usersTable.email})`, e))))
+    .orderBy(desc(usersTable.createdAt));
+  return {
+    myRole,
+    admins: rows
+      .map((u) => ({
+        id: u.id,
+        email: u.email,
+        fullName: u.fullName,
+        role: isEnvAdmin(u.email) ? ("superadmin" as const) : (u.adminRole as AdminRole),
+        source: isEnvAdmin(u.email) ? ("env" as const) : ("appointed" as const),
+      }))
+      .filter((u) => u.role),
+  };
+}
+
+router.get("/admin/admins", requireAuth, requireAnyAdmin, async (req, res) => {
+  try {
+    res.json(await adminsPayload(req.adminRole!));
+  } catch (err) {
+    req.log.error({ err }, "Admins list error");
+    res.status(500).json({ error: "internal_error", message: "Failed to list admins" });
+  }
+});
+
+router.post("/admin/admins", requireAuth, requireSuperadmin, async (req, res) => {
+  try {
+    const { email, role } = req.body as { email?: unknown; role?: unknown };
+    if (typeof email !== "string" || !email.trim()) {
+      res.status(400).json({ error: "validation_error", message: "email is required" });
+      return;
+    }
+    if (!ADMIN_ROLES.includes(role as AdminRole)) {
+      res.status(400).json({ error: "validation_error", message: `role must be one of: ${ADMIN_ROLES.join(", ")}` });
+      return;
+    }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.trim())).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "not_found", message: "No account with that email — they must register first, then you can grant a role." });
+      return;
+    }
+    if (isEnvAdmin(user.email)) {
+      res.status(400).json({ error: "validation_error", message: "That account is a permanent owner (ADMIN_EMAILS) — its role can't be changed here." });
+      return;
+    }
+    await db.update(usersTable).set({ adminRole: role as AdminRole, updatedAt: new Date() }).where(eq(usersTable.id, user.id));
+    req.log.warn({ admin: req.user!.email, target: user.email, role }, "Admin role granted/changed");
+    res.json(await adminsPayload(req.adminRole!));
+  } catch (err) {
+    req.log.error({ err }, "Admin grant error");
+    res.status(500).json({ error: "internal_error", message: "Failed to update the role" });
+  }
+});
+
+router.delete("/admin/admins/:userId", requireAuth, requireSuperadmin, async (req, res) => {
+  try {
+    const userId = req.params.userId as string;
+    const [target] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!target?.adminRole && !(target && isEnvAdmin(target.email))) {
+      res.status(404).json({ error: "not_found", message: "That user has no admin role" });
+      return;
+    }
+    if (target && isEnvAdmin(target.email)) {
+      res.status(400).json({ error: "validation_error", message: "Permanent owners (ADMIN_EMAILS) can only be removed by editing the env var on Render." });
+      return;
+    }
+    if (userId === req.user!.userId) {
+      res.status(400).json({ error: "validation_error", message: "You can't remove your own access — ask another superadmin." });
+      return;
+    }
+    await db.update(usersTable).set({ adminRole: null, updatedAt: new Date() }).where(eq(usersTable.id, userId));
+    req.log.warn({ admin: req.user!.email, target: target!.email }, "Admin role removed");
+    res.json(await adminsPayload(req.adminRole!));
+  } catch (err) {
+    req.log.error({ err }, "Admin remove error");
+    res.status(500).json({ error: "internal_error", message: "Failed to remove the role" });
+  }
+});
+
 // Returns which env vars are configured (not their values)
-router.get("/admin/settings", requireAuth, requireAdmin, (req, res) => {
+router.get("/admin/settings", requireAuth, requireAnyAdmin, (req, res) => {
   const check = (key: string) => !!process.env[key];
   res.json({
     database: { configured: check("DATABASE_URL") },
@@ -507,7 +589,7 @@ router.get("/admin/settings", requireAuth, requireAdmin, (req, res) => {
     cors: {
       origin: process.env.CORS_ORIGIN ?? "(not set)",
     },
-    adminEmails: ADMIN_EMAILS,
+    adminEmails: ENV_ADMIN_EMAILS,
   });
 });
 

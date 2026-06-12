@@ -81,6 +81,18 @@ export const UserKycStatus = {
   rejected: 'rejected',
 } as const;
 
+/**
+ * Present only for admin-tier accounts
+ */
+export type UserAdminRole = typeof UserAdminRole[keyof typeof UserAdminRole] | null;
+
+
+export const UserAdminRole = {
+  superadmin: 'superadmin',
+  manager: 'manager',
+  support: 'support',
+} as const;
+
 export type UserAccountType = typeof UserAccountType[keyof typeof UserAccountType];
 
 
@@ -97,6 +109,8 @@ export interface User {
   kycStatus: UserKycStatus;
   /** Soft email confirmation — login is never blocked; the app shows a banner until confirmed */
   emailVerified?: boolean;
+  /** Present only for admin-tier accounts */
+  adminRole?: UserAdminRole;
   isAdmin: boolean;
   avatarUrl?: string;
   /** EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user's first money action (never at signup/login, so jobs-only users cost zero WaaS MAUs) */
@@ -594,6 +608,49 @@ export interface FeatureFlagsUpdateRequest {
   maintenanceMessage?: string;
 }
 
+export type AdminTeamMemberRole = typeof AdminTeamMemberRole[keyof typeof AdminTeamMemberRole];
+
+
+export const AdminTeamMemberRole = {
+  superadmin: 'superadmin',
+  manager: 'manager',
+  support: 'support',
+} as const;
+
+/**
+ * env = permanent owner from ADMIN_EMAILS; appointed = granted in the panel
+ */
+export type AdminTeamMemberSource = typeof AdminTeamMemberSource[keyof typeof AdminTeamMemberSource];
+
+
+export const AdminTeamMemberSource = {
+  env: 'env',
+  appointed: 'appointed',
+} as const;
+
+export interface AdminTeamMember {
+  id: string;
+  email: string;
+  fullName: string;
+  role: AdminTeamMemberRole;
+  /** env = permanent owner from ADMIN_EMAILS; appointed = granted in the panel */
+  source: AdminTeamMemberSource;
+}
+
+export type AdminTeamResponseMyRole = typeof AdminTeamResponseMyRole[keyof typeof AdminTeamResponseMyRole];
+
+
+export const AdminTeamResponseMyRole = {
+  superadmin: 'superadmin',
+  manager: 'manager',
+  support: 'support',
+} as const;
+
+export interface AdminTeamResponse {
+  myRole: AdminTeamResponseMyRole;
+  admins: AdminTeamMember[];
+}
+
 export interface SiteContent {
   heroTitle: string;
   heroSubtitle: string;
@@ -912,5 +969,19 @@ export const UpdateEnquiryBodyStatus = {
 
 export type UpdateEnquiryBody = {
   status: UpdateEnquiryBodyStatus;
+};
+
+export type GrantAdminRoleBodyRole = typeof GrantAdminRoleBodyRole[keyof typeof GrantAdminRoleBodyRole];
+
+
+export const GrantAdminRoleBodyRole = {
+  superadmin: 'superadmin',
+  manager: 'manager',
+  support: 'support',
+} as const;
+
+export type GrantAdminRoleBody = {
+  email: string;
+  role: GrantAdminRoleBodyRole;
 };
 

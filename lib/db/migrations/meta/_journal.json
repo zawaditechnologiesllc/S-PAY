@@ -85,6 +85,13 @@
       "when": 1781212441333,
       "tag": "0011_notifications_enquiries",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1781213441333,
+      "tag": "0012_admin_roles",
+      "breakpoints": true
     }
   ]
 }

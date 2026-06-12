@@ -68,6 +68,7 @@ export const LoginResponse = zod.object({
   "phoneNumber": zod.string().optional(),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
+  "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -88,6 +89,7 @@ export const GetMeResponse = zod.object({
   "phoneNumber": zod.string().optional(),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
+  "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -126,6 +128,7 @@ export const GoogleTokenSignInResponse = zod.object({
   "phoneNumber": zod.string().optional(),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
+  "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -158,6 +161,7 @@ export const AppleTokenSignInResponse = zod.object({
   "phoneNumber": zod.string().optional(),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
+  "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -953,6 +957,60 @@ export const UpdateSiteContentResponse = zod.object({
   "footerTagline": zod.string(),
   "primaryColor": zod.string(),
   "accentColor": zod.string()
+})
+
+
+/**
+ * @summary List the admin team (env owners + appointed admins) and your own role
+ */
+export const GetAdminTeamResponse = zod.object({
+  "myRole": zod.enum(['superadmin', 'manager', 'support']),
+  "admins": zod.array(zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "fullName": zod.string(),
+  "role": zod.enum(['superadmin', 'manager', 'support']),
+  "source": zod.enum(['env', 'appointed']).describe('env = permanent owner from ADMIN_EMAILS; appointed = granted in the panel')
+}))
+})
+
+
+/**
+ * @summary Grant or change an admin role by email (superadmin only; account must exist)
+ */
+export const GrantAdminRoleBody = zod.object({
+  "email": zod.string(),
+  "role": zod.enum(['superadmin', 'manager', 'support'])
+})
+
+export const GrantAdminRoleResponse = zod.object({
+  "myRole": zod.enum(['superadmin', 'manager', 'support']),
+  "admins": zod.array(zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "fullName": zod.string(),
+  "role": zod.enum(['superadmin', 'manager', 'support']),
+  "source": zod.enum(['env', 'appointed']).describe('env = permanent owner from ADMIN_EMAILS; appointed = granted in the panel')
+}))
+})
+
+
+/**
+ * @summary Remove an appointed admin's role (superadmin only; env owners and yourself are protected)
+ */
+export const RevokeAdminRoleParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const RevokeAdminRoleResponse = zod.object({
+  "myRole": zod.enum(['superadmin', 'manager', 'support']),
+  "admins": zod.array(zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "fullName": zod.string(),
+  "role": zod.enum(['superadmin', 'manager', 'support']),
+  "source": zod.enum(['env', 'appointed']).describe('env = permanent owner from ADMIN_EMAILS; appointed = granted in the panel')
+}))
 })
 
 
