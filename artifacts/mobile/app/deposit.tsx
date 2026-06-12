@@ -45,7 +45,16 @@ export default function Deposit() {
   );
 }
 
+const RECEIVE_SOURCES = [
+  { id: "binance", name: "Binance", emoji: "🟡", steps: ["Open Binance → Assets → Withdraw", "Choose USDC (or USDT)", "Network: select CELO — the critical step", "Paste your S-PAY address → confirm"] },
+  { id: "bybit", name: "Bybit", emoji: "⚫", steps: ["Open Bybit → Assets → Withdraw", "Choose USDC (or USDT)", "Chain type: select CELO", "Paste your S-PAY address → confirm"] },
+  { id: "okx", name: "OKX", emoji: "⚪", steps: ["Open OKX → Assets → Withdraw", "Choose USDC (or USDT) → on-chain", "Network: select Celo", "Paste your S-PAY address → confirm"] },
+  { id: "wallet", name: "Another Celo wallet", emoji: "👛", steps: ["Open the sender's wallet app", "Choose Send → USDC or USDT", "Paste your S-PAY address (or scan your QR)", "Send — arrives in ~5 seconds"] },
+] as const;
+
 function CryptoPanel({ onBack }: { onBack: () => void }) {
+  const [view, setView] = useState<null | "qr" | string>(null);
+  const source = RECEIVE_SOURCES.find((x) => x.id === view);
   const addFunds = useAddFunds();
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
   const [address, setAddress] = useState<string | null>(null);
@@ -80,6 +89,39 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
         <Text style={s.warn}>{error}</Text>
       ) : !address ? (
         <ActivityIndicator style={{ marginVertical: 40 }} color="#4DC9EE" />
+      ) : source ? (
+        <>
+          {source.steps.map((st, i) => (
+            <View key={st} style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
+              <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: "#4DC9EE", alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 11 }}>{i + 1}</Text>
+              </View>
+              <Text style={{ flex: 1, fontSize: 13, color: "#374151", lineHeight: 19 }}>{st}</Text>
+            </View>
+          ))}
+          <TouchableOpacity onPress={copy} style={{ backgroundColor: "#f9fafb", borderRadius: 12, padding: 12 }}>
+            <Text style={{ fontSize: 11, color: "#4b5563", fontFamily: "monospace" as never }}>{address}</Text>
+            <Text style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>{copied ? "✓ Copied" : "Tap to copy your address"}</Text>
+          </TouchableOpacity>
+          <Text style={s.warnSmall}>⚠ The network must be Celo. Funds sent on other networks can be lost.</Text>
+          <TouchableOpacity onPress={() => setView(null)} style={{ marginTop: 10 }}>
+            <Text style={{ color: "#2E8FD6", fontWeight: "700", fontSize: 13, textAlign: "center" }}>← Other options</Text>
+          </TouchableOpacity>
+        </>
+      ) : view !== "qr" ? (
+        <>
+          <Text style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>Where is the money coming from? Each option shows the exact steps.</Text>
+          {RECEIVE_SOURCES.map((x) => (
+            <TouchableOpacity key={x.id} style={s.optionRow} onPress={() => setView(x.id)}>
+              <Text style={s.optionText}>{x.emoji}  {x.name}</Text>
+              <Feather name="chevron-right" size={16} color="#9ca3af" />
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity style={s.optionRow} onPress={() => setView("qr")}>
+            <Text style={s.optionText}>🔳  My QR code</Text>
+            <Feather name="chevron-right" size={16} color="#9ca3af" />
+          </TouchableOpacity>
+        </>
       ) : (
         <>
           <View style={s.qrWrap}>
@@ -100,7 +142,10 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
               <Text style={s.btnText}>Share</Text>
             </TouchableOpacity>
           </View>
-          <Text style={s.warnSmall}>⚠ Send USDC or USDT on the Celo network only. From Binance: Withdraw → USDC → network CELO. Funds appear in seconds.</Text>
+          <Text style={s.warnSmall}>⚠ Send USDC or USDT on the Celo network only. Funds appear in seconds.</Text>
+          <TouchableOpacity onPress={() => setView(null)} style={{ marginTop: 10 }}>
+            <Text style={{ color: "#2E8FD6", fontWeight: "700", fontSize: 13, textAlign: "center" }}>← Other options</Text>
+          </TouchableOpacity>
         </>
       )}
     </View>

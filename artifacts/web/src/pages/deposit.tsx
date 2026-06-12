@@ -217,7 +217,46 @@ function BankPanel({ onBack }: { onBack: () => void }) {
   );
 }
 
-// ─── Crypto / exchange — MiniPay-style receive card ──────────────────────────
+// ─── Crypto / exchange — guided per-exchange steps; "My QR code" is one option ─
+
+const RECEIVE_SOURCES = [
+  {
+    id: "binance", name: "Binance", emoji: "🟡",
+    steps: [
+      "Open Binance → Assets → Withdraw",
+      "Choose USDC (or USDT)",
+      "Network: select CELO — this is the critical step",
+      "Paste your S-PAY address below → confirm",
+    ],
+  },
+  {
+    id: "bybit", name: "Bybit", emoji: "⚫",
+    steps: [
+      "Open Bybit → Assets → Withdraw",
+      "Choose USDC (or USDT)",
+      "Chain type: select CELO",
+      "Paste your S-PAY address below → confirm",
+    ],
+  },
+  {
+    id: "okx", name: "OKX", emoji: "⚪",
+    steps: [
+      "Open OKX → Assets → Withdraw",
+      "Choose USDC (or USDT) → on-chain withdrawal",
+      "Network: select Celo",
+      "Paste your S-PAY address below → confirm",
+    ],
+  },
+  {
+    id: "wallet", name: "Another Celo wallet (MiniPay, Valora…)", emoji: "👛",
+    steps: [
+      "Open the sender's wallet app",
+      "Choose Send → USDC or USDT",
+      "Paste your S-PAY address below (or scan your QR)",
+      "Send — it arrives in ~5 seconds",
+    ],
+  },
+] as const;
 
 function CryptoPanel({ onBack }: { onBack: () => void }) {
   const { toast } = useToast();
@@ -227,6 +266,8 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
   const [address, setAddress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [view, setView] = useState<null | "qr" | typeof RECEIVE_SOURCES[number]["id"]>(null);
+  const source = RECEIVE_SOURCES.find((s) => s.id === view);
 
   useEffect(() => {
     // Money action: JIT-provisions the wallet on first use
@@ -244,9 +285,10 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // MiniPay-style QR: high error-correction + brand logo stamped in the middle
+  // MiniPay-style QR (only rendered in the "My QR code" option):
+  // high error-correction + brand logo stamped in the middle
   useEffect(() => {
-    if (!address || !canvasRef.current) return;
+    if (view !== "qr" || !address || !canvasRef.current) return;
     const canvas = canvasRef.current;
     QRCode.toCanvas(canvas, address, { width: 560, margin: 2, errorCorrectionLevel: "H", color: { dark: "#1A2B4A" } }, () => {
       const ctx = canvas.getContext("2d");
@@ -255,7 +297,6 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
       img.onload = () => {
         const size = canvas.width * 0.2;
         const x = (canvas.width - size) / 2;
-        // white rounded backing so the logo never breaks scannability
         const pad = size * 0.12;
         ctx.fillStyle = "#fff";
         ctx.beginPath();
@@ -270,7 +311,7 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
       };
       img.src = spayLogo;
     });
-  }, [address]);
+  }, [view, address]);
 
   const copy = async () => {
     if (!address) return;
@@ -301,43 +342,116 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
     }
   };
 
-  return (
-    <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
-      <CardContent className="p-5 space-y-4">
-        <PanelHeader title="Receive from an exchange or wallet" onBack={onBack} />
-        {error ? (
+  const AddressCard = () => (
+    <button onClick={copy} className="w-full bg-gray-50 dark:bg-gray-800/60 rounded-xl p-3 flex items-center gap-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Tap to copy">
+      <code className="text-[11px] text-gray-700 dark:text-gray-300 break-all flex-1">{address}</code>
+      {copied ? <CheckCircle2 size={15} className="text-green-500 flex-shrink-0" /> : <Copy size={15} className="text-gray-400 flex-shrink-0" />}
+    </button>
+  );
+
+  if (error) {
+    return (
+      <Card className="border-0 shadow-lg rounded-2xl">
+        <CardContent className="p-5 space-y-3">
+          <PanelHeader title="Receive from an exchange or wallet" onBack={onBack} />
           <p className="text-sm text-amber-700 bg-amber-50 rounded-xl p-4">{error}</p>
-        ) : !address ? (
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!address) {
+    return (
+      <Card className="border-0 shadow-lg rounded-2xl">
+        <CardContent className="p-5 space-y-3">
+          <PanelHeader title="Receive from an exchange or wallet" onBack={onBack} />
           <p className="text-sm text-gray-400 text-center py-10">Preparing your wallet…</p>
-        ) : (
-          <>
-            {/* MiniPay-style identity card */}
-            <div className="bg-gradient-to-b from-[#FCFF52]/40 to-white rounded-3xl border border-gray-100 dark:border-gray-800 p-6 flex flex-col items-center gap-3">
-              <p className="font-bold text-gray-900 dark:text-gray-100">{me?.fullName ?? "My S-PAY"}</p>
-              <canvas ref={canvasRef} className="w-56 h-56 rounded-xl" aria-label="Your S-PAY receive QR code" />
-              <button onClick={copy} className="font-mono text-[11px] text-gray-600 dark:text-gray-400 break-all text-center hover:text-gray-900 transition-colors" title="Tap to copy">
-                {address}
-              </button>
-              <p className="text-[11px] text-gray-400 -mt-1">Tap the address to copy</p>
-            </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-            <div className="grid grid-cols-3 gap-2">
-              <Button variant="outline" className="rounded-xl" onClick={copy}>
-                {copied ? <CheckCircle2 size={15} className="mr-1 text-green-500" /> : <Copy size={15} className="mr-1" />} {copied ? "Copied" : "Copy"}
-              </Button>
-              <Button variant="outline" className="rounded-xl" onClick={download}>
-                <Download size={15} className="mr-1" /> Save
-              </Button>
-              <Button variant="outline" className="rounded-xl" onClick={share}>
-                <Share2 size={15} className="mr-1" /> Share
-              </Button>
-            </div>
+  // Per-exchange guided steps — business-style, like the exchange withdrawal flow
+  if (source) {
+    return (
+      <Card className="border-0 shadow-lg rounded-2xl">
+        <CardContent className="p-5 space-y-4">
+          <PanelHeader title={`Receive from ${source.name.split(" (")[0]}`} onBack={() => setView(null)} />
+          <ol className="space-y-3">
+            {source.steps.map((step, i) => (
+              <li key={step} className="flex gap-3">
+                <span className="w-6 h-6 rounded-full bg-[#4DC9EE] text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{step}</span>
+              </li>
+            ))}
+          </ol>
+          <div>
+            <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-1.5">Your S-PAY address (tap to copy)</p>
+            <AddressCard />
+          </div>
+          <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700 leading-relaxed">
+            ⚠ The network must be <strong>Celo</strong>. Funds sent on any other network can be lost. Arrives in seconds.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-            <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700 leading-relaxed">
-              ⚠ Send <strong>USDC or USDT</strong> on the <strong>Celo network only</strong>. From Binance/Bybit: Withdraw → USDC → network <strong>CELO</strong> → paste your address. Funds appear in seconds.
-            </div>
-          </>
-        )}
+  // "My QR code" — one option among the sources
+  if (view === "qr") {
+    return (
+      <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
+        <CardContent className="p-5 space-y-4">
+          <PanelHeader title="My QR code" onBack={() => setView(null)} />
+          <div className="bg-gradient-to-b from-[#FCFF52]/40 to-white rounded-3xl border border-gray-100 dark:border-gray-800 p-6 flex flex-col items-center gap-3">
+            <p className="font-bold text-gray-900">{me?.fullName ?? "My S-PAY"}</p>
+            <canvas ref={canvasRef} className="w-56 h-56 rounded-xl" aria-label="Your S-PAY receive QR code" />
+            <button onClick={copy} className="font-mono text-[11px] text-gray-600 break-all text-center hover:text-gray-900 transition-colors" title="Tap to copy">
+              {address}
+            </button>
+            <p className="text-[11px] text-gray-400 -mt-1">Tap the address to copy</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Button variant="outline" className="rounded-xl" onClick={copy}>
+              {copied ? <CheckCircle2 size={15} className="mr-1 text-green-500" /> : <Copy size={15} className="mr-1" />} {copied ? "Copied" : "Copy"}
+            </Button>
+            <Button variant="outline" className="rounded-xl" onClick={download}>
+              <Download size={15} className="mr-1" /> Save
+            </Button>
+            <Button variant="outline" className="rounded-xl" onClick={share}>
+              <Share2 size={15} className="mr-1" /> Share
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Source chooser — the process for each, easier and business-oriented
+  return (
+    <Card className="border-0 shadow-lg rounded-2xl">
+      <CardContent className="p-5 space-y-2">
+        <PanelHeader title="Receive from an exchange or wallet" onBack={onBack} />
+        <p className="text-xs text-gray-500 pb-1">Where is the money coming from? Each option shows the exact steps.</p>
+        {RECEIVE_SOURCES.map((s) => (
+          <button key={s.id} onClick={() => setView(s.id)} className="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left">
+            <span className="text-2xl">{s.emoji}</span>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex-1">{s.name}</p>
+            <ChevronRight size={16} className="text-gray-300" />
+          </button>
+        ))}
+        <button onClick={() => setView("qr")} className="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left">
+          <span className="text-2xl">🔳</span>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">My QR code</p>
+            <p className="text-[11px] text-gray-500">Show, save or share it — anyone can scan to pay you</p>
+          </div>
+          <ChevronRight size={16} className="text-gray-300" />
+        </button>
+        <div>
+          <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-1.5 mt-2">Your S-PAY address (tap to copy)</p>
+          <AddressCard />
+        </div>
       </CardContent>
     </Card>
   );
