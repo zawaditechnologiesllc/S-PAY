@@ -1,5 +1,7 @@
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/public-layout";
+import { Layout } from "@/components/layout";
+import { getToken } from "@/lib/auth";
 import {
   UserPlus, QrCode, ArrowRightLeft, Banknote, Landmark, ShieldCheck,
   CreditCard, Briefcase, ScanLine, Wallet2, MailCheck, ChevronRight,
@@ -68,8 +70,26 @@ const FAQS = [
 ];
 
 export default function HowItWorks() {
+  // Signed-in users stay INSIDE the app (app shell + back button);
+  // visitors get the marketing shell. Same content, no context switch.
+  const authed = Boolean(getToken());
+  if (authed) {
+    return (
+      <Layout back title="How it works">
+        <Content authed />
+      </Layout>
+    );
+  }
   return (
     <PublicLayout>
+      <Content />
+    </PublicLayout>
+  );
+}
+
+function Content({ authed = false }: { authed?: boolean }) {
+  return (
+    <>
       <div className="max-w-3xl mx-auto px-4 py-12 md:py-16">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-[#4DC9EE]/10 text-[#2E8FD6] text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full mb-4">
@@ -113,13 +133,13 @@ export default function HowItWorks() {
           <h2 className="text-2xl font-black mb-2">Ready in 2 minutes</h2>
           <p className="text-white/85 text-sm mb-6">Free account · free Celo wallet · 3,000+ remote jobs daily</p>
           <Link
-            href="/register?source=how-it-works"
+            href={authed ? "/deposit" : "/register?source=how-it-works"}
             className="inline-flex items-center gap-1.5 bg-white text-[#1A2B4A] font-bold px-7 py-3 rounded-2xl hover:scale-[1.02] transition-transform"
           >
-            Create my free account <ChevronRight size={16} />
+            {authed ? "Add money to my wallet" : "Create my free account"} <ChevronRight size={16} />
           </Link>
         </div>
       </div>
-    </PublicLayout>
+    </>
   );
 }
