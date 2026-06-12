@@ -56,13 +56,12 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
               <span>How it works</span>
             </div>
           </Link>
-          <a
-            href="mailto:support@spayewallet.com"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-colors text-sm cursor-pointer"
-          >
-            <HelpCircle size={18} />
-            <span>Help &amp; Support</span>
-          </a>
+          <Link href="/support">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-colors text-sm cursor-pointer">
+              <HelpCircle size={18} />
+              <span>Help &amp; Support</span>
+            </div>
+          </Link>
           <button
             onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:bg-red-500/10 hover:text-red-400 transition-colors text-sm"
