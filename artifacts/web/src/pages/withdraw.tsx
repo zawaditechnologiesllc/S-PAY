@@ -18,7 +18,17 @@ export default function Withdraw() {
   const { toast } = useToast();
   
   const [amount, setAmount] = useState<string>("100");
+  const MOMO_PROVIDERS = [
+    { id: "mpesa", flag: "🇰🇪", label: "M-Pesa", currency: "KES" },
+    { id: "mtn_momo", flag: "🇺🇬", label: "MTN MoMo", currency: "UGX" },
+    { id: "airtel", flag: "🇳🇬", label: "Airtel / NG Bank", currency: "NGN" },
+    { id: "gcash", flag: "🇵🇭", label: "GCash", currency: "PHP" },
+    { id: "nequi", flag: "🇨🇴", label: "Nequi", currency: "COP" },
+  ] as const;
+  const MOMO_IDS = MOMO_PROVIDERS.map((p) => p.id as string);
+  // /banking/withdraw?m=momo (dashboard tile) lands with mobile money open
   const [method, setMethod] = useState<string>("mpesa");
+  const [momoExpanded, setMomoExpanded] = useState(true);
   const [targetCurrency, setTargetCurrency] = useState("KES");
   const [recipient, setRecipient] = useState("");
 
@@ -113,17 +123,33 @@ export default function Withdraw() {
             <div className="space-y-3">
               <Label>Withdrawal Method</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <MethodOption id="mpesa" icon={<Smartphone />} label="M-Pesa" selected={method === "mpesa"} onClick={() => setMethod("mpesa")} />
-                <MethodOption id="mtn_momo" icon={<Smartphone />} label="MTN MoMo" selected={method === "mtn_momo"} onClick={() => setMethod("mtn_momo")} />
-                <MethodOption id="airtel" icon={<Smartphone />} label="Airtel / NG Bank" selected={method === "airtel"} onClick={() => setMethod("airtel")} />
-                <MethodOption id="gcash" icon={<Smartphone />} label="GCash" selected={method === "gcash"} onClick={() => setMethod("gcash")} />
+                <MethodOption id="momo" icon={<Smartphone />} label="Mobile money" selected={MOMO_IDS.includes(method)} onClick={() => { setMethod("mpesa"); setMomoExpanded(true); }} />
                 <MethodOption id="pix" icon={<MoveRight />} label="PIX (Brazil)" selected={method === "pix"} onClick={() => setMethod("pix")} />
-                <MethodOption id="nequi" icon={<Smartphone />} label="Nequi (CO)" selected={method === "nequi"} onClick={() => setMethod("nequi")} />
-                <MethodOption id="spei" icon={<Landmark />} label="SPEI (MX)" selected={method === "spei"} onClick={() => setMethod("spei")} />
                 <MethodOption id="sepa" icon={<Landmark />} label="SEPA (EUR)" selected={method === "sepa"} onClick={() => setMethod("sepa")} />
                 <MethodOption id="faster_payments" icon={<Landmark />} label="UK Faster Pay" selected={method === "faster_payments"} onClick={() => setMethod("faster_payments")} />
+                <MethodOption id="spei" icon={<Landmark />} label="SPEI (MX)" selected={method === "spei"} onClick={() => setMethod("spei")} />
                 <MethodOption id="bank_transfer" icon={<Landmark />} label="US / Intl Bank" selected={method === "bank_transfer"} onClick={() => setMethod("bank_transfer")} />
               </div>
+
+              {/* Mobile money expands into its providers — MiniPay-style */}
+              {MOMO_IDS.includes(method) && momoExpanded && (
+                <div className="flex flex-wrap gap-2 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl">
+                  {MOMO_PROVIDERS.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setMethod(p.id)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold border transition-colors ${
+                        method === p.id
+                          ? "bg-[#4DC9EE] text-white border-[#4DC9EE]"
+                          : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-[#4DC9EE]/60"
+                      }`}
+                    >
+                      <span>{p.flag}</span> {p.label} <span className="opacity-70">({p.currency})</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Amount */}

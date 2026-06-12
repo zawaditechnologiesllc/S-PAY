@@ -42,6 +42,7 @@ S-PAY is a digital money super app for remote workers and businesses, **built on
 - **Notifications**: rows with user_id are personal, NULL = broadcast; per-user read state = users.notifications_read_at (no fan-out). Auto-fired on P2P receive, Noah deposit credit, KYC approval; manual via POST /admin/notifications.
 - **Site content** (`app_settings.site_content`): hero/footer/colours served by public GET /site-content, consumed by landing + public layout; edited in Admin → Settings.
 - **Security**: helmet (CSP off for SSR pages), trust proxy 1, rate limits on /api/auth/* (50/15min/IP) and /api/enquiries (10/h/IP).
+- **Money UX**: dashboard "Money" grid — Mobile money tile opens a Top up / Withdraw chooser; /deposit and /banking/withdraw both group mobile-money providers under ONE expandable option (M-Pesa/MTN/Airtel/GCash/Nequi chips). /how-it-works renders inside the app Layout for signed-in users (PublicLayout for visitors) — signed-in users never leave the app shell.
 - **Dark mode**: class-based (`@custom-variant dark` in index.css), toggle persists in localStorage (`spay-theme`); marketing pages stay light by design.
 - **Webhooks**: HMAC over the **raw body** (captured in `app.ts`), constant-time compare; unsigned rejected once a secret is set.
 

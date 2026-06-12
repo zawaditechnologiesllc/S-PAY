@@ -8,7 +8,10 @@ import { ArrowUpRight, ArrowDownLeft, ChevronRight, ShieldCheck, MailCheck } fro
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { QuickActions } from "@/components/quick-actions";
-import { Landmark, Smartphone, Coins, CreditCard } from "lucide-react";
+import { Landmark, Smartphone, Coins, CreditCard, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
@@ -17,6 +20,7 @@ export default function Dashboard() {
   const resendVerification = useResendVerification();
   const startKyc = useStartKyc();
   const { toast } = useToast();
+  const [momoOpen, setMomoOpen] = useState(false);
 
   const resendEmail = () => {
     resendVerification.mutate(undefined, {
@@ -106,11 +110,14 @@ export default function Dashboard() {
         <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Money</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <ServiceTile href="/banking" icon={<Landmark size={20} />} label="Bank account" hint="US ACH · EU IBAN" color="#2E8FD6" />
-          <ServiceTile href="/deposit?m=momo" icon={<Smartphone size={20} />} label="Mobile money" hint="M-Pesa, MoMo…" color="#22C55E" />
+          <ServiceTile onClick={() => setMomoOpen(true)} icon={<Smartphone size={20} />} label="Mobile money" hint="Top up & withdraw" color="#22C55E" />
           <ServiceTile href="/deposit?m=crypto" icon={<Coins size={20} />} label="Exchange deposit" hint="Binance, Bybit…" color="#F59E0B" />
           <ServiceTile href="/card" icon={<CreditCard size={20} />} label="Virtual card" hint="Spend online" color="#1A2B4A" />
         </div>
       </div>
+
+      {/* Mobile money: both directions from one tile */}
+      <MomoDialog open={momoOpen} onClose={() => setMomoOpen(false)} />
 
       {/* Recent Transactions */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
@@ -165,11 +172,10 @@ export default function Dashboard() {
 }
 
 
-function ServiceTile({ href, icon, label, hint, color }: {
-  href: string; icon: React.ReactNode; label: string; hint: string; color: string;
+function ServiceTile({ href, onClick, icon, label, hint, color }: {
+  href?: string; onClick?: () => void; icon: React.ReactNode; label: string; hint: string; color: string;
 }) {
-  return (
-    <Link href={href}>
+  const tile = (
       <div className="flex flex-col items-start gap-2 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-[#4DC9EE]/40 hover:shadow-sm transition-all cursor-pointer h-full">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: color }}>
           {icon}
@@ -179,6 +185,34 @@ function ServiceTile({ href, icon, label, hint, color }: {
           <p className="text-[11px] text-gray-400">{hint}</p>
         </div>
       </div>
-    </Link>
+  );
+  if (href) return <Link href={href}>{tile}</Link>;
+  return <button onClick={onClick} className="text-left w-full h-full">{tile}</button>;
+}
+
+function MomoDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [, setLocation] = useLocation();
+  const go = (path: string) => { onClose(); setLocation(path); };
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Mobile money</DialogTitle>
+          <DialogDescription>M-Pesa, MTN MoMo, Airtel, GCash, Nequi & more.</DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => go("/deposit?m=momo")} className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-[#22C55E]/50 hover:shadow-sm transition-all">
+            <div className="w-11 h-11 rounded-xl bg-[#22C55E] text-white flex items-center justify-center"><ArrowDownToLine size={20} /></div>
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Top up</span>
+            <span className="text-[11px] text-gray-400">Money in</span>
+          </button>
+          <button onClick={() => go("/banking/withdraw?m=momo")} className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-[#2E8FD6]/50 hover:shadow-sm transition-all">
+            <div className="w-11 h-11 rounded-xl bg-[#2E8FD6] text-white flex items-center justify-center"><ArrowUpFromLine size={20} /></div>
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Withdraw</span>
+            <span className="text-[11px] text-gray-400">Money out</span>
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
