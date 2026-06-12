@@ -4,9 +4,10 @@ import {
   CircleUser, Bell, HelpCircle, LogOut, LayoutDashboard,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
+import { BackButton } from "@/components/back-button";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
-export function Layout({ children, title }: { children: React.ReactNode; title?: string }) {
+export function Layout({ children, title, back }: { children: React.ReactNode; title?: string; back?: boolean }) {
   const [, setLocation] = useLocation();
 
   const handleSignOut = () => {
@@ -36,7 +37,7 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-3 pb-2 pt-1">Main</p>
           <NavLink href="/dashboard" icon={<LayoutDashboard size={18} />} label="Dashboard" />
-          <NavLink href="/wallet" icon={<Wallet size={18} />} label="Wallet" />
+          <NavLink href="/wallet" icon={<Wallet size={18} />} label="History" />
           <NavLink href="/banking" icon={<Landmark size={18} />} label="Banking" />
           <NavLink href="/card" icon={<CreditCard size={18} />} label="Card" />
           <NavLink href="/jobs" icon={<Briefcase size={18} />} label="Remote Jobs" />
@@ -47,6 +48,12 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
 
         {/* Bottom actions */}
         <div className="px-3 py-4 border-t border-white/10 space-y-0.5">
+          <Link href="/how-it-works">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-colors text-sm cursor-pointer">
+              <HelpCircle size={18} />
+              <span>How it works</span>
+            </div>
+          </Link>
           <a
             href="mailto:support@spayewallet.com"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-colors text-sm cursor-pointer"
@@ -70,9 +77,19 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
         <div className="absolute top-0 left-0 right-0 h-56 bg-gradient-to-br from-[#4DC9EE] to-[#1A2B4A] z-0 rounded-b-3xl" />
 
         <div className="relative z-10 p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-          {/* Top bar */}
+          {/* Top bar — brand on mobile (sidebar carries it on desktop), page title on desktop */}
           <header className="flex justify-between items-center pt-2">
-            <h1 className="text-xl md:text-2xl font-bold text-white truncate">{title ?? "Dashboard"}</h1>
+            <div className="flex items-center gap-3 min-w-0 md:hidden">
+              <img src={spayLogo} alt="S-PAY" className="w-10 h-10 rounded-[22%] flex-shrink-0 shadow-md ring-2 ring-white/30" />
+              <div className="min-w-0">
+                <span className="font-black text-white text-lg tracking-tight leading-none block">S-PAY</span>
+                <span className="text-[10px] text-[#A8DEFF] font-semibold tracking-wide uppercase">Digital Wallet · {title ?? "Dashboard"}</span>
+              </div>
+            </div>
+            <div className="hidden md:flex items-center gap-3 min-w-0">
+              {back && <BackButton />}
+              <h1 className="text-xl md:text-2xl font-bold text-white truncate">{title ?? "Dashboard"}</h1>
+            </div>
             <div className="flex items-center gap-2">
               <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors">
                 <Bell size={19} />
@@ -84,6 +101,7 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
               </Link>
             </div>
           </header>
+          {back && <div className="md:hidden -mt-2"><BackButton /></div>}
 
           {children}
         </div>
@@ -92,7 +110,7 @@ export function Layout({ children, title }: { children: React.ReactNode; title?:
       {/* Mobile bottom nav — mirrors the native app tabs (profile lives in the header avatar) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center px-1 h-16 z-50 safe-area-pb">
         <MobileNavLink href="/dashboard" icon={<LayoutDashboard size={22} />} label="Home" />
-        <MobileNavLink href="/wallet" icon={<Wallet size={22} />} label="Wallet" />
+        <MobileNavLink href="/wallet" icon={<Wallet size={22} />} label="History" />
         <MobileNavLink href="/banking" icon={<Landmark size={22} />} label="Banking" />
         <MobileNavLink href="/card" icon={<CreditCard size={22} />} label="Card" />
         <MobileNavLink href="/jobs" icon={<Briefcase size={22} />} label="Jobs" />

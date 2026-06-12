@@ -1,4 +1,5 @@
 import { Layout } from "@/components/layout";
+import { useStartKyc } from "@workspace/api-client-react";
 import { useGetMe, getGetMeQueryKey, useDeleteAccount } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,20 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Profile() {
+  const startKyc = useStartKyc();
+  const verifyIdentity = () => {
+    startKyc.mutate(undefined, {
+      onSuccess: (r) => {
+        const data = r as { verificationUrl?: string; message?: string };
+        if (data.verificationUrl) window.location.href = data.verificationUrl;
+        else toast({ title: "Identity verification", description: data.message ?? "You're all set." });
+      },
+      onError: (err) => toast({
+        title: "Identity verification",
+        description: (err as { data?: { message?: string } })?.data?.message ?? "Verification is activating soon.",
+      }),
+    });
+  };
   const { data: user, isLoading } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -40,7 +55,7 @@ export default function Profile() {
   };
 
   return (
-    <Layout title="Profile">
+    <Layout back title="Profile">
       <div className="space-y-6">
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
           <CardHeader className="bg-gray-50 border-b pb-4">
@@ -114,7 +129,9 @@ export default function Profile() {
                   </div>
                 </div>
                 {user?.kycStatus !== 'approved' && (
-                  <Button variant="outline" size="sm">Verify Now</Button>
+                  <Button variant="outline" size="sm" disabled={startKyc.isPending} onClick={verifyIdentity}>
+                    {startKyc.isPending ? "Starting…" : "Verify Now"}
+                  </Button>
                 )}
               </div>
             )}

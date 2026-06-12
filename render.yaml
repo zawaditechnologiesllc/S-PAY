@@ -99,6 +99,12 @@ services:
         sync: false
       - key: DYNAMIC_WALLET_PASSWORD_SECRET
         sync: false
+      # Transactional email (Resend) — email confirmation + password reset links.
+      # Without it, links are logged to the service logs instead of emailed.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
       # Optional: Firebase push notifications
       - key: FIREBASE_PROJECT_ID
         sync: false

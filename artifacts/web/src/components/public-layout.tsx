@@ -35,6 +35,7 @@ export function PublicNav({ active }: PublicNavProps) {
           <a href="/#business" className={linkClass("business")}>For Business</a>
           <Link href="/jobs"><span className={`cursor-pointer ${linkClass("jobs")}`}>Jobs</span></Link>
           <Link href="/about"><span className={`cursor-pointer ${linkClass("about")}`}>About</span></Link>
+          <Link href="/how-it-works"><span className={`cursor-pointer ${linkClass("how-it-works")}`}>How it works</span></Link>
           <Link href="/contact"><span className={`cursor-pointer ${linkClass("contact")}`}>Contact</span></Link>
         </div>
 
@@ -71,6 +72,7 @@ export function PublicNav({ active }: PublicNavProps) {
               { label: "For Business", href: "/#business", internal: false },
               { label: "Jobs", href: "/jobs", internal: true },
               { label: "About", href: "/about", internal: true },
+              { label: "How it works", href: "/how-it-works", internal: true },
               { label: "Contact", href: "/contact", internal: true },
             ].map((item) =>
               item.internal ? (
@@ -169,6 +171,7 @@ export function PublicFooter() {
             <h5 className="text-white font-bold mb-5 text-sm uppercase tracking-wider">Company</h5>
             <ul className="space-y-3.5">
               <li><Link href="/about"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">About Us</span></Link></li>
+              <li><Link href="/how-it-works"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">How It Works</span></Link></li>
               <li><Link href="/careers"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">Careers</span></Link></li>
               <li><Link href="/blog"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">Blog</span></Link></li>
               <li><Link href="/contact"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">Contact</span></Link></li>

@@ -59,7 +59,7 @@ export default function CardPage() {
   const cardholderName = (cardDetails?.cardholderName || me?.fullName || "").toUpperCase();
 
   return (
-    <Layout title="Virtual Card">
+    <Layout back title="Virtual Card">
       <div className="space-y-6 mt-4">
 
         {/* ── Card display area: coming_soon | not_issued | active ── */}

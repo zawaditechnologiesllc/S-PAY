@@ -95,6 +95,8 @@ export interface User {
   fullName: string;
   phoneNumber?: string;
   kycStatus: UserKycStatus;
+  /** Soft email confirmation — login is never blocked; the app shows a banner until confirmed */
+  emailVerified?: boolean;
   isAdmin: boolean;
   avatarUrl?: string;
   /** EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user's first money action (never at signup/login, so jobs-only users cost zero WaaS MAUs) */
@@ -745,6 +747,18 @@ export interface AdminTransactionsResponse {
   transactions: AdminTransaction[];
   total: number;
 }
+
+export type ForgotPasswordBody = {
+  email: string;
+};
+
+export type ResetPasswordBody = {
+  token: string;
+  /** @minLength 8 */
+  password: string;
+};
+
+export type StartKyc200 = { [key: string]: unknown };
 
 export type GetWalletTransactionsParams = {
 limit?: number;

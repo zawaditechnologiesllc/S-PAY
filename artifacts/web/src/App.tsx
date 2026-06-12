@@ -27,6 +27,9 @@ import AdminTransactions from "@/pages/admin/transactions";
 import AdminSettings from "@/pages/admin/settings";
 import AdminJobs from "@/pages/admin/jobs";
 import About from "@/pages/about";
+import HowItWorks from "@/pages/how-it-works";
+import ResetPassword from "@/pages/reset-password";
+import EmailVerified from "@/pages/email-verified";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import Contact from "@/pages/contact";
@@ -105,6 +108,7 @@ function Router() {
       {/* ── Public marketing pages ── */}
       <Route path="/" component={Landing} />
       <Route path="/about" component={About} />
+      <Route path="/how-it-works" component={HowItWorks} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
       <Route path="/contact" component={Contact} />
@@ -116,6 +120,8 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/auth/verified" component={EmailVerified} />
       <Route path="/auth/callback" component={AuthCallback} />
 
       {/* ── Jobs: public browse, auth required to apply ── */}

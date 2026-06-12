@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { useForgotPassword } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,15 +10,17 @@ import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const forgot = useForgotPassword();
+  const loading = forgot.isPending;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    // Simulate API call — replace with real endpoint when available
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    setSubmitted(true);
+    if (!email.trim()) return;
+    // The API always answers the same way — it never reveals whether an account exists
+    forgot.mutate(
+      { data: { email: email.trim() } },
+      { onSuccess: () => setSubmitted(true), onError: () => setSubmitted(true) },
+    );
   };
 
   return (

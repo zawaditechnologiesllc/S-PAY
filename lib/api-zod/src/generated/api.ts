@@ -67,6 +67,7 @@ export const LoginResponse = zod.object({
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -86,6 +87,7 @@ export const GetMeResponse = zod.object({
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -123,6 +125,7 @@ export const GoogleTokenSignInResponse = zod.object({
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -154,6 +157,7 @@ export const AppleTokenSignInResponse = zod.object({
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -162,6 +166,49 @@ export const AppleTokenSignInResponse = zod.object({
   "createdAt": zod.coerce.date()
 })
 })
+
+
+/**
+ * @summary Re-send the email confirmation link to the signed-in user
+ */
+export const ResendVerificationResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Request a password reset link (response never reveals whether the account exists)
+ */
+export const ForgotPasswordBody = zod.object({
+  "email": zod.string().email()
+})
+
+export const ForgotPasswordResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Set a new password using an emailed reset token
+ */
+export const resetPasswordBodyPasswordMin = 8;
+
+
+
+export const ResetPasswordBody = zod.object({
+  "token": zod.string(),
+  "password": zod.string().min(resetPasswordBodyPasswordMin)
+})
+
+export const ResetPasswordResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Begin identity verification (Noah) — returns the hosted verification URL once the provider is live
+ */
+export const StartKycResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**

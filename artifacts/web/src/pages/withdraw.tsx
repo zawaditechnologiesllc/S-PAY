@@ -83,7 +83,7 @@ export default function Withdraw() {
   const estimatedArrival = method === "mpesa" ? "Instant" : method === "pix" ? "Minutes" : "1-2 Business Days";
 
   return (
-    <Layout title="Withdraw Funds">
+    <Layout back title="Withdraw Funds">
       {/* Crypto exchange route — MiniPay-style guided flow */}
       <Link href="/wallet/exchange">
         <div className="max-w-xl mx-auto mt-4 bg-gradient-to-r from-[#1A2B4A] to-[#2E8FD6] rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:opacity-95 transition-opacity shadow-lg">

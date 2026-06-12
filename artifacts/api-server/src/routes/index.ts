@@ -7,6 +7,7 @@ import bankingRouter from "./banking";
 import cardRouter from "./card";
 import jobsRouter from "./jobs";
 import webhooksRouter from "./webhooks";
+import kycRouter from "./kyc";
 import adminRouter from "./admin";
 
 const router: IRouter = Router();
@@ -18,6 +19,7 @@ router.use(walletRouter);
 router.use(bankingRouter);
 router.use(cardRouter);
 router.use(jobsRouter);
+router.use(kycRouter);
 router.use(webhooksRouter);
 router.use(adminRouter);
 

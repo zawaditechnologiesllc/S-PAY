@@ -28,7 +28,7 @@ export default function Banking() {
   };
 
   return (
-    <Layout title="Banking">
+    <Layout back title="Banking">
       <div className="space-y-6 mt-4">
         
         {/* Virtual Accounts */}
