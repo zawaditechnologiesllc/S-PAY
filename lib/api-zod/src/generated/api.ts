@@ -69,7 +69,7 @@ export const LoginResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
-  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
+  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
   "accountType": zod.enum(['personal', 'business']).optional(),
   "businessName": zod.string().nullish(),
   "createdAt": zod.coerce.date()
@@ -88,7 +88,7 @@ export const GetMeResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
-  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
+  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
   "accountType": zod.enum(['personal', 'business']).optional(),
   "businessName": zod.string().nullish(),
   "createdAt": zod.coerce.date()
@@ -125,7 +125,7 @@ export const GoogleTokenSignInResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
-  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
+  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
   "accountType": zod.enum(['personal', 'business']).optional(),
   "businessName": zod.string().nullish(),
   "createdAt": zod.coerce.date()
@@ -156,7 +156,7 @@ export const AppleTokenSignInResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
-  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network, provisioned via Privy at signup'),
+  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
   "accountType": zod.enum(['personal', 'business']).optional(),
   "businessName": zod.string().nullish(),
   "createdAt": zod.coerce.date()
@@ -727,6 +727,47 @@ export const DeleteCustomJobParams = zod.object({
 
 export const DeleteCustomJobResponse = zod.object({
   "message": zod.string()
+})
+
+
+/**
+ * @summary Read the wallet (WaaS) provider switches — active provider, per-provider on/off, configuration status, wallet counts
+ */
+export const GetWalletProvidersResponse = zod.object({
+  "activeProvider": zod.enum(['privy', 'cdp', 'turnkey']).describe('Provider used to create NEW wallets (existing wallets always keep the provider that holds their key)'),
+  "providers": zod.array(zod.object({
+  "key": zod.enum(['privy', 'cdp', 'turnkey']),
+  "label": zod.string().describe('Human-readable provider name'),
+  "configured": zod.boolean().describe('Whether the provider\'s API credentials are set in the environment'),
+  "enabled": zod.boolean().describe('Admin on\/off switch — OFF blocks new wallets AND sends signed via this provider'),
+  "wallets": zod.number().describe('How many user wallets this provider currently holds keys for'),
+  "envHint": zod.string().describe('The environment variables that activate this provider')
+}))
+})
+
+
+/**
+ * @summary Switch the active wallet provider and/or toggle providers on/off (live, no deploy)
+ */
+export const UpdateWalletProvidersBody = zod.object({
+  "activeProvider": zod.enum(['privy', 'cdp', 'turnkey']).optional(),
+  "enabled": zod.object({
+  "privy": zod.boolean().optional(),
+  "cdp": zod.boolean().optional(),
+  "turnkey": zod.boolean().optional()
+}).optional().describe('Per-provider on\/off, e.g. {\"privy\": false, \"cdp\": true}')
+}).describe('Partial update — switch the active provider and\/or toggle providers on\/off')
+
+export const UpdateWalletProvidersResponse = zod.object({
+  "activeProvider": zod.enum(['privy', 'cdp', 'turnkey']).describe('Provider used to create NEW wallets (existing wallets always keep the provider that holds their key)'),
+  "providers": zod.array(zod.object({
+  "key": zod.enum(['privy', 'cdp', 'turnkey']),
+  "label": zod.string().describe('Human-readable provider name'),
+  "configured": zod.boolean().describe('Whether the provider\'s API credentials are set in the environment'),
+  "enabled": zod.boolean().describe('Admin on\/off switch — OFF blocks new wallets AND sends signed via this provider'),
+  "wallets": zod.number().describe('How many user wallets this provider currently holds keys for'),
+  "envHint": zod.string().describe('The environment variables that activate this provider')
+}))
 })
 
 

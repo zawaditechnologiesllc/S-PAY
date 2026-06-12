@@ -65,6 +65,8 @@ import type {
   TransactionListResponse,
   User,
   WalletBalance,
+  WalletProvidersResponse,
+  WalletProvidersUpdateRequest,
   WithdrawRequest,
   WithdrawResponse
 } from './api.schemas';
@@ -2736,6 +2738,154 @@ export const useDeleteCustomJob = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteCustomJobMutationOptions(options));
+    }
+
+export const getGetWalletProvidersUrl = () => {
+
+
+
+
+  return `/api/admin/wallet-providers`
+}
+
+/**
+ * @summary Read the wallet (WaaS) provider switches — active provider, per-provider on/off, configuration status, wallet counts
+ */
+export const getWalletProviders = async ( options?: RequestInit): Promise<WalletProvidersResponse> => {
+
+  return customFetch<WalletProvidersResponse>(getGetWalletProvidersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWalletProvidersQueryKey = () => {
+    return [
+    `/api/admin/wallet-providers`
+    ] as const;
+    }
+
+
+export const getGetWalletProvidersQueryOptions = <TData = Awaited<ReturnType<typeof getWalletProviders>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWalletProviders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWalletProvidersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWalletProviders>>> = ({ signal }) => getWalletProviders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWalletProviders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWalletProvidersQueryResult = NonNullable<Awaited<ReturnType<typeof getWalletProviders>>>
+export type GetWalletProvidersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read the wallet (WaaS) provider switches — active provider, per-provider on/off, configuration status, wallet counts
+ */
+
+export function useGetWalletProviders<TData = Awaited<ReturnType<typeof getWalletProviders>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWalletProviders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWalletProvidersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateWalletProvidersUrl = () => {
+
+
+
+
+  return `/api/admin/wallet-providers`
+}
+
+/**
+ * @summary Switch the active wallet provider and/or toggle providers on/off (live, no deploy)
+ */
+export const updateWalletProviders = async (walletProvidersUpdateRequest: WalletProvidersUpdateRequest, options?: RequestInit): Promise<WalletProvidersResponse> => {
+
+  return customFetch<WalletProvidersResponse>(getUpdateWalletProvidersUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      walletProvidersUpdateRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateWalletProvidersMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWalletProviders>>, TError,{data: BodyType<WalletProvidersUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWalletProviders>>, TError,{data: BodyType<WalletProvidersUpdateRequest>}, TContext> => {
+
+const mutationKey = ['updateWalletProviders'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWalletProviders>>, {data: BodyType<WalletProvidersUpdateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateWalletProviders(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWalletProvidersMutationResult = NonNullable<Awaited<ReturnType<typeof updateWalletProviders>>>
+    export type UpdateWalletProvidersMutationBody = BodyType<WalletProvidersUpdateRequest>
+    export type UpdateWalletProvidersMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Switch the active wallet provider and/or toggle providers on/off (live, no deploy)
+ */
+export const useUpdateWalletProviders = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWalletProviders>>, TError,{data: BodyType<WalletProvidersUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateWalletProviders>>,
+        TError,
+        {data: BodyType<WalletProvidersUpdateRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateWalletProvidersMutationOptions(options));
     }
 
 export const getGetFeatureFlagsUrl = () => {

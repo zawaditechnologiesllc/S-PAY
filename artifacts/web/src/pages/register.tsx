@@ -13,7 +13,7 @@ import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 const BENEFITS = [
   "Virtual USD & EUR bank account",
   "Instant cash-out to M-Pesa, MTN, PIX & more",
-  "Celo wallet created instantly — no seed phrase",
+  "Free Celo wallet — no seed phrase, ever",
   "3,000–5,000 remote job listings daily",
   "Zero monthly fees",
   "Works in 50+ countries",

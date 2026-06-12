@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { getFeeSchedule, withdrawalFee } from "../lib/settings";
+import { ensureUserWallet } from "../lib/wallet-providers";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
@@ -91,6 +94,18 @@ router.post("/banking/withdraw", requireAuth, async (req, res) => {
     res.status(503).json({
       error: "not_configured",
       message: "Local cash-outs are activating soon. Your balance stays safe in your wallet until then.",
+    });
+    return;
+  }
+
+  // Withdrawing is a money action: JIT-provision the wallet (the payout debits
+  // USDC from it — see task D2), so it must exist before we quote.
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+  const wallet = user ? await ensureUserWallet(user) : null;
+  if (!wallet) {
+    res.status(503).json({
+      error: "not_configured",
+      message: "Cash-outs are activating soon. Your balance stays safe until then.",
     });
     return;
   }

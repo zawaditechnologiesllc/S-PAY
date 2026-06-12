@@ -2,9 +2,9 @@
 
 **Built by Zawadi Technologies LLC · Built on [Celo](https://celo.org)**
 
-> 📋 **Start here for operations:** [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) — what's live, how to activate each provider (Privy/Noah/Stripe/Google/Apple/EAS), every remaining task with file paths, and how to run the platform without a terminal.
+> 📋 **Start here for operations:** [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) — what's live, how to activate each provider (wallets/Noah/Stripe/Google/Apple/EAS), every remaining task with file paths, and how to run the platform without a terminal. For wallets specifically (Privy vs Coinbase CDP vs Turnkey, switching, costs): [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md).
 
-Like MiniPay, S-PAY is built on the Celo network: stablecoin-first balances (USDC), sub-cent fees, 5-second finality, and wallets that exist the moment you sign up — no seed phrase, ever.
+Like MiniPay, S-PAY is built on the Celo network: stablecoin-first balances (USDC), sub-cent fees, 5-second finality, and no seed phrase, ever — a wallet appears automatically the first time money moves.
 
 S-PAY was born in 2016 by a team of full-stack fintech and crypto engineers frustrated by PayPal blocking legitimate remote worker accounts across Africa and Southeast Asia. The goal: give every remote worker a real US bank account, instant local cash-outs, and the financial tools they deserve — with no gatekeeper.
 
@@ -29,20 +29,21 @@ S-PAY was born in 2016 by a team of full-stack fintech and crypto engineers frus
 
 S-PAY's onboarding follows the [MiniPay](https://www.opera.com/products/minipay) playbook: a wallet in seconds, no seed phrase, no crypto knowledge required.
 
-1. **Sign up in under 2 minutes** — email + password, or one tap with Google. Phone number optional (used for P2P transfers, M-Pesa/MoMo payouts).
-2. **Celo wallet created instantly & invisibly** — the moment the account exists, S-PAY provisions an EVM wallet address on the **Celo network** via **Privy server wallets**. No seed phrase to write down; private keys live in Privy's TEE infrastructure and **never touch S-PAY servers or the database** — we store only the public address (`celoWalletAddress`).
-3. **Start receiving immediately** — the wallet holds **USDC on Celo** (stablecoin-first, like MiniPay's cUSD/USDC). Friends and clients can pay you by phone number or wallet address.
+1. **Sign up in under 2 minutes** — email + password, or one tap with Google. Phone number optional (used for P2P transfers, M-Pesa/MoMo payouts). Signup and login run **entirely on S-PAY's own database + JWT** — no third-party wallet service is contacted.
+2. **Celo wallet created invisibly at the first money action** — the first time a user asks for a deposit address, sends money, or withdraws, S-PAY provisions an EVM wallet on the **Celo network** through the admin-selected wallet provider (**Privy**, **Coinbase CDP**, or **Turnkey** — switchable live in `/admin/settings`). No seed phrase to write down; private keys live in the provider's TEE infrastructure and **never touch S-PAY servers or the database** — we store only the public address (`celoWalletAddress`).
+   *Why lazy? Wallet providers bill for active wallet users. The jobs board brings thousands of signups who may never move money — they cost zero this way, and only paying users ever appear on the WaaS bill. Full rationale: [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md).*
+3. **Receiving is one tap away** — tap "Add funds" and the wallet (created on the spot if needed) holds **USDC on Celo** (stablecoin-first, like MiniPay's cUSD/USDC). Friends and clients can pay you by phone number or wallet address; P2P recipients get their wallet auto-created the moment someone first pays them.
 4. **KYC when you need more** — Noah's automated verification (government ID + selfie) unlocks the virtual US ACH account, the European IBAN, and local cash-outs. Approval is webhook-driven — no manual review queue.
 5. **Cash out where you live** — M-Pesa, MTN MoMo, PIX, SEPA and 50+ methods, settled from your Celo USDC balance at live FX rates.
 
-Why Celo: sub-cent transaction fees, 5-second finality, mobile-first design, and fee abstraction (gas payable in stablecoins) — the same reasons MiniPay chose it. Set `PRIVY_APP_ID` + `PRIVY_APP_SECRET` on Render to activate wallet provisioning; accounts created before that are backfilled automatically on their next login.
+Why Celo: sub-cent transaction fees, 5-second finality, mobile-first design, and fee abstraction (gas payable in stablecoins) — the same reasons MiniPay chose it. Configure at least one wallet provider (see [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md)) to activate wallets; accounts created before that get their wallet automatically at their next money action.
 
 ---
 
 ## How Payments Work
 
 ### Receiving money
-1. User signs up — a **Celo wallet is created instantly** (Privy, no seed phrase). Anyone can already pay them in USDC/USDT by phone number or wallet address, including withdrawals from Binance/Coinbase to their S-PAY address.
+1. User signs up, and their **Celo wallet appears at the first money action** (no seed phrase) — requesting a deposit address, sending, withdrawing, or being paid P2P all create it on the spot. From then on anyone can pay them in USDC/USDT by phone number or wallet address, including withdrawals from Binance/Coinbase to their S-PAY address.
 2. After verification (KYC for personal, **KYB for business**), Noah provisions a **virtual US bank account** (ACH routing + account number) and an **EU IBAN** — in the company's name for business accounts.
 3. The user shares those details with their employer or client.
 4. Client sends a wire, ACH, or SEPA transfer — **it is auto-converted to USDC/USDT** and credited to the wallet (history shows "Bank deposit — auto-converted to USDC").
@@ -78,10 +79,12 @@ Users send USDC/USDT peer-to-peer within S-PAY by entering a recipient phone num
 │  Database: PostgreSQL           → Render Postgres        │
 │  ORM: Drizzle                                            │
 ├─────────────────────────────────────────────────────────┤
-│  Wallets: Privy server wallets → USDC/USDT on Celo       │
+│  Wallets: Privy / Coinbase CDP / Turnkey (admin-switch-  │
+│           able WaaS) → USDC/USDT on Celo, JIT-provisioned│
 │  KYC/KYB + Payouts:  Noah       (single integration)     │
 │  Virtual Cards:  Stripe Issuing (admin master switch)    │
 │  Auth: JWT 30d · Google (web+Android) · Apple (iOS)      │
+│        (auth NEVER touches the wallet provider — $0 MAU) │
 │  Type safety:    OpenAPI spec → orval → React Query hooks│
 │  SEO: jobs sitemap + bot-routed server-rendered pages    │
 └─────────────────────────────────────────────────────────┘
@@ -112,7 +115,7 @@ S-PAY/
 | **Transport** | TLS enforced by Render (API) and Vercel (web) — HTTP redirects to HTTPS |
 | **Webhooks** | HMAC-SHA256 over the raw request body, constant-time compare; unsigned requests rejected once a secret is configured |
 | **KYC** | Noah verifies government ID + selfie; all KYC docs stay on Noah's servers |
-| **Celo wallet keys** | Provisioned via Privy server wallets — private keys sealed in Privy's TEE; S-PAY stores only the public address, never key material or seed phrases |
+| **Celo wallet keys** | Provisioned via the active wallet provider (Privy, Coinbase CDP, or Turnkey) — private keys sealed in the provider's TEE; S-PAY stores only the public address + the provider's wallet id, never key material or seed phrases |
 | **On-chain settlement** | USDC on Celo — auditable, 5s finality, sub-cent fees; no custom bridge or contract risk |
 | **Database** | PostgreSQL on Render private network; `DATABASE_URL` never exposed to client |
 | **Admin access** | Controlled by `ADMIN_EMAILS` env var — not a role in the DB |
@@ -160,7 +163,7 @@ Navigate to `https://your-app.vercel.app/admin` while logged in with that email.
 - **Users & KYC** — Full user list with account **Type** (Personal / Business · company name), country, acquisition source. KYC/KYB is webhook-driven via Noah — no manual review queue.
 - **Transactions** — Every on-chain send, P2P transfer, and deposit credit, filterable by type
 - **Job Listings** — Inject S-PAY/partner/sponsored roles: pinned to the top of the feed (SPAY badge), included in the SEO sitemap, live in ≤30s
-- **Settings** — Integration status (env configured: DB/Noah/Stripe/Google) **plus the master switches**: 🛠 Maintenance Mode (+ user-facing message), 💳 Card Program (waitlist → live, with waitlist count), 💰 Fees & Revenue (withdrawal %, minimum, card fee, P2P fee — live repricing, provider costs shown so your margin is explicit)
+- **Settings** — Integration status (env configured: DB/Noah/Stripe/Google/wallet providers) **plus the master switches**: 🛠 Maintenance Mode (+ user-facing message), 👛 Wallet Infrastructure (active WaaS — Privy/Coinbase CDP/Turnkey — with per-provider on/off, configured status, and wallet counts), 💳 Card Program (waitlist → live, with waitlist count), 💰 Fees & Revenue (withdrawal %, minimum, card fee, P2P fee — live repricing, provider costs shown so your margin is explicit)
 
 ---
 
@@ -218,9 +221,13 @@ Set these on **Render** (API server) and **Vercel** (web app):
 
 **Money rails (each unlocks a feature when set):**
 
+Wallets need **one** of the three providers below configured (admin picks the active one in `/admin/settings` — see [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md) for setup walkthroughs and pricing):
+
 | Variable | Unlocks | Description |
 |---|---|---|
-| `PRIVY_APP_ID` + `PRIVY_APP_SECRET` | Celo wallets + USDC/USDT sends | From dashboard.privy.io → your app → API keys. Enable gas sponsorship for gasless sends |
+| `PRIVY_APP_ID` + `PRIVY_APP_SECRET` | Celo wallets + USDC/USDT sends via **Privy** | From dashboard.privy.io → your app → API keys. Enable gas sponsorship for gasless sends. MAU-tier pricing |
+| `CDP_API_KEY_ID` + `CDP_API_KEY_SECRET` + `CDP_WALLET_SECRET` | Celo wallets + sends via **Coinbase CDP** | From portal.cdp.coinbase.com → API Keys + Server Wallets → Wallet Secret. $0.005/operation, 5K free ops/month — no MAU billing |
+| `TURNKEY_API_PUBLIC_KEY` + `TURNKEY_API_PRIVATE_KEY` + `TURNKEY_ORGANIZATION_ID` | Celo wallets + sends via **Turnkey** | From app.turnkey.com → API keys + organization id. Per-signature pricing — no MAU billing |
 | `NOAH_API_KEY` | KYC + virtual accounts + cash-outs | From the Noah partner dashboard |
 | `NOAH_WEBHOOK_SECRET` | KYC auto-approval | From Noah webhook endpoint config (`/api/webhooks/noah`) |
 | `STRIPE_SECRET_KEY` | Virtual cards (with the admin switch) | Stripe → Developers → API keys (Issuing enabled) |
@@ -240,9 +247,10 @@ Set these on **Render** (API server) and **Vercel** (web app):
 
 | Variable | Default | Description |
 |---|---|---|
-| `CELO_RPC_URL` | `https://forno.celo.org` | Celo JSON-RPC for balance reads |
+| `CELO_RPC_URL` | `https://forno.celo.org` | Celo JSON-RPC for balance reads + broadcasting CDP/Turnkey sends |
 | `CELO_CAIP2` | `eip155:42220` | Chain id for Privy sends (Celo mainnet) |
 | `PRIVY_API_BASE` | `https://api.privy.io` | Privy API base |
+| `TURNKEY_API_BASE` | `https://api.turnkey.com` | Turnkey API base |
 | `DATABASE_SSL` | auto-detect | Force TLS on/off for Postgres (`true`/`false`) |
 | `CARD_PROGRAM_ADDRESS_LINE1/CITY/STATE/POSTAL/COUNTRY` | S-PAY program address | Billing address used for Stripe Issuing cardholders |
 | `REMOTIVE_AFFILIATE_URL` / `REMOTE_COM_AFFILIATE_URL` | public URLs | Jobs board affiliate links |
@@ -467,7 +475,19 @@ See the detailed deployment guide below. Summary:
 4. Download APK from the Expo dashboard
 5. For production: `eas build --platform all --profile production` → submit to stores
 
-### 5. Setting up Noah (KYC + Payouts)
+### 5. Setting up the wallet provider (Privy / Coinbase CDP / Turnkey)
+
+Wallets and on-chain sends activate when **one** provider's keys are set — the admin chooses which provider creates new wallets and can toggle each on/off live in `/admin/settings → Wallet Infrastructure`. Signups/logins never call the provider (that's deliberate — providers bill for active wallet users; S-PAY only provisions a wallet at the user's **first money action**, so free jobs-board traffic costs nothing).
+
+Step-by-step setup for each provider, switching semantics, pricing comparison, and troubleshooting: **[`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md)**. Quick version:
+
+- **Privy:** dashboard.privy.io → API keys → set `PRIVY_APP_ID`, `PRIVY_APP_SECRET` on Render
+- **Coinbase CDP:** portal.cdp.coinbase.com → API key + Wallet Secret → set `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET`, `CDP_WALLET_SECRET`
+- **Turnkey:** app.turnkey.com → API key pair + org id → set `TURNKEY_API_PUBLIC_KEY`, `TURNKEY_API_PRIVATE_KEY`, `TURNKEY_ORGANIZATION_ID`
+
+> ⚠️ Existing wallets always keep the provider that created them (private keys can't move). Switching the active provider only affects new wallets — keep the old provider's env keys set while it still holds wallets.
+
+### 6. Setting up Noah (KYC + Payouts)
 
 1. Apply at [noah.com](https://noah.com) for a fintech partner account
 2. Once approved → API Keys → copy your live key → set `NOAH_API_KEY` on Render
@@ -476,14 +496,14 @@ See the detailed deployment guide below. Summary:
    - Events: `customer.kyc_approved`, `customer.kyc_rejected`, `transfer.completed`, `transfer.failed`
 4. Copy the signing secret → set `NOAH_WEBHOOK_SECRET` on Render
 
-### 6. Setting up Google Sign-In (optional)
+### 7. Setting up Google Sign-In (optional)
 
 1. [console.cloud.google.com](https://console.cloud.google.com) → Create project → OAuth 2.0 Credentials
 2. Authorized redirect URI: `https://your-api.onrender.com/auth/google/callback`
 3. Copy **Client ID** and **Client Secret**
 4. Set on Render: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FRONTEND_URL`, `API_BASE_URL`
 
-### 7. Updating the DB schema after changes
+### 8. Updating the DB schema after changes
 
 Schema migrations live in `lib/db/migrations/` and are **applied automatically every time the API boots** — deploying a new version is all it takes. To add a new migration after editing `lib/db/src/schema/`:
 
@@ -508,7 +528,8 @@ Commit the generated file and deploy — the server applies it on startup. (The 
 | **Run SQL without a terminal** | Render dashboard → `spay-db` → **Query** tab (built-in SQL console) |
 | **Migrations applied** | Render → `spay-api` → **Logs** → look for `Database migrations applied` |
 | **Web deploy progress** | Vercel dashboard → project → **Deployments** (each shows build logs + preview URL) |
-| **Integration status (DB, Noah, Stripe, Google)** | Log in as admin → `/admin/settings` — green "Configured" / red "Not set" per service |
+| **Integration status (DB, wallet providers, Noah, Stripe, Google)** | Log in as admin → `/admin/settings` — green "Configured" / red "Not set" per service |
+| **Wallet provider switches + per-provider wallet counts** | `/admin/settings` → Wallet Infrastructure (also `GET /api/admin/wallet-providers`) |
 | **Users, KYC, transactions** | `/admin` dashboard, `/admin/users`, `/admin/transactions` |
 | **Mobile builds** | expo.dev → project → **Builds** (progress, logs, APK download link) |
 

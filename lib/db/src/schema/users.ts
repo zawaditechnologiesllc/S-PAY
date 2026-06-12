@@ -19,8 +19,12 @@ export const usersTable = pgTable("users", {
   businessName: text("business_name"),           // required for business accounts; goes on business virtual accounts
   kycStatus: kycStatusEnum("kyc_status").default("pending").notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
-  celoWalletAddress: text("celo_wallet_address"),
-  privyWalletId: text("privy_wallet_id"),         // Privy server-wallet id used to sign Celo transactions
+  celoWalletAddress: text("celo_wallet_address"), // provisioned lazily on the first money action — never at signup/login (keeps WaaS MAU billing at zero for jobs-only users)
+  // Wallet-as-a-service linkage. The DB column keeps its historical name
+  // (privy_wallet_id) from when Privy was the only provider; it stores the
+  // server-wallet id of whichever provider created the wallet.
+  walletId: text("privy_wallet_id"),
+  walletProvider: text("wallet_provider"),        // "privy" | "cdp" | "turnkey" — which WaaS holds this wallet's key (signs its transactions)
   signupSource: text("signup_source"),           // acquisition channel: jobs, jobs:<id>, landing, google, mobile…
   noahCustomerId: text("noah_customer_id"),
   stripeCardholderId: text("stripe_cardholder_id"),

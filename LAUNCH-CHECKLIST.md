@@ -5,6 +5,7 @@
 > and how to operate the platform day-to-day — all without a terminal.
 >
 > Companion docs: [`README.md`](./README.md) (product + deployment reference) ·
+> [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md) (wallet providers: setup, switching, cost strategy) ·
 > [`replit.md`](./replit.md) (developer/agent architecture context).
 
 ---
@@ -19,19 +20,20 @@
 | **Auth** — email/password (confirm + show/hide), Google web OAuth, native Google (Android) & Apple (iOS) token sign-in, JWT 30d | ✅ Live (Google/Apple need client IDs, see B4/B5) | `routes/auth.ts`, web `pages/register.tsx`/`login.tsx`, mobile `components/SocialAuthButtons.tsx` |
 | **Personal & Business accounts** — type chooser at sign-up, business name, KYB-ready | ✅ Live | `routes/auth.ts`, register pages, `users.account_type/business_name` |
 | **Signup attribution** — `jobs / jobs:<id> / landing / google / mobile / direct` + country, shown in admin | ✅ Live | `users.signup_source`, Admin → Dashboard "Signups by Source" |
-| **Celo wallet provisioning** — instant at signup via Privy server wallets, no seed phrase | ✅ Code complete — activates with Privy keys (B2) | `lib/celo.ts` |
-| **USDC/USDT wallet** — live on-chain balances (keyless reads), P2P send by phone, send to any address, real ledger | ✅ Live for balances/receives; sends activate with Privy keys | `lib/celo-chain.ts`, `routes/wallet.ts` |
-| **Withdraw to Binance/Bybit/OKX/any wallet** — MiniPay-style guided flow, CELO-network safety gates, CeloScan receipt | ✅ Live (executes once Privy keys set) | web `pages/exchange-withdraw.tsx` |
+| **Celo wallet provisioning** — just-in-time at the user's **first money action** (deposit address / send / withdraw), never at signup/login, via the admin-selected provider (**Privy / Coinbase CDP / Turnkey**), no seed phrase | ✅ Code complete — activates with any provider's keys (B2) | `lib/wallet-providers.ts` |
+| **Wallet provider switches** — active provider for new wallets + per-provider kill switches, wallet counts, live from admin | ✅ Live | Admin → Settings → Wallet Infrastructure; `GET/PUT /admin/wallet-providers` |
+| **USDC/USDT wallet** — live on-chain balances (keyless reads), P2P send by phone (recipient wallet auto-provisioned), send to any address, real ledger | ✅ Live for balances/receives; sends activate with a wallet provider's keys | `lib/celo-chain.ts`, `lib/wallet-providers.ts`, `routes/wallet.ts` |
+| **Withdraw to Binance/Bybit/OKX/any wallet** — MiniPay-style guided flow, CELO-network safety gates, CeloScan receipt | ✅ Live (executes once a wallet provider's keys are set) | web `pages/exchange-withdraw.tsx` |
 | **Fiat → stablecoin auto-conversion credit** — bank/IBAN deposits land as USDC/USDT in history | ✅ Code complete — fires on Noah webhooks (B3) | `routes/webhooks.ts` |
 | **Virtual accounts + cash-outs (M-Pesa, MoMo, PIX, SEPA…)** — UI, quotes, fee engine, 16-corridor rates | ⚙️ UI + quotes live; **execution awaits Noah key** (B3 + D2) | `routes/banking.ts`, web `pages/banking.tsx`/`withdraw.tsx` |
 | **KYC/KYB via Noah** — webhook-driven approval for personal (KYC) and business (KYB) | ✅ Webhooks ready — needs Noah key + D1 (initiation) | `routes/webhooks.ts` |
 | **Virtual card program** — Stripe Issuing wired end-to-end, DB waitlist, KYC gate, admin master switch | ✅ Code complete — set Stripe keys + flip switch (B6) | `lib/stripe-issuing.ts`, `routes/card.ts`, Admin → Settings |
 | **Admin console** — stats, signups-by-source, users (type/country/source), transactions, job listings, settings | ✅ Live | `pages/admin/*` |
-| **Admin master switches** — card program, **maintenance mode** (+message), **fee schedule** (your margin) | ✅ Live | Admin → Settings; stored in `app_settings` |
+| **Admin master switches** — card program, **maintenance mode** (+message), **fee schedule** (your margin), **wallet providers** (active WaaS + kill switches) | ✅ Live | Admin → Settings; stored in `app_settings` |
 | **Maintenance mode** — 503 for users, branded screen; sign-in/admin/webhooks/SSR stay up | ✅ Live | `middlewares/maintenance.ts`, web `pages/maintenance.tsx` |
 | **Account deletion (store compliance)**, in-app legal links, Sign in with Apple | ✅ Live | profile pages, `DELETE /auth/me` |
 | **Mobile app** — MiniPay-style welcome, tabs (Wallet/Banking/Card/Jobs), platform-native auth | ✅ Code complete — needs EAS setup to ship (B7) | `artifacts/mobile/` |
-| **Auto-migrations** — schema applies itself on every boot (7 migrations) | ✅ Live | `lib/db/migrations/`, `src/lib/migrate.ts` |
+| **Auto-migrations** — schema applies itself on every boot (10 migrations) | ✅ Live | `lib/db/migrations/`, `src/lib/migrate.ts` |
 
 **Database**: PostgreSQL (Render Blueprint auto-provisions `spay-db`; Supabase supported — TLS auto-detected). Tables: `users`, `transactions`, `card_waitlist`, `jobs_cache`, `app_settings`, `custom_jobs`.
 
@@ -56,11 +58,31 @@ The API creates all tables itself at boot; if Supabase stays empty, the connecti
 - **Security & performance (automatic since migration 0008):** all tables have **RLS enabled with no policies** — a deny-all lock on Supabase's auto-generated REST Data API (the S-PAY API connects as table owner and bypasses RLS, so nothing changes for the app). For belt-and-braces you can also turn the Data API off entirely: Supabase → Project Settings → Data API → disable. Hot-path **indexes** ship in the same migration (transactions by user+date, users by phone / Noah customer id / created / KYC status).
 - **Manual fallback (always safe):** every file in `lib/db/migrations/*.sql` is idempotent — you can paste them **in numeric order** into Supabase's SQL Editor and run them. The boot migrator will still reconcile harmlessly afterwards. Fix the connection anyway, or future schema changes won't auto-apply.
 
-### B2. Privy — turns ON Celo wallets + USDC/USDT sends + exchange withdrawals
+### B2. Wallet provider — turns ON Celo wallets + USDC/USDT sends + exchange withdrawals
+
+Pick **one** of the three supported providers (full walkthroughs, pricing comparison, and switching semantics in [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md)). Wallets are provisioned **just-in-time at a user's first money action — never at signup/login** — so jobs-board signups cost zero WaaS MAUs; you only pay for users who actually move money.
+
+**Option 1 — Privy** (MAU-tier pricing: free <~500 MAUs, then $299/mo):
 1. [dashboard.privy.io](https://dashboard.privy.io) → create app → **App settings → API keys**.
 2. Render env: `PRIVY_APP_ID`, `PRIVY_APP_SECRET`.
 3. In Privy: enable **gas sponsorship** (recommended — gasless sends for users). Without it, wallets need a dust of CELO for gas.
-4. Verify: register a fresh account → Profile shows a `0x…` Celo wallet address. Existing users get wallets on next login.
+
+**Option 2 — Coinbase CDP** (cheapest at scale: $0.005/wallet operation, first 5,000 ops/month free, no MAU billing):
+1. [portal.cdp.coinbase.com](https://portal.cdp.coinbase.com) → create project → **API Keys** → create a Secret API key.
+2. **Server Wallets → Wallet Secret** → generate it (shown once — store safely).
+3. Render env: `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET`, `CDP_WALLET_SECRET`.
+4. Gas note: CDP wallets pay gas in CELO (sub-cent) — dust wallets with CELO or fund gas operationally.
+
+**Option 3 — Turnkey** (per-signature pricing: 25 free/mo, then $0.10 PAYG / ~$0.01 on Pro, no MAU billing):
+1. [app.turnkey.com](https://app.turnkey.com) → create organization → note the **Organization ID**.
+2. Create an **API key pair** → copy public + private key hex.
+3. Render env: `TURNKEY_API_PUBLIC_KEY`, `TURNKEY_API_PRIVATE_KEY`, `TURNKEY_ORGANIZATION_ID`.
+4. Same gas note as CDP.
+
+**Then activate it:**
+5. `/admin/settings` → **Wallet Infrastructure** → your provider shows green **Configured** → press **Make active** (Privy is the default active provider).
+6. Verify: log in as any user → tap **Add funds** (or make a send) → a `0x…` Celo address appears on the profile within seconds. *Registering alone no longer creates a wallet — that's the cost feature, not a bug.*
+7. ⚠️ Existing wallets keep the provider that created them forever (keys can't move) — when switching providers, keep the old provider's env keys set and its toggle ON while it still holds wallets (the panel shows per-provider counts).
 
 ### B3. Noah — turns ON KYC/KYB, virtual accounts, fiat auto-conversion, cash-outs
 1. Apply at noah.com for a partner account — request **both KYC (individuals) and KYB (businesses)** products.
@@ -132,7 +154,7 @@ Ordered by launch impact. Each is small and isolated; the file tells you exactly
 ## E. Operating the platform (no terminal, ever)
 
 - **Admin console** `/admin`: stats + signups-by-source · **Users & KYC** (type, country, source) · **Transactions** · **Job Listings** (inject/remove pinned SPAY roles — also your SEO content lever) · **Settings**.
-- **Settings switches**: Maintenance mode (+ user-facing message) · Card Program · Fees & Revenue (live repricing).
+- **Settings switches**: Maintenance mode (+ user-facing message) · **Wallet Infrastructure** (active WaaS provider + per-provider kill switches — see `docs/WALLET-PROVIDERS.md` §5 for playbooks) · Card Program · Fees & Revenue (live repricing).
 - **Health**: `GET /api/healthz` (uptime) · `GET /api/status` (maintenance state) · `GET /api/jobs?limit=1` (`total` = live job count) · Render Logs ("Database migrations applied", "Jobs feed warmed", hourly refresh lines).
 - **Deploys**: merge to `main` → Render (API) + Vercel (web) auto-deploy. DB schema changes apply themselves on boot.
 - **Schema changes** (developer task): edit `lib/db/src/schema/`, run `drizzle-kit generate` in `lib/db`, make the SQL idempotent (`IF NOT EXISTS` — see migrations 0001–0007 for the pattern), commit.
@@ -142,4 +164,4 @@ Ordered by launch impact. Each is small and isolated; the file tells you exactly
 
 See **README → Environment Variables** for the full annotated tables (launch-critical, money rails, sign-in, tuning, Vercel, EAS). Quick reference of every key:
 
-`DATABASE_URL` · `JWT_SECRET` · `SESSION_SECRET` · `CORS_ORIGIN` · `ADMIN_EMAILS` · `SITE_URL` · `PRIVY_APP_ID` · `PRIVY_APP_SECRET` · `NOAH_API_KEY` · `NOAH_WEBHOOK_SECRET` · `STRIPE_SECRET_KEY` · `STRIPE_WEBHOOK_SECRET` · `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` · `GOOGLE_ANDROID_CLIENT_ID` · `GOOGLE_IOS_CLIENT_ID` · `APPLE_BUNDLE_ID` · `FRONTEND_URL` · `API_BASE_URL` · `CELO_RPC_URL` · `CELO_CAIP2` · `PRIVY_API_BASE` · `DATABASE_SSL` · `CARD_PROGRAM_ADDRESS_*` · `REMOTIVE_AFFILIATE_URL` · `REMOTE_COM_AFFILIATE_URL` · `MIGRATIONS_DIR` · `TREASURY_CELO_ADDRESS` (reserved for D10) — plus Vercel `VITE_API_URL`, EAS `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID`.
+`DATABASE_URL` · `JWT_SECRET` · `SESSION_SECRET` · `CORS_ORIGIN` · `ADMIN_EMAILS` · `SITE_URL` · `PRIVY_APP_ID` · `PRIVY_APP_SECRET` · `CDP_API_KEY_ID` · `CDP_API_KEY_SECRET` · `CDP_WALLET_SECRET` · `TURNKEY_API_PUBLIC_KEY` · `TURNKEY_API_PRIVATE_KEY` · `TURNKEY_ORGANIZATION_ID` · `NOAH_API_KEY` · `NOAH_WEBHOOK_SECRET` · `STRIPE_SECRET_KEY` · `STRIPE_WEBHOOK_SECRET` · `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` · `GOOGLE_ANDROID_CLIENT_ID` · `GOOGLE_IOS_CLIENT_ID` · `APPLE_BUNDLE_ID` · `FRONTEND_URL` · `API_BASE_URL` · `CELO_RPC_URL` · `CELO_CAIP2` · `PRIVY_API_BASE` · `TURNKEY_API_BASE` · `DATABASE_SSL` · `CARD_PROGRAM_ADDRESS_*` · `REMOTIVE_AFFILIATE_URL` · `REMOTE_COM_AFFILIATE_URL` · `MIGRATIONS_DIR` · `TREASURY_CELO_ADDRESS` (reserved for D10) — plus Vercel `VITE_API_URL`, EAS `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID`.

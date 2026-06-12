@@ -4,8 +4,9 @@ import {
   useGetAdminSettings, getGetAdminSettingsQueryKey,
   useGetFeatureFlags, getGetFeatureFlagsQueryKey, useUpdateFeatureFlags,
   useGetFeeSchedule, getGetFeeScheduleQueryKey, useUpdateFeeSchedule,
+  useGetWalletProviders, getGetWalletProvidersQueryKey, useUpdateWalletProviders,
 } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench } from "lucide-react";
+import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatusRow({ label, ok, note }: { label: string; ok: boolean; note?: string }) {
@@ -45,6 +46,13 @@ const PROVIDER_COSTS = {
   withdrawalPercentNoah: 0.5, // Noah payout rails: typically ~0.3–0.7% depending on corridor
 };
 
+// Cost notes shown next to each WaaS so the admin can pick on price
+const WALLET_PROVIDER_NOTES: Record<string, string> = {
+  privy: "MAU-tier pricing: free under ~500 monthly-active wallet users, then $299/mo (Core, up to 2,500 MAU) — the expensive one. Keys in a TEE.",
+  cdp: "Coinbase Developer Platform: $0.005 per wallet operation, first 5,000 ops/month free — no MAU billing. Keys in Coinbase's TEE.",
+  turnkey: "Per-signature pricing: 25 free signatures/mo, then ~$0.10 each (Pro $99/mo → ~$0.01) — no MAU billing. Non-custodial TEE.",
+};
+
 function FeeInput({ label, hint, value, onChange, prefix, suffix }: {
   label: string; hint: string; value: string; onChange: (v: string) => void; prefix?: string; suffix?: string;
 }) {
@@ -74,9 +82,45 @@ export default function AdminSettings() {
   const { data, isLoading } = useGetAdminSettings({ query: { queryKey: getGetAdminSettingsQueryKey() } });
   const { data: flags, refetch: refetchFlags } = useGetFeatureFlags({ query: { queryKey: getGetFeatureFlagsQueryKey() } });
   const { data: fees, refetch: refetchFees } = useGetFeeSchedule({ query: { queryKey: getGetFeeScheduleQueryKey() } });
+  const { data: walletProviders, refetch: refetchWalletProviders } = useGetWalletProviders({ query: { queryKey: getGetWalletProvidersQueryKey() } });
   const updateFlags = useUpdateFeatureFlags();
   const updateFees = useUpdateFeeSchedule();
+  const updateWalletProviders = useUpdateWalletProviders();
   const { toast } = useToast();
+
+  const setActiveProvider = (key: string) => {
+    updateWalletProviders.mutate(
+      { data: { activeProvider: key as "privy" | "cdp" | "turnkey" } },
+      {
+        onSuccess: () => {
+          toast({
+            title: `New wallets now use ${key === "cdp" ? "Coinbase CDP" : key.charAt(0).toUpperCase() + key.slice(1)}`,
+            description: "Existing wallets keep their current provider — keys never move. Live within 15 seconds.",
+          });
+          refetchWalletProviders();
+        },
+        onError: () => toast({ title: "Could not switch provider", description: "Please try again.", variant: "destructive" }),
+      },
+    );
+  };
+
+  const toggleProvider = (key: string, next: boolean) => {
+    updateWalletProviders.mutate(
+      { data: { enabled: { [key]: next } } },
+      {
+        onSuccess: () => {
+          toast({
+            title: next ? `${key} switched ON` : `${key} switched OFF`,
+            description: next
+              ? "This provider can create wallets and sign transfers again."
+              : "Kill switch: no new wallets and no transfers signed via this provider until re-enabled. Balances are unaffected (funds live on-chain).",
+          });
+          refetchWalletProviders();
+        },
+        onError: () => toast({ title: "Could not update", description: "Please try again.", variant: "destructive" }),
+      },
+    );
+  };
 
   const [feeForm, setFeeForm] = useState({ withdrawalFeePercent: "", withdrawalFeeMin: "", cardIssuanceFee: "", p2pFeePercent: "" });
   useEffect(() => {
@@ -237,6 +281,75 @@ export default function AdminSettings() {
           <StatusRow label="Google Sign-In" ok={s?.auth?.googleConfigured} note="GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET" />
           <div className="mt-3 p-3 bg-blue-50 rounded-xl text-xs text-blue-700 leading-relaxed">
             <strong>To enable Google:</strong> Create OAuth 2.0 credentials at console.cloud.google.com, then set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, FRONTEND_URL, and API_BASE_URL on Render.
+          </div>
+        </Section>
+
+        <Section icon={<Wallet size={16} />} title="Wallet Infrastructure (Celo · WaaS)">
+          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+            Wallets are provisioned <strong>just-in-time on the first money action</strong> (send, deposit address,
+            withdrawal) — never at signup or login. Jobs-board traffic can sign up and browse all day without
+            creating a single billable wallet user; you only pay your wallet provider for people who actually move money.
+          </p>
+          {(walletProviders?.providers ?? []).map((p) => {
+            const isActive = walletProviders?.activeProvider === p.key;
+            return (
+              <div key={p.key} className="py-3 border-b border-gray-50 last:border-0">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 flex items-center gap-2 flex-wrap">
+                      {p.label}
+                      {isActive && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-[#4DC9EE] px-2 py-0.5 rounded-full">
+                          Active — creates new wallets
+                        </span>
+                      )}
+                      {p.configured ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 size={10} /> Configured
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                          <XCircle size={10} /> Not set
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">{p.envHint} · {p.wallets.toLocaleString()} wallet{p.wallets === 1 ? "" : "s"}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{WALLET_PROVIDER_NOTES[p.key]}</p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    {!isActive && (
+                      <button
+                        onClick={() => setActiveProvider(p.key)}
+                        disabled={updateWalletProviders.isPending || !p.configured || !p.enabled}
+                        className="text-xs font-semibold text-[#4DC9EE] hover:underline disabled:opacity-40 disabled:no-underline"
+                        title={!p.configured ? "Set this provider's env vars on Render first" : !p.enabled ? "Switch this provider on first" : undefined}
+                      >
+                        Make active
+                      </button>
+                    )}
+                    <button
+                      onClick={() => toggleProvider(p.key, !p.enabled)}
+                      disabled={updateWalletProviders.isPending}
+                      aria-label={`Toggle ${p.label}`}
+                      className={`relative w-14 h-8 rounded-full transition-colors flex-shrink-0 disabled:opacity-60 ${
+                        p.enabled ? "bg-green-500" : "bg-gray-300"
+                      }`}
+                    >
+                      <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-all ${
+                        p.enabled ? "left-7" : "left-1"
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div className="mt-3 p-3 bg-blue-50 rounded-xl text-xs text-blue-700 leading-relaxed space-y-1.5">
+            <p><strong>How the switches work:</strong></p>
+            <p>• <strong>Active</strong> — the provider that creates wallets for users doing their <em>first</em> money action. Switch it anytime; it only affects new wallets.</p>
+            <p>• <strong>On/Off toggle</strong> — kill switch per provider. OFF blocks new wallets <em>and</em> pauses sends from wallets it holds keys for (users see “transfers briefly paused”). Balances and deposits are unaffected — funds live on-chain, not at the provider.</p>
+            <p>• <strong>Existing wallets never migrate.</strong> A wallet's private key stays with the provider that created it, so keep a provider's env keys set (even when OFF for new wallets) as long as it still holds wallets.</p>
+            <p>• Full setup steps per provider: <code className="bg-blue-100 px-1 rounded">docs/WALLET-PROVIDERS.md</code> in the repo.</p>
           </div>
         </Section>
 
