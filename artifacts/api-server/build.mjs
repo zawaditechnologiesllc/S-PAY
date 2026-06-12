@@ -29,6 +29,11 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      // Dynamic's TSS-MPC signer ships a native .node binary — cannot be
+      // bundled. These resolve from node_modules at runtime (workspace in
+      // dev; installed into the production image by the Dockerfile).
+      "@dynamic-labs-wallet/node-evm",
+      "@dynamic-labs-wallet/node",
       "sharp",
       "better-sqlite3",
       "sqlite3",

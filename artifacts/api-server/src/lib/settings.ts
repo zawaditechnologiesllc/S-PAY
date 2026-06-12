@@ -80,8 +80,9 @@ export async function setMaintenance(state: Partial<MaintenanceState>): Promise<
 // wallets always keep the provider that holds their key (keys cannot move);
 // the active provider only affects wallets created from now on.
 
-export type WalletProviderKey = "privy" | "cdp" | "turnkey";
-export const WALLET_PROVIDER_KEYS: readonly WalletProviderKey[] = ["privy", "cdp", "turnkey"] as const;
+export type WalletProviderKey = "privy" | "cdp" | "turnkey" | "openfort" | "thirdweb" | "dynamic";
+export const WALLET_PROVIDER_KEYS: readonly WalletProviderKey[] =
+  ["privy", "cdp", "turnkey", "openfort", "thirdweb", "dynamic"] as const;
 
 export interface WalletProviderConfig {
   /** Provider used to create NEW wallets (existing wallets keep theirs). */
@@ -92,7 +93,7 @@ export interface WalletProviderConfig {
 
 const DEFAULT_WALLET_PROVIDERS: WalletProviderConfig = {
   activeProvider: "privy",
-  enabled: { privy: true, cdp: true, turnkey: true },
+  enabled: { privy: true, cdp: true, turnkey: true, openfort: true, thirdweb: true, dynamic: true },
 };
 
 const WALLET_PROVIDERS_KEY = "wallet_providers";

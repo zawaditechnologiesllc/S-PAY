@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@coinbase/cdp-sdk": "^1.51.0",
+    "@dynamic-labs-wallet/node": "1.0.29",
+    "@dynamic-labs-wallet/node-evm": "1.0.29",
+    "@openfort/openfort-node": "^0.10.5",
     "@turnkey/sdk-server": "^6.1.0",
     "@turnkey/viem": "^0.14.30",
     "@workspace/api-zod": "workspace:*",

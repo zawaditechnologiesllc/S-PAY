@@ -62,10 +62,42 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      # Optional: Privy for Celo embedded wallets
+      # Wallet providers (WaaS) — configure at least ONE; the admin picks the
+      # active one in /admin/settings. Setup walkthroughs: docs/WALLET-PROVIDERS.md
+      # Privy (MAU-tier pricing)
       - key: PRIVY_APP_ID
         sync: false
       - key: PRIVY_APP_SECRET
+        sync: false
+      # Coinbase CDP server wallets (per-operation pricing)
+      - key: CDP_API_KEY_ID
+        sync: false
+      - key: CDP_API_KEY_SECRET
+        sync: false
+      - key: CDP_WALLET_SECRET
+        sync: false
+      # Turnkey (per-signature pricing)
+      - key: TURNKEY_API_PUBLIC_KEY
+        sync: false
+      - key: TURNKEY_API_PRIVATE_KEY
+        sync: false
+      - key: TURNKEY_ORGANIZATION_ID
+        sync: false
+      # Openfort backend wallets (sk_ key + wallet secret from `openfort wallet-keys create`)
+      - key: OPENFORT_API_KEY
+        sync: false
+      - key: OPENFORT_WALLET_SECRET
+        sync: false
+      # thirdweb server wallets (project secret key)
+      - key: THIRDWEB_SECRET_KEY
+        sync: false
+      # Dynamic TSS-MPC server wallets (environment id + API token + a random
+      # secret that derives per-wallet share-backup passwords — treat like a key)
+      - key: DYNAMIC_ENVIRONMENT_ID
+        sync: false
+      - key: DYNAMIC_API_TOKEN
+        sync: false
+      - key: DYNAMIC_WALLET_PASSWORD_SECRET
         sync: false
       # Optional: Firebase push notifications
       - key: FIREBASE_PROJECT_ID

@@ -322,10 +322,20 @@ async function aggregateAllSources(): Promise<NormalizedJob[]> {
     "SalesGravy","GoodGigs","JobsinTech","AndroidDev","iOSJobs","BlockchainJobs",
     "Web3Jobs","ReactJobs","NodeJobs","VueJobs",
   ];
+  // Individual source outages are routine and self-heal on the hourly refresh —
+  // log one compact line each (a full AxiosError dump per source floods the end
+  // of every boot log with scary red blocks that read like real failures).
+  const failedSources: string[] = [];
   const sources = results.map((r, i) => {
-    if (r.status === "rejected") logger.warn({ err: r.reason }, `${names[i]} fetch failed`);
+    if (r.status === "rejected") failedSources.push(names[i] ?? `#${i}`);
     return r.status === "fulfilled" ? r.value : [];
   });
+  if (failedSources.length > 0) {
+    logger.warn(
+      { failedCount: failedSources.length, totalSources: results.length, failedSources },
+      "Some job sources unreachable this cycle — feed continues from the rest, retries hourly",
+    );
+  }
 
   // Interleave sources so each appears in the feed, then deduplicate by title+company
   const all = interleave(sources);

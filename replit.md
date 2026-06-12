@@ -1,6 +1,6 @@
 # S-PAY
 
-S-PAY is a digital money super app for remote workers and businesses, **built on Celo**: wallets holding USDC/USDT provisioned **just-in-time at the first money action** via an admin-switchable WaaS (Privy / Coinbase CDP / Turnkey), virtual USD/EUR bank accounts with automatic fiat→stablecoin conversion (Noah), local cash-outs (M-Pesa, MoMo, PIX, SEPA…), guided exchange withdrawals (Binance/Bybit/OKX), an admin-switchable Stripe Issuing card program, and a 3,000–5,000-listings/day remote jobs board that doubles as the SEO + signup-acquisition engine.
+S-PAY is a digital money super app for remote workers and businesses, **built on Celo**: wallets holding USDC/USDT provisioned **just-in-time at the first money action** via an admin-switchable WaaS (Privy / Coinbase CDP / Turnkey / Openfort / thirdweb / Dynamic), virtual USD/EUR bank accounts with automatic fiat→stablecoin conversion (Noah), local cash-outs (M-Pesa, MoMo, PIX, SEPA…), guided exchange withdrawals (Binance/Bybit/OKX), an admin-switchable Stripe Issuing card program, and a 3,000–5,000-listings/day remote jobs board that doubles as the SEO + signup-acquisition engine.
 
 > Operational source of truth: **`LAUNCH-CHECKLIST.md`** (what's live, provider activation, remaining tasks D1–D10). Product/deploy reference: `README.md`. Wallet providers deep dive: `docs/WALLET-PROVIDERS.md`.
 
@@ -16,14 +16,14 @@ S-PAY is a digital money super app for remote workers and businesses, **built on
 - pnpm workspaces, TypeScript 5.9; API: Express 5, esbuild **ESM** bundle (`dist/index.mjs`), Dockerized on Render
 - DB: PostgreSQL + Drizzle (Render Postgres or Supabase/Neon — TLS auto-detected, `DATABASE_SSL` override); migrations applied programmatically at boot (`src/lib/migrate.ts`)
 - Auth: JWT HS256 30d (`jsonwebtoken`), bcrypt 12; Google web OAuth + native Google/Apple token sign-in verified against provider JWKS via `jose`
-- Chain: Celo mainnet — balances via Forno JSON-RPC (keyless); sends signed by the wallet's own provider: Privy (`/v1/wallets/{id}/rpc` eth_sendTransaction) or CDP/Turnkey (SDK signer + viem `writeContract` on `celo` chain, broadcast via Forno); USDC `0xcebA…118C`, USDT `0x4806…3D5e` (6 decimals)
+- Chain: Celo mainnet — balances via Forno JSON-RPC (keyless); sends signed by the wallet's own provider: Privy (`/v1/wallets/{id}/rpc` eth_sendTransaction), CDP/Turnkey/Openfort (SDK signer + viem `writeContract` on `celo` chain, broadcast via Forno), thirdweb (REST, queued tx → poll for hash), Dynamic (TSS-MPC via native signer); USDC `0xcebA…118C`, USDT `0x4806…3D5e` (6 decimals)
 - Web: React + Vite SPA (wouter, TanStack Query staleTime 30s) on Vercel; Mobile: Expo SDK 54 (expo-router) via EAS
 - Contract-first: `lib/api-spec/openapi.yaml` → orval → `lib/api-client-react` (hooks) + `lib/api-zod` (validators)
 
 ## Where things live
 
 - `artifacts/api-server/src/routes/` — `auth` (register/login/oauth/me/delete), `wallet` (chain balances, P2P + address sends, deposit instructions), `banking` (accounts/rates/withdraw — Noah-gated), `card` (details/issue/waitlist — flag-gated), `jobs` (+ `/sitemap.xml`), `ssr` (bot-rendered job pages), `admin` (stats/users/transactions/feature-flags/fees/custom-jobs/settings), `webhooks` (Noah KYC/KYB + deposits, Stripe), `health` (`/healthz`, `/status`)
-- `artifacts/api-server/src/lib/` — `jobs` (aggregator+filters+custom listings), `wallet-providers` (WaaS abstraction: Privy/CDP/Turnkey, JIT provisioning `ensureUserWallet`, per-wallet signing), `celo-chain` (keyless balances, token constants), `stripe-issuing`, `settings` (app_settings: flags/fees/maintenance/wallet_providers), `migrate`, `auth`
+- `artifacts/api-server/src/lib/` — `jobs` (aggregator+filters+custom listings), `wallet-providers` (WaaS abstraction: Privy/CDP/Turnkey/Openfort/thirdweb/Dynamic, JIT provisioning `ensureUserWallet`, per-wallet signing), `celo-chain` (keyless balances, token constants), `stripe-issuing`, `settings` (app_settings: flags/fees/maintenance/wallet_providers), `migrate`, `auth`
 - `artifacts/api-server/src/middlewares/` — `auth` (JWT), `maintenance` (503 gate; allows health/status/login/oauth/webhooks/admin)
 - Web pages: `artifacts/web/src/pages/` (+ `admin/`, `maintenance.tsx`, `exchange-withdraw.tsx`); layouts in `components/layout.tsx` (app), `public-layout.tsx` (marketing), `admin/layout.tsx`
 - Mobile: `artifacts/mobile/app/` — `welcome` (MiniPay-style entry), tabs `index|banking|card|jobs`, `login/register` (+ `SocialAuthButtons`), `profile` (delete account)
@@ -52,6 +52,7 @@ S-PAY is a digital money super app for remote workers and businesses, **built on
 - Web Google buttons must hit `/api/auth/google` (the `/api` prefix bug was fixed once already).
 - The maintenance gate fails OPEN if the settings read errors — never locks the platform.
 - NEVER call the wallet provider (or import `lib/wallet-providers`) from auth or read endpoints — it would re-create the per-MAU WaaS bill the lazy design exists to avoid. New money features get wallets via `ensureUserWallet()` inside the money action.
+- `@dynamic-labs-wallet/*` is EXTERNALIZED in `build.mjs` (native glibc MPC binary, unbundleable): the Dockerfile prod stage must stay glibc (`node:20-slim`, NOT alpine) and `npm install` those two packages, pinned to the bundle's version. Dynamic wallets store their metadata JSON in the wallet-id column; their share-backup passwords derive from `DYNAMIC_WALLET_PASSWORD_SECRET` (loss = Dynamic wallets can't sign).
 
 ## User preferences
 
