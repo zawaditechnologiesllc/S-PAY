@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import QRCode from "qrcode";
 import jsQR from "jsqr";
-import { useSendMoney, useAddFunds, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
+import { useSendMoney, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ScanLine, ArrowRightLeft, QrCode, Banknote,
-  CheckCircle2, Copy, Smartphone, Wallet2, ExternalLink, CameraOff,
+  CheckCircle2, Smartphone, Wallet2, ExternalLink, CameraOff,
 } from "lucide-react";
 
 /**
@@ -31,7 +30,7 @@ const ADDRESS_RE = /0x[0-9a-fA-F]{40}/;
 
 export function QuickActions() {
   const [, setLocation] = useLocation();
-  const [open, setOpen] = useState<null | "scan" | "transfer" | "receive">(null);
+  const [open, setOpen] = useState<null | "scan" | "transfer">(null);
   const [prefillAddress, setPrefillAddress] = useState("");
 
   return (
@@ -39,7 +38,7 @@ export function QuickActions() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-gray-100">
         <QuickAction icon={<ScanLine size={22} />} label="Scan" bgColor="#4DC9EE" onClick={() => setOpen("scan")} />
         <QuickAction icon={<ArrowRightLeft size={22} />} label="Transfer" bgColor="#F59E0B" onClick={() => { setPrefillAddress(""); setOpen("transfer"); }} />
-        <QuickAction icon={<QrCode size={22} />} label="Recharge" bgColor="#22C55E" onClick={() => setOpen("receive")} />
+        <QuickAction icon={<QrCode size={22} />} label="Recharge" bgColor="#22C55E" onClick={() => setLocation("/deposit")} />
         <QuickAction icon={<Banknote size={22} />} label="Withdraw" bgColor="#2E8FD6" onClick={() => setLocation("/banking/withdraw")} />
       </div>
 
@@ -49,7 +48,6 @@ export function QuickActions() {
         onAddress={(addr) => { setPrefillAddress(addr); setOpen("transfer"); }}
       />
       <TransferDialog open={open === "transfer"} onClose={() => setOpen(null)} initialAddress={prefillAddress} />
-      <ReceiveDialog open={open === "receive"} onClose={() => setOpen(null)} />
     </>
   );
 }
@@ -184,74 +182,6 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
               <p className="text-[11px] text-gray-400 text-center">P2P transfers inside S-PAY are free · settled on Celo in ~5s</p>
             </div>
           </>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Recharge / Receive — the shareable QR code lives here ───────────────────
-
-function ReceiveDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { toast } = useToast();
-  const addFunds = useAddFunds();
-  const [address, setAddress] = useState<string | null>(null);
-  const [qr, setQr] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    setError(null);
-    // First money action: this call JIT-provisions the wallet if needed
-    addFunds.mutate(
-      { data: { amount: 0, currency: "USDC", method: "bank_transfer" } },
-      {
-        onSuccess: async (res) => {
-          const addr = (res as { celoAddress?: string })?.celoAddress;
-          if (!addr) { setError("Your wallet is still being prepared. Try again in a moment."); return; }
-          setAddress(addr);
-          setQr(await QRCode.toDataURL(addr, { width: 480, margin: 1, color: { dark: "#1A2B4A" } }));
-        },
-        onError: (err) => setError(apiMessage(err, "Your wallet is still being prepared. Try again shortly.")),
-      },
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  const copy = async () => {
-    if (!address) return;
-    await navigator.clipboard.writeText(address);
-    toast({ title: "Address copied", description: "Share it to receive USDC/USDT on Celo." });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Recharge — receive money</DialogTitle>
-          <DialogDescription>
-            Share this QR code or address. Anyone can pay you in USDC/USDT on the Celo network — including withdrawals from Binance, Bybit, or Coinbase.
-          </DialogDescription>
-        </DialogHeader>
-        {error ? (
-          <p className="text-sm text-amber-700 bg-amber-50 rounded-xl p-4">{error}</p>
-        ) : !address ? (
-          <p className="text-sm text-gray-400 text-center py-8">Preparing your wallet…</p>
-        ) : (
-          <div className="flex flex-col items-center gap-4">
-            {qr && (
-              <div className="p-3 bg-white rounded-2xl border-2 border-[#4DC9EE]/30 shadow-sm">
-                <img src={qr} alt="Your S-PAY receive QR code" className="w-52 h-52" />
-              </div>
-            )}
-            <div className="w-full bg-gray-50 rounded-xl p-3 flex items-center gap-2">
-              <code className="text-[11px] text-gray-700 break-all flex-1">{address}</code>
-              <Button size="sm" variant="outline" onClick={copy} aria-label="Copy address"><Copy size={14} /></Button>
-            </div>
-            <p className="text-[11px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2 w-full text-center">
-              ⚠ Send only on the <strong>Celo network</strong>. Funds appear in your balance within seconds.
-            </p>
-          </div>
         )}
       </DialogContent>
     </Dialog>

@@ -1,7 +1,7 @@
 import { Link, useRoute, useLocation } from "wouter";
 import {
   Wallet, Landmark, CreditCard, Briefcase,
-  CircleUser, Bell, HelpCircle, LogOut, LayoutDashboard,
+  CircleUser, QrCode, HelpCircle, LogOut, LayoutDashboard,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import { BackButton } from "@/components/back-button";
@@ -91,9 +91,12 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
               <h1 className="text-xl md:text-2xl font-bold text-white truncate">{title ?? "Dashboard"}</h1>
             </div>
             <div className="flex items-center gap-2">
-              <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors">
-                <Bell size={19} />
-              </button>
+              {/* My QR — one tap from anywhere to get paid (WeChat/Alipay pattern) */}
+              <Link href="/deposit?m=crypto">
+                <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors" aria-label="My QR code">
+                  <QrCode size={19} />
+                </button>
+              </Link>
               <Link href="/profile">
                 <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors">
                   <CircleUser size={19} />
