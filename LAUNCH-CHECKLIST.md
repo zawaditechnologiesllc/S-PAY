@@ -140,7 +140,7 @@ Pick **one** of the six supported providers (full walkthroughs, pricing comparis
 | C1 | Register your account, then set `ADMIN_EMAILS` (comma-separated) and `CORS_ORIGIN` | Render → spay-api → Environment | ☐ |
 | C2 | Set `SITE_URL=https://spayewallet.com` (canonicals + sitemap URLs) | Render env | ☐ |
 | C3 | Submit `https://spayewallet.com/jobs-sitemap.xml` in Search Console (domain already verified); spot-check a job URL in the Rich Results test | search.google.com/search-console | ☐ |
-| C4 | If the Render hostname is NOT `spay-api.onrender.com`, update the **3 destinations** in `vercel.json` (bot rewrites ×2 + sitemap proxy) | `vercel.json` | ☐ |
+| C4 | `vercel.json` is wired to the real Render hostname `s-pay.onrender.com` (bot rewrites ×2 + sitemap proxy) — if the hostname ever changes, update those 3 destinations | `vercel.json` | ✅ |
 | C5 | Review the fee schedule (withdrawal %, min, card fee, P2P) — defaults: 1% / $0.49 / $1.00 / free | `/admin/settings` → Fees & Revenue | ☐ |
 | C6 | Decide on the landing testimonials (currently illustrative personas with earnings claims — owner's call) | `artifacts/web/src/pages/landing.tsx` → `TESTIMONIALS` | ☐ |
 | C7 | Claim brand social handles, then add links back to the footer | `artifacts/web/src/components/public-layout.tsx` | ☐ |

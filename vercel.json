@@ -13,7 +13,7 @@
           "value": "(?i).*(googlebot|google-inspectiontool|bingbot|yandex|baiduspider|duckduckbot|slurp|applebot|petalbot|twitterbot|facebookexternalhit|linkedinbot|whatsapp|telegrambot|discordbot|pinterestbot).*"
         }
       ],
-      "destination": "https://spay-api.onrender.com/ssr/jobs/:jobId"
+      "destination": "https://s-pay.onrender.com/ssr/jobs/:jobId"
     },
     {
       "source": "/jobs",
@@ -24,11 +24,11 @@
           "value": "(?i).*(googlebot|google-inspectiontool|bingbot|yandex|baiduspider|duckduckbot|slurp|applebot|petalbot|twitterbot|facebookexternalhit|linkedinbot|whatsapp|telegrambot|discordbot|pinterestbot).*"
         }
       ],
-      "destination": "https://spay-api.onrender.com/ssr/jobs"
+      "destination": "https://s-pay.onrender.com/ssr/jobs"
     },
     {
       "source": "/jobs-sitemap.xml",
-      "destination": "https://spay-api.onrender.com/api/sitemap.xml"
+      "destination": "https://s-pay.onrender.com/api/sitemap.xml"
     },
     {
       "source": "/(.*)",
