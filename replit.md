@@ -15,7 +15,7 @@ S-PAY is a digital money super app for remote workers and businesses, **built on
 
 - pnpm workspaces, TypeScript 5.9; API: Express 5, esbuild **ESM** bundle (`dist/index.mjs`), Dockerized on Render
 - DB: PostgreSQL + Drizzle (Render Postgres or Supabase/Neon — TLS auto-detected, `DATABASE_SSL` override); migrations applied programmatically at boot (`src/lib/migrate.ts`)
-- Auth: JWT HS256 30d (`jsonwebtoken`), bcrypt 12; Google web OAuth + native Google/Apple token sign-in verified against provider JWKS via `jose`
+- Auth: JWT HS256 30d (`jsonwebtoken`), bcrypt 12; Google web OAuth + native Google/Apple token sign-in verified against provider JWKS via `jose`; soft email verification + password reset via Resend (`lib/email.ts` — sha256 tokens in users table, links logged when RESEND_API_KEY unset)
 - Chain: Celo mainnet — balances via Forno JSON-RPC (keyless); sends signed by the wallet's own provider: Privy (`/v1/wallets/{id}/rpc` eth_sendTransaction), CDP/Turnkey/Openfort (SDK signer + viem `writeContract` on `celo` chain, broadcast via Forno), thirdweb (REST, queued tx → poll for hash), Dynamic (TSS-MPC via native signer); USDC `0xcebA…118C`, USDT `0x4806…3D5e` (6 decimals)
 - Web: React + Vite SPA (wouter, TanStack Query staleTime 30s) on Vercel; Mobile: Expo SDK 54 (expo-router) via EAS
 - Contract-first: `lib/api-spec/openapi.yaml` → orval → `lib/api-client-react` (hooks) + `lib/api-zod` (validators)

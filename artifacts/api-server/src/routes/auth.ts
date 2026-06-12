@@ -4,8 +4,9 @@ import axios from "axios";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { signToken } from "../lib/auth";
 import { requireAuth } from "../middlewares/auth";
+import { generateToken, hashToken, sendVerificationEmail, sendPasswordResetEmail } from "../lib/email";
 import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and, gt } from "drizzle-orm";
 
 /** Sanitized acquisition channel, e.g. "jobs", "jobs:rv-123", "landing", "google", "mobile" */
 function cleanSignupSource(raw: unknown): string | null {
@@ -33,6 +34,7 @@ function userResponse(u: typeof usersTable.$inferSelect) {
     phoneNumber: u.phoneNumber ?? null,
     avatarUrl: u.avatarUrl ?? null,
     kycStatus: u.kycStatus,
+    emailVerified: u.emailVerified,
     isAdmin: ADMIN_EMAILS.includes(u.email.toLowerCase()),
     celoWalletAddress: u.celoWalletAddress ?? null,
     accountType: u.accountType,
@@ -89,6 +91,11 @@ router.post("/auth/register", async (req, res) => {
     // Deliberately NO wallet-provider call here: signups/logins must never touch
     // the WaaS (it bills per monthly-active wallet user). The Celo wallet is
     // provisioned just-in-time by the first money action — see lib/wallet-providers.ts.
+
+    // Soft email verification: fire-and-forget the confirmation email; the
+    // account works immediately and the app shows a banner until confirmed.
+    void issueVerificationEmail(user.id, user.email, user.fullName);
+
     const token = signToken({ userId: user.id, email: user.email });
     res.status(201).json({ token, user: userResponse(user) });
   } catch (err) {
@@ -373,6 +380,123 @@ router.get("/auth/google/callback", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Google OAuth error");
     res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
+  }
+});
+
+// ─── Email verification (soft — never blocks login) ──────────────────────────
+
+async function issueVerificationEmail(userId: string, email: string, fullName: string): Promise<void> {
+  try {
+    const { token, hash } = generateToken();
+    await db.update(usersTable)
+      .set({ emailVerifyToken: hash, emailVerifyExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), updatedAt: new Date() })
+      .where(eq(usersTable.id, userId));
+    const verifyUrl = `${API_BASE_URL}/api/auth/verify-email?token=${token}`;
+    await sendVerificationEmail(email, fullName, verifyUrl);
+  } catch (err) {
+    // Verification is best-effort; the resend button covers transient failures
+    console.error("Verification email issue failed", err);
+  }
+}
+
+// The link in the email lands here, then bounces to the app's success page
+router.get("/auth/verify-email", async (req, res) => {
+  const token = typeof req.query.token === "string" ? req.query.token : "";
+  if (!token) {
+    res.redirect(`${FRONTEND_URL}/auth/verified?status=invalid`);
+    return;
+  }
+  try {
+    const [user] = await db.update(usersTable)
+      .set({ emailVerified: true, emailVerifyToken: null, emailVerifyExpires: null, updatedAt: new Date() })
+      .where(and(eq(usersTable.emailVerifyToken, hashToken(token)), gt(usersTable.emailVerifyExpires, new Date())))
+      .returning({ id: usersTable.id });
+    res.redirect(`${FRONTEND_URL}/auth/verified?status=${user ? "ok" : "invalid"}`);
+  } catch (err) {
+    req.log.error({ err }, "Email verification error");
+    res.redirect(`${FRONTEND_URL}/auth/verified?status=error`);
+  }
+});
+
+router.post("/auth/resend-verification", requireAuth, async (req, res) => {
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "not_found", message: "User not found" });
+      return;
+    }
+    if (user.emailVerified) {
+      res.json({ message: "Your email is already confirmed." });
+      return;
+    }
+    await issueVerificationEmail(user.id, user.email, user.fullName);
+    res.json({ message: "Confirmation email sent. Check your inbox (and spam folder)." });
+  } catch (err) {
+    req.log.error({ err }, "Resend verification error");
+    res.status(500).json({ error: "internal_error", message: "Could not send the confirmation email" });
+  }
+});
+
+// ─── Password reset ───────────────────────────────────────────────────────────
+
+router.post("/auth/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body as { email?: string };
+    if (!email || typeof email !== "string") {
+      res.status(400).json({ error: "validation_error", message: "email is required" });
+      return;
+    }
+    // Always answer the same way — never reveal whether an account exists
+    const generic = { message: "If an account exists for that email, a reset link is on its way." };
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.trim())).limit(1);
+    if (user?.passwordHash) {
+      const { token, hash } = generateToken();
+      await db.update(usersTable)
+        .set({ passwordResetToken: hash, passwordResetExpires: new Date(Date.now() + 60 * 60 * 1000), updatedAt: new Date() })
+        .where(eq(usersTable.id, user.id));
+      await sendPasswordResetEmail(user.email, `${FRONTEND_URL}/reset-password?token=${token}`);
+    }
+    res.json(generic);
+  } catch (err) {
+    req.log.error({ err }, "Forgot password error");
+    res.status(500).json({ error: "internal_error", message: "Could not process the request" });
+  }
+});
+
+router.post("/auth/reset-password", async (req, res) => {
+  try {
+    const { token, password } = req.body as { token?: string; password?: string };
+    if (!token || typeof token !== "string") {
+      res.status(400).json({ error: "validation_error", message: "Reset token is missing" });
+      return;
+    }
+    if (!password || password.length < 8) {
+      res.status(400).json({ error: "validation_error", message: "Password must be at least 8 characters" });
+      return;
+    }
+    const passwordHash = await bcrypt.hash(password, 12);
+    const [user] = await db.update(usersTable)
+      .set({
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+        // Following an emailed link proves inbox ownership
+        emailVerified: true,
+        emailVerifyToken: null,
+        emailVerifyExpires: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(usersTable.passwordResetToken, hashToken(token)), gt(usersTable.passwordResetExpires, new Date())))
+      .returning({ id: usersTable.id });
+    if (!user) {
+      res.status(400).json({ error: "invalid_token", message: "This reset link is invalid or has expired. Request a new one." });
+      return;
+    }
+    res.json({ message: "Password updated. You can sign in with your new password now." });
+  } catch (err) {
+    req.log.error({ err }, "Reset password error");
+    res.status(500).json({ error: "internal_error", message: "Could not reset the password" });
   }
 });
 

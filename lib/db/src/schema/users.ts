@@ -18,6 +18,11 @@ export const usersTable = pgTable("users", {
   accountType: accountTypeEnum("account_type").default("personal").notNull(), // personal → Noah KYC · business → Noah KYB
   businessName: text("business_name"),           // required for business accounts; goes on business virtual accounts
   kycStatus: kycStatusEnum("kyc_status").default("pending").notNull(),
+  emailVerified: boolean("email_verified").default(false).notNull(), // soft verification — never blocks login, shown as a banner until confirmed
+  emailVerifyToken: text("email_verify_token"),          // sha256 of the emailed token
+  emailVerifyExpires: timestamp("email_verify_expires"),
+  passwordResetToken: text("password_reset_token"),      // sha256 of the emailed token
+  passwordResetExpires: timestamp("password_reset_expires"),
   isAdmin: boolean("is_admin").default(false).notNull(),
   celoWalletAddress: text("celo_wallet_address"), // provisioned lazily on the first money action — never at signup/login (keeps WaaS MAU billing at zero for jobs-only users)
   // Wallet-as-a-service linkage. The DB column keeps its historical name

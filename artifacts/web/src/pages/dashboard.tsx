@@ -1,12 +1,42 @@
 import { Layout } from "@/components/layout";
-import { useGetDashboardSummary, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
+import {
+  useGetDashboardSummary, getGetDashboardSummaryQueryKey,
+  useGetMe, getGetMeQueryKey, useResendVerification, useStartKyc,
+} from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownLeft, ScanLine, Send, ArrowDownToLine, ArrowUpFromLine, ChevronRight, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, ChevronRight, ShieldCheck, MailCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
+import { QuickActions } from "@/components/quick-actions";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
   const { data: summary, isLoading } = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey() } });
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
+  const resendVerification = useResendVerification();
+  const startKyc = useStartKyc();
+  const { toast } = useToast();
+
+  const resendEmail = () => {
+    resendVerification.mutate(undefined, {
+      onSuccess: (r) => toast({ title: "Confirmation email", description: (r as { message?: string })?.message ?? "Sent — check your inbox." }),
+      onError: () => toast({ title: "Could not send", description: "Please try again.", variant: "destructive" }),
+    });
+  };
+
+  const verifyIdentity = () => {
+    startKyc.mutate(undefined, {
+      onSuccess: (r) => {
+        const data = r as { verificationUrl?: string; message?: string };
+        if (data.verificationUrl) window.location.href = data.verificationUrl;
+        else toast({ title: "Identity verification", description: data.message ?? "You're all set." });
+      },
+      onError: (err) => toast({
+        title: "Identity verification",
+        description: (err as { data?: { message?: string } })?.data?.message ?? "Verification is activating soon.",
+      }),
+    });
+  };
 
   return (
     <Layout title="Dashboard">
@@ -29,29 +59,46 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-gray-100">
-            <QuickAction icon={<ScanLine size={22} />} label="Scan" bgColor="#4DC9EE" />
-            <QuickAction icon={<Send size={22} />} label="Transfer" bgColor="#F59E0B" />
-            <QuickAction icon={<ArrowDownToLine size={22} />} label="Recharge" bgColor="#22C55E" />
-            <QuickAction icon={<ArrowUpFromLine size={22} />} label="Withdraw" bgColor="#2E8FD6" />
-          </div>
+          {/* Quick Actions — all four work (Alipay-style) */}
+          <QuickActions />
         </CardContent>
       </Card>
 
-      {/* Security Banner */}
-      <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600">
-            <ShieldCheck size={20} />
+      {/* Email confirmation banner — soft verification, disappears once confirmed */}
+      {me && me.emailVerified === false && (
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between shadow-sm gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+              <MailCheck size={20} />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-sm font-semibold text-gray-900">Confirm your email</h4>
+              <p className="text-xs text-gray-600 truncate">We sent a link to {me.email} — click it to secure your account</p>
+            </div>
           </div>
-          <div>
-            <h4 className="text-sm font-semibold text-gray-900">Verify your identity</h4>
-            <p className="text-xs text-gray-600">Complete KYC to unlock full limits</p>
-          </div>
+          <button onClick={resendEmail} disabled={resendVerification.isPending} className="text-sm font-medium text-primary hover:underline flex-shrink-0 disabled:opacity-50">
+            {resendVerification.isPending ? "Sending…" : "Resend"}
+          </button>
         </div>
-        <Link href="/profile" className="text-sm font-medium text-primary hover:underline">Verify</Link>
-      </div>
+      )}
+
+      {/* Identity verification banner — hidden once approved */}
+      {me?.kycStatus !== "approved" && (
+        <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 flex items-center justify-between shadow-sm gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600">
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900">Verify your identity</h4>
+              <p className="text-xs text-gray-600">Unlocks your US bank account, EU IBAN &amp; cash-outs</p>
+            </div>
+          </div>
+          <button onClick={verifyIdentity} disabled={startKyc.isPending} className="text-sm font-medium text-primary hover:underline disabled:opacity-50">
+            {startKyc.isPending ? "Starting…" : "Verify"}
+          </button>
+        </div>
+      )}
 
       {/* Recent Transactions */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -105,16 +152,3 @@ export default function Dashboard() {
   );
 }
 
-function QuickAction({ icon, label, bgColor }: { icon: React.ReactNode, label: string, bgColor: string }) {
-  return (
-    <div className="flex flex-col items-center gap-2 cursor-pointer group">
-      <div
-        className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform duration-150"
-        style={{ backgroundColor: bgColor }}
-      >
-        {icon}
-      </div>
-      <span className="text-xs font-medium text-gray-700">{label}</span>
-    </div>
-  );
-}

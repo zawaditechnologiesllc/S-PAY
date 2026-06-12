@@ -241,6 +241,8 @@ Wallets need **one** of the three providers below configured (admin picks the ac
 
 | Variable | Description |
 |---|---|
+| `RESEND_API_KEY` | Transactional email via [resend.com](https://resend.com) — email confirmation + password reset. Unset = links are logged on Render instead of emailed |
+| `EMAIL_FROM` | Sender identity, e.g. `S-PAY <noreply@spayewallet.com>` (verify the domain in Resend first; defaults to Resend's test sender) |
 | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google OAuth (web flow) |
 | `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` | Native Google sign-in token audiences (mobile) |
 | `APPLE_BUNDLE_ID` | Sign in with Apple audience (defaults to `com.zawaditechnologies.spay`) |
