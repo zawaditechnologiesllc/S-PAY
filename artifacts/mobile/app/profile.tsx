@@ -137,6 +137,23 @@ export default function ProfileScreen() {
             </View>
           )}
 
+          {/* Account actions */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.cardTitle, { color: colors.foreground }]}>Account</Text>
+            {[
+              { icon: "lock" as const, label: "Security & PIN", path: "/security" },
+              { icon: "help-circle" as const, label: "Help & Support", path: "/support" },
+            ].map((item) => (
+              <TouchableOpacity key={item.label} style={[styles.infoRow, { borderBottomColor: colors.border }]} onPress={() => router.push(item.path)}>
+                <View style={[styles.infoIcon, { backgroundColor: colors.muted }]}>
+                  <Feather name={item.icon} size={16} color={colors.primary} />
+                </View>
+                <Text style={[styles.infoValue, { color: colors.foreground, flex: 1 }]}>{item.label}</Text>
+                <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            ))}
+          </View>
+
           {/* Legal */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.cardTitle, { color: colors.foreground }]}>About & Legal</Text>

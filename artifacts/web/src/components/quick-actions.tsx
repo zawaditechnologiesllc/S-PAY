@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ScanLine, ArrowRightLeft, QrCode, Banknote,
-  CheckCircle2, Smartphone, Wallet2, ExternalLink, CameraOff,
+  ScanLine, ArrowRightLeft, Plus, Banknote,
+  CheckCircle2, Smartphone, Wallet2, Mail, Lock, ShieldAlert, ExternalLink, CameraOff,
 } from "lucide-react";
 
 /**
@@ -38,7 +38,7 @@ export function QuickActions() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
         <QuickAction icon={<ScanLine size={22} />} label="Scan" bgColor="#4DC9EE" onClick={() => setOpen("scan")} />
         <QuickAction icon={<ArrowRightLeft size={22} />} label="Transfer" bgColor="#F59E0B" onClick={() => { setPrefillAddress(""); setOpen("transfer"); }} />
-        <QuickAction icon={<QrCode size={22} />} label="Recharge" bgColor="#22C55E" onClick={() => setLocation("/deposit")} />
+        <QuickAction icon={<Plus size={24} strokeWidth={2.5} />} label="Recharge" bgColor="#22C55E" onClick={() => setLocation("/deposit")} />
         <QuickAction icon={<Banknote size={22} />} label="Withdraw" bgColor="#2E8FD6" onClick={() => setLocation("/banking/withdraw")} />
       </div>
 
@@ -70,25 +70,33 @@ function QuickAction({ icon, label, bgColor, onClick }: {
 
 // ─── Transfer ─────────────────────────────────────────────────────────────────
 
+type SendMode = "phone" | "email" | "address";
+
 function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onClose: () => void; initialAddress?: string }) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const send = useSendMoney();
-  const [mode, setMode] = useState<"phone" | "address">("phone");
+  const [mode, setMode] = useState<SendMode>("phone");
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
-  const [result, setResult] = useState<{ txHash?: string } | null>(null);
+  const [pin, setPin] = useState("");
+  const [needsPinSetup, setNeedsPinSetup] = useState(false);
+  const [result, setResult] = useState<{ txHash?: string; fee?: number; total?: number } | null>(null);
 
   useEffect(() => {
     if (open) {
-      setResult(null);
-      setAmount("");
-      setNote("");
+      setResult(null); setAmount(""); setNote(""); setPin(""); setNeedsPinSetup(false);
       if (initialAddress) { setMode("address"); setRecipient(initialAddress); }
       else { setMode("phone"); setRecipient(""); }
     }
   }, [open, initialAddress]);
+
+  const recipientField =
+    mode === "phone" ? { recipientPhone: recipient.trim() } :
+    mode === "email" ? { recipientEmail: recipient.trim() } :
+    { recipientAddress: recipient.trim() };
 
   const submit = () => {
     const value = parseFloat(amount);
@@ -96,28 +104,34 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
       toast({ title: "Check the details", description: "Enter a recipient and a valid amount.", variant: "destructive" });
       return;
     }
+    if (!/^\d{4,6}$/.test(pin)) {
+      toast({ title: "Enter your PIN", description: "Your 4–6 digit transaction PIN authorizes the transfer.", variant: "destructive" });
+      return;
+    }
     send.mutate(
-      {
-        data: {
-          amount: value,
-          currency: "USDC",
-          ...(mode === "phone" ? { recipientPhone: recipient.trim() } : { recipientAddress: recipient.trim() }),
-          ...(note.trim() ? { note: note.trim() } : {}),
-        },
-      },
+      { data: { amount: value, currency: "USDC", ...recipientField, ...(note.trim() ? { note: note.trim() } : {}), pin } },
       {
         onSuccess: (tx) => {
-          setResult({ txHash: (tx as { txHash?: string })?.txHash });
+          const t = tx as { txHash?: string; fee?: number; total?: number };
+          setResult({ txHash: t.txHash, fee: t.fee, total: t.total });
           queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
         },
-        onError: (err) => toast({
-          title: "Transfer not completed",
-          description: apiMessage(err, "Please try again."),
-          variant: "destructive",
-        }),
+        onError: (err) => {
+          const code = (err as { data?: { error?: string } })?.data?.error;
+          setPin("");
+          if (code === "pin_not_set") { setNeedsPinSetup(true); return; }
+          toast({ title: "Transfer not completed", description: apiMessage(err, "Please try again."), variant: "destructive" });
+        },
       },
     );
   };
+
+  const modes: { id: SendMode; icon: React.ReactNode; label: string; placeholder: string }[] = [
+    { id: "phone", icon: <Smartphone size={13} />, label: "Phone", placeholder: "+254712345678" },
+    { id: "email", icon: <Mail size={13} />, label: "Email", placeholder: "name@email.com" },
+    { id: "address", icon: <Wallet2 size={13} />, label: "Address", placeholder: "0x…" },
+  ];
+  const activeMode = modes.find((m) => m.id === mode)!;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -127,46 +141,47 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
             <CheckCircle2 size={56} className="text-green-500" />
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Money sent 🎉</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">USDC {amount} is on its way — settled on Celo in ~5 seconds.</p>
+            {result.fee !== undefined && result.fee > 0 && (
+              <p className="text-xs text-gray-400">Fee: {result.fee.toFixed(2)} USDC · Total charged: {result.total?.toFixed(2)} USDC</p>
+            )}
             {result.txHash && (
-              <a
-                href={`https://celoscan.io/tx/${result.txHash}`}
-                target="_blank" rel="noopener noreferrer"
-                className="text-xs text-[#2E8FD6] hover:underline inline-flex items-center gap-1"
-              >
+              <a href={`https://celoscan.io/tx/${result.txHash}`} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-[#2E8FD6] hover:underline inline-flex items-center gap-1">
                 View receipt on CeloScan <ExternalLink size={12} />
               </a>
             )}
             <Button className="mt-2 w-full bg-[#4DC9EE] hover:bg-[#2E8FD6]" onClick={onClose}>Done</Button>
           </div>
+        ) : needsPinSetup ? (
+          <div className="flex flex-col items-center text-center py-6 gap-3">
+            <ShieldAlert size={48} className="text-amber-500" />
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Set up your transaction PIN</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">For your security, sending money needs a 4–6 digit PIN. Set it once, then use it for every transfer and withdrawal.</p>
+            <Button className="mt-2 w-full bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold" onClick={() => { onClose(); setLocation("/security"); }}>
+              Set my PIN
+            </Button>
+          </div>
         ) : (
           <>
             <DialogHeader>
               <DialogTitle>Transfer</DialogTitle>
-              <DialogDescription>Send USDC to another S-PAY member or any Celo wallet.</DialogDescription>
+              <DialogDescription>Send USDC by phone, email, or to any Celo wallet.</DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
-              <button
-                onClick={() => { setMode("phone"); setRecipient(""); }}
-                className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-colors ${mode === "phone" ? "bg-white dark:bg-gray-900 shadow text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}`}
-              >
-                <Smartphone size={14} /> Phone number
-              </button>
-              <button
-                onClick={() => { setMode("address"); setRecipient(""); }}
-                className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-colors ${mode === "address" ? "bg-white dark:bg-gray-900 shadow text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}`}
-              >
-                <Wallet2 size={14} /> Wallet address
-              </button>
+            <div className="grid grid-cols-3 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+              {modes.map((m) => (
+                <button key={m.id}
+                  onClick={() => { setMode(m.id); setRecipient(""); }}
+                  className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors ${mode === m.id ? "bg-white dark:bg-gray-900 shadow text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}`}>
+                  {m.icon} {m.label}
+                </button>
+              ))}
             </div>
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="qa-recipient">{mode === "phone" ? "Recipient's phone number" : "Recipient's Celo address"}</Label>
-                <Input
-                  id="qa-recipient"
-                  placeholder={mode === "phone" ? "+254712345678" : "0x…"}
-                  value={recipient}
-                  onChange={(e) => setRecipient(e.target.value)}
-                />
+                <Label htmlFor="qa-recipient">
+                  {mode === "phone" ? "Recipient's phone number" : mode === "email" ? "Recipient's email" : "Recipient's Celo address"}
+                </Label>
+                <Input id="qa-recipient" placeholder={activeMode.placeholder} value={recipient} onChange={(e) => setRecipient(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="qa-amount">Amount (USDC)</Label>
@@ -176,10 +191,15 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
                 <Label htmlFor="qa-note">Note (optional)</Label>
                 <Input id="qa-note" placeholder="What's it for?" maxLength={120} value={note} onChange={(e) => setNote(e.target.value)} />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="qa-pin" className="flex items-center gap-1.5"><Lock size={12} /> Transaction PIN</Label>
+                <Input id="qa-pin" type="password" inputMode="numeric" autoComplete="off" maxLength={6}
+                  placeholder="••••" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} />
+              </div>
               <Button className="w-full bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold" disabled={send.isPending} onClick={submit}>
                 {send.isPending ? "Sending…" : "Send now"}
               </Button>
-              <p className="text-[11px] text-gray-400 text-center">P2P transfers inside S-PAY are free · settled on Celo in ~5s</p>
+              <p className="text-[11px] text-gray-400 text-center">Settled on Celo in ~5s · any network fee shows on your receipt</p>
             </div>
           </>
         )}

@@ -32,6 +32,7 @@ import HowItWorks from "@/pages/how-it-works";
 import ResetPassword from "@/pages/reset-password";
 import Deposit from "@/pages/deposit";
 import Support from "@/pages/support";
+import Security from "@/pages/security";
 import EmailVerified from "@/pages/email-verified";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
@@ -139,6 +140,7 @@ function Router() {
       <Route path="/banking/withdraw"><ProtectedRoute component={Withdraw} /></Route>
       <Route path="/deposit"><ProtectedRoute component={Deposit} /></Route>
       <Route path="/support"><ProtectedRoute component={Support} /></Route>
+      <Route path="/security"><ProtectedRoute component={Security} /></Route>
       <Route path="/wallet/exchange"><ProtectedRoute component={ExchangeWithdraw} /></Route>
       <Route path="/card"><ProtectedRoute component={CardPage} /></Route>
 

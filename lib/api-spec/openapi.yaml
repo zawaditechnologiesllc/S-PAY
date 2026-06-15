@@ -207,6 +207,41 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
+  /auth/pin:
+    post:
+      operationId: setTransactionPin
+      tags: [auth]
+      summary: Set or change the transaction PIN (changing requires the current PIN)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pin:
+                  type: string
+                  description: New 4–6 digit PIN
+                currentPin:
+                  type: string
+                  description: Required only when changing an existing PIN
+              required: [pin]
+      responses:
+        "200":
+          description: PIN saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "403":
+          description: Current PIN incorrect
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /auth/forgot-password:
     post:
       operationId: forgotPassword
@@ -1338,6 +1373,9 @@ components:
           enum: [superadmin, manager, support]
           nullable: true
           description: Present only for admin-tier accounts
+        hasPin:
+          type: boolean
+          description: Whether the user has set a transaction PIN (required to send/withdraw)
         isAdmin:
           type: boolean
         avatarUrl:
@@ -1480,6 +1518,8 @@ components:
       properties:
         recipientPhone:
           type: string
+        recipientEmail:
+          type: string
         recipientAddress:
           type: string
         amount:
@@ -1489,6 +1529,9 @@ components:
           default: USDC
         note:
           type: string
+        pin:
+          type: string
+          description: Transaction PIN (4–6 digits) — required to authorize the send
       required:
         - amount
         - currency
@@ -1628,13 +1671,18 @@ components:
           type: string
         method:
           type: string
-          enum: [mpesa, sepa, pix, bank_transfer]
+          enum: [mpesa, mtn_momo, airtel, gcash, nequi, spei, pix, sepa, faster_payments, bank_transfer]
         recipientPhone:
           type: string
         recipientIban:
           type: string
         recipientTaxId:
           type: string
+        recipientAccount:
+          type: string
+        pin:
+          type: string
+          description: Transaction PIN (4–6 digits) — required to authorize the cash-out
       required:
         - amount
         - sourceCurrency
@@ -1911,12 +1959,16 @@ components:
           description: One-time virtual card creation fee in USD (covers Stripe's cost + margin)
         p2pFeePercent:
           type: number
-          description: Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly)
+          description: Transfer fee — percent component of the per-send commission
+        transferFeeFlat:
+          type: number
+          description: Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount*percent/100
       required:
         - withdrawalFeePercent
         - withdrawalFeeMin
         - cardIssuanceFee
         - p2pFeePercent
+        - transferFeeFlat
 
     CustomJob:
       type: object

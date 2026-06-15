@@ -31,6 +31,7 @@ export default function Withdraw() {
   const [momoExpanded, setMomoExpanded] = useState(true);
   const [targetCurrency, setTargetCurrency] = useState("KES");
   const [recipient, setRecipient] = useState("");
+  const [pin, setPin] = useState("");
 
   const numAmount = parseFloat(amount) || 0;
 
@@ -60,12 +61,17 @@ export default function Withdraw() {
       toast({ title: "Recipient details required", variant: "destructive" });
       return;
     }
+    if (!/^\d{4,6}$/.test(pin)) {
+      toast({ title: "Enter your PIN", description: "Your 4–6 digit transaction PIN authorizes the cash-out.", variant: "destructive" });
+      return;
+    }
 
     const payload: any = {
       amount: numAmount,
       sourceCurrency: "USDC",
       targetCurrency,
-      method
+      method,
+      pin,
     };
 
     const phoneMethods = ["mpesa", "mtn_momo", "airtel", "gcash", "nequi"];
@@ -83,10 +89,17 @@ export default function Withdraw() {
         setLocation("/wallet");
       },
       onError: (err) => {
+        const data = (err as { data?: { error?: string; message?: string } })?.data;
+        setPin("");
+        if (data?.error === "pin_not_set") {
+          toast({ title: "Set up your PIN", description: "Cashing out needs a transaction PIN. Set it in Security." });
+          setLocation("/security");
+          return;
+        }
         toast({
           title: "Error",
-          description: err.message || "Failed to initiate withdrawal",
-          variant: "destructive"
+          description: data?.message || (err as Error).message || "Failed to initiate withdrawal",
+          variant: "destructive",
         });
       }
     });
@@ -184,6 +197,21 @@ export default function Withdraw() {
                 value={recipient}
                 onChange={e => setRecipient(e.target.value)}
                 required
+              />
+            </div>
+
+            {/* Transaction PIN — same second factor as transfers */}
+            <div className="space-y-2">
+              <Label>Transaction PIN</Label>
+              <Input
+                type="password"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={6}
+                className="h-12"
+                placeholder="••••"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
               />
             </div>
 
