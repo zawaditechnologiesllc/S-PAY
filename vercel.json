@@ -1,7 +1,7 @@
 {
   "installCommand": "pnpm install",
   "buildCommand": "pnpm -w run typecheck:libs && pnpm --filter @workspace/web run build",
-  "outputDirectory": "dist/public",
+  "outputDirectory": "artifacts/web/dist/public",
   "framework": null,
   "rewrites": [
     {
