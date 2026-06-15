@@ -46,29 +46,41 @@ app.use(
     },
   }),
 );
-// CORS: unset = allow all (dev-friendly); set = exact-match allowlist.
-// A mismatched origin surfaces in the browser as a bare "Failed to fetch" on
-// sign-up/sign-in, so log every rejection — the fix (add the origin to
-// CORS_ORIGIN on Render) is then visible straight from the service logs.
+// CORS — two tiers:
+//  • PUBLIC read endpoints (jobs board, sitemap, marketing content, health,
+//    status) carry NO credentials and expose NO user data, so they're readable
+//    from any origin. This keeps the landing page + /jobs working for every
+//    visitor even if CORS_ORIGIN is mis-set or they browse via www/preview.
+//  • Everything else (auth, wallet, admin…) is locked to the CORS_ORIGIN
+//    allowlist with credentials. Unset = allow all (dev-friendly).
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
   : null;
-app.use(cors({
-  origin: allowedOrigins
-    ? (origin, cb) => {
-        // No Origin header = same-origin or server-to-server (curl, webhooks) — not a browser CORS case
-        if (!origin || allowedOrigins.includes(origin)) {
-          cb(null, true);
-          return;
-        }
-        logger.warn(
-          { blockedOrigin: origin, allowedOrigins },
-          "CORS blocked a browser origin — users there see “Failed to fetch”. If this is your web app, add the origin to CORS_ORIGIN (exact scheme+host, no trailing slash, include the www. variant if used)",
-        );
-        cb(null, false);
+
+const PUBLIC_READ = [/^\/api\/jobs/, /^\/api\/sitemap\.xml/, /^\/api\/site-content/, /^\/api\/status/, /^\/api\/healthz/];
+
+app.use(cors((req, done) => {
+  const isPublicRead = req.method === "GET" && PUBLIC_READ.some((re) => re.test(req.path));
+  if (isPublicRead || !allowedOrigins) {
+    // Reflect any origin; no credentials needed for public data
+    done(null, { origin: true, credentials: false });
+    return;
+  }
+  done(null, {
+    credentials: true,
+    origin: (origin, cb) => {
+      // No Origin header = same-origin or server-to-server (curl, webhooks)
+      if (!origin || allowedOrigins.includes(origin)) {
+        cb(null, true);
+        return;
       }
-    : true,
-  credentials: true,
+      logger.warn(
+        { blockedOrigin: origin, allowedOrigins },
+        "CORS blocked a browser origin — users there see “Failed to fetch”. Add the origin to CORS_ORIGIN (exact scheme+host, no trailing slash, include the www. variant if used)",
+      );
+      cb(null, false);
+    },
+  });
 }));
 // Keep the exact raw bytes so webhook HMAC signatures (Noah/Stripe) verify
 // against what was actually sent, not a re-serialized body.
