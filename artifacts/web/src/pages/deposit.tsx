@@ -12,6 +12,7 @@ import {
   Share2, ShieldCheck, CheckCircle2,
 } from "lucide-react";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import { NetworkIcon } from "@/components/network-icon";
 
 /**
  * Deposit ("Add money") — MiniPay-style: three methods, each opening to its
@@ -221,7 +222,7 @@ function BankPanel({ onBack }: { onBack: () => void }) {
 
 const RECEIVE_SOURCES = [
   {
-    id: "binance", name: "Binance", emoji: "🟡",
+    id: "binance", name: "Binance", brand: "binance",
     steps: [
       "Open Binance → Assets → Withdraw",
       "Choose USDC (or USDT)",
@@ -230,7 +231,7 @@ const RECEIVE_SOURCES = [
     ],
   },
   {
-    id: "bybit", name: "Bybit", emoji: "⚫",
+    id: "bybit", name: "Bybit", brand: "bybit",
     steps: [
       "Open Bybit → Assets → Withdraw",
       "Choose USDC (or USDT)",
@@ -239,7 +240,7 @@ const RECEIVE_SOURCES = [
     ],
   },
   {
-    id: "okx", name: "OKX", emoji: "⚪",
+    id: "okx", name: "OKX", brand: "okx",
     steps: [
       "Open OKX → Assets → Withdraw",
       "Choose USDC (or USDT) → on-chain withdrawal",
@@ -248,7 +249,7 @@ const RECEIVE_SOURCES = [
     ],
   },
   {
-    id: "wallet", name: "Another Celo wallet (MiniPay, Valora…)", emoji: "👛",
+    id: "wallet", name: "Another Celo wallet (MiniPay, Valora…)", brand: "wallet",
     steps: [
       "Open the sender's wallet app",
       "Choose Send → USDC or USDT",
@@ -435,13 +436,13 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
         <p className="text-xs text-gray-500 pb-1">Where is the money coming from? Each option shows the exact steps.</p>
         {RECEIVE_SOURCES.map((s) => (
           <button key={s.id} onClick={() => setView(s.id)} className="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left">
-            <span className="text-2xl">{s.emoji}</span>
+            <NetworkIcon brand={s.brand} size={40} />
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex-1">{s.name}</p>
             <ChevronRight size={16} className="text-gray-300" />
           </button>
         ))}
         <button onClick={() => setView("qr")} className="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left">
-          <span className="text-2xl">🔳</span>
+          <NetworkIcon brand="qr" size={40} />
           <div className="flex-1">
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">My QR code</p>
             <p className="text-[11px] text-gray-500">Show, save or share it — anyone can scan to pay you</p>

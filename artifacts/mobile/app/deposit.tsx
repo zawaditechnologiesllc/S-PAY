@@ -46,11 +46,19 @@ export default function Deposit() {
 }
 
 const RECEIVE_SOURCES = [
-  { id: "binance", name: "Binance", emoji: "🟡", steps: ["Open Binance → Assets → Withdraw", "Choose USDC (or USDT)", "Network: select CELO — the critical step", "Paste your S-PAY address → confirm"] },
-  { id: "bybit", name: "Bybit", emoji: "⚫", steps: ["Open Bybit → Assets → Withdraw", "Choose USDC (or USDT)", "Chain type: select CELO", "Paste your S-PAY address → confirm"] },
-  { id: "okx", name: "OKX", emoji: "⚪", steps: ["Open OKX → Assets → Withdraw", "Choose USDC (or USDT) → on-chain", "Network: select Celo", "Paste your S-PAY address → confirm"] },
-  { id: "wallet", name: "Another Celo wallet", emoji: "👛", steps: ["Open the sender's wallet app", "Choose Send → USDC or USDT", "Paste your S-PAY address (or scan your QR)", "Send — arrives in ~5 seconds"] },
+  { id: "binance", name: "Binance", badge: { bg: "#F3BA2F", fg: "#181A20", text: "B" }, steps: ["Open Binance → Assets → Withdraw", "Choose USDC (or USDT)", "Network: select CELO — the critical step", "Paste your S-PAY address → confirm"] },
+  { id: "bybit", name: "Bybit", badge: { bg: "#16181C", fg: "#FFB11A", text: "B" }, steps: ["Open Bybit → Assets → Withdraw", "Choose USDC (or USDT)", "Chain type: select CELO", "Paste your S-PAY address → confirm"] },
+  { id: "okx", name: "OKX", badge: { bg: "#000000", fg: "#FFFFFF", text: "OK" }, steps: ["Open OKX → Assets → Withdraw", "Choose USDC (or USDT) → on-chain", "Network: select Celo", "Paste your S-PAY address → confirm"] },
+  { id: "wallet", name: "Another Celo wallet", badge: { bg: "#FCFF52", fg: "#1A2B4A", text: "₵" }, steps: ["Open the sender's wallet app", "Choose Send → USDC or USDT", "Paste your S-PAY address (or scan your QR)", "Send — arrives in ~5 seconds"] },
 ] as const;
+
+function Badge({ bg, fg, text }: { bg: string; fg: string; text: string }) {
+  return (
+    <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: bg, alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ color: fg, fontWeight: "900", fontSize: 13 }}>{text}</Text>
+    </View>
+  );
+}
 
 function CryptoPanel({ onBack }: { onBack: () => void }) {
   const [view, setView] = useState<null | "qr" | string>(null);
@@ -112,13 +120,17 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
         <>
           <Text style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>Where is the money coming from? Each option shows the exact steps.</Text>
           {RECEIVE_SOURCES.map((x) => (
-            <TouchableOpacity key={x.id} style={s.optionRow} onPress={() => setView(x.id)}>
-              <Text style={s.optionText}>{x.emoji}  {x.name}</Text>
+            <TouchableOpacity key={x.id} style={[s.optionRow, { gap: 10 }]} onPress={() => setView(x.id)}>
+              <Badge {...x.badge} />
+              <Text style={[s.optionText, { flex: 1 }]}>{x.name}</Text>
               <Feather name="chevron-right" size={16} color="#9ca3af" />
             </TouchableOpacity>
           ))}
-          <TouchableOpacity style={s.optionRow} onPress={() => setView("qr")}>
-            <Text style={s.optionText}>🔳  My QR code</Text>
+          <TouchableOpacity style={[s.optionRow, { gap: 10 }]} onPress={() => setView("qr")}>
+            <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: "#1A2B4A", alignItems: "center", justifyContent: "center" }}>
+              <Feather name="grid" size={16} color="#fff" />
+            </View>
+            <Text style={[s.optionText, { flex: 1 }]}>My QR code</Text>
             <Feather name="chevron-right" size={16} color="#9ca3af" />
           </TouchableOpacity>
         </>
