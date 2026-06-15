@@ -2,7 +2,8 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { getTokenBalances, type CeloToken } from "../lib/celo-chain";
 import { ensureUserWallet, getSendableProvider } from "../lib/wallet-providers";
-import { getFeeSchedule } from "../lib/settings";
+import { getFeeSchedule, transferFee, treasuryAddress } from "../lib/settings";
+import { verifyTransactionPin } from "../lib/pin";
 import { notifyUser } from "../lib/notify";
 import { db, usersTable, transactionsTable } from "@workspace/db";
 import { eq, desc, count } from "drizzle-orm";
@@ -80,15 +81,16 @@ router.get("/wallet/transactions", requireAuth, async (req, res) => {
 
 router.post("/wallet/send", requireAuth, async (req, res) => {
   try {
-    const { amount, currency, recipientPhone, recipientAddress, note } = req.body as {
-      amount?: number; currency?: string; recipientPhone?: string; recipientAddress?: string; note?: string;
+    const { amount, currency, recipientPhone, recipientEmail, recipientAddress, note, pin } = req.body as {
+      amount?: number; currency?: string; recipientPhone?: string; recipientEmail?: string;
+      recipientAddress?: string; note?: string; pin?: string;
     };
     if (!amount || amount <= 0) {
       res.status(400).json({ error: "validation_error", message: "Invalid amount" });
       return;
     }
-    if (!recipientPhone && !recipientAddress) {
-      res.status(400).json({ error: "validation_error", message: "Provide a recipient phone number or wallet address" });
+    if (!recipientPhone && !recipientEmail && !recipientAddress) {
+      res.status(400).json({ error: "validation_error", message: "Provide a recipient phone number, email, or wallet address" });
       return;
     }
     const token: CeloToken = currency?.toUpperCase() === "USDT" ? "USDT" : "USDC";
@@ -96,6 +98,15 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
     const [sender] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
     if (!sender) {
       res.status(404).json({ error: "not_found", message: "User not found" });
+      return;
+    }
+
+    // Second factor: a transaction PIN is required for every send. The login
+    // JWT alone never authorizes moving money.
+    const pinCheck = await verifyTransactionPin(sender, pin);
+    if (!pinCheck.ok) {
+      const status = pinCheck.reason === "not_set" ? 428 : pinCheck.reason === "locked" ? 423 : 401;
+      res.status(status).json({ error: `pin_${pinCheck.reason}`, message: pinCheck.message, attemptsLeft: pinCheck.attemptsLeft });
       return;
     }
 
@@ -111,13 +122,21 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
       return;
     }
 
-    // Resolve recipient: S-PAY phone number (P2P) or a raw Celo address
+    // Resolve recipient: S-PAY member by phone OR email (P2P), or a raw Celo address
     let toAddress = recipientAddress?.trim() ?? "";
     let recipientUser: typeof sender | undefined;
-    if (recipientPhone) {
-      [recipientUser] = await db.select().from(usersTable).where(eq(usersTable.phoneNumber, recipientPhone.trim())).limit(1);
+    if (recipientPhone || recipientEmail) {
+      if (recipientPhone) {
+        [recipientUser] = await db.select().from(usersTable).where(eq(usersTable.phoneNumber, recipientPhone.trim())).limit(1);
+      } else if (recipientEmail) {
+        [recipientUser] = await db.select().from(usersTable).where(eq(usersTable.email, recipientEmail.trim().toLowerCase())).limit(1);
+      }
       if (!recipientUser) {
-        res.status(404).json({ error: "recipient_not_found", message: "No S-PAY member with that phone number. Ask them to join — it's free!" });
+        res.status(404).json({ error: "recipient_not_found", message: "No S-PAY member with that phone number or email. Ask them to join — it's free!" });
+        return;
+      }
+      if (recipientUser.id === sender.id) {
+        res.status(400).json({ error: "validation_error", message: "You can't send money to yourself." });
         return;
       }
       // Receiving money is a money action too — JIT-provision the recipient
@@ -133,16 +152,37 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
       return;
     }
 
+    // Commission (your revenue + gas recovery): charged ON TOP of the amount and
+    // collected to the treasury wallet. Computed server-side — never trust a
+    // client-supplied fee. Only charged when a treasury address is configured.
+    const fees = await getFeeSchedule();
+    const treasury = treasuryAddress();
+    const fee = treasury ? transferFee(amount, fees) : 0;
+
     const balances = await getTokenBalances(senderWallet.address);
     const available = token === "USDT" ? balances?.usdt ?? 0 : balances?.usdc ?? 0;
-    const fees = await getFeeSchedule();
-    const fee = amount * (fees.p2pFeePercent / 100);
     if (available < amount + fee) {
-      res.status(400).json({ error: "insufficient_balance", message: `Insufficient ${token} balance` });
+      res.status(400).json({
+        error: "insufficient_balance",
+        message: fee > 0
+          ? `Insufficient ${token}. You need ${(amount + fee).toFixed(2)} (${amount.toFixed(2)} + ${fee.toFixed(2)} fee).`
+          : `Insufficient ${token} balance`,
+      });
       return;
     }
 
     const txHash = await signer.sendToken(senderWallet, toAddress, token, amount);
+
+    // Collect the commission to the treasury. Best-effort: the user's transfer
+    // already succeeded, so a sweep failure is logged for reconciliation rather
+    // than failing (and confusing) the payment.
+    if (fee > 0 && treasury) {
+      try {
+        await signer.sendToken(senderWallet, treasury, token, fee);
+      } catch (sweepErr) {
+        req.log.warn({ sweepErr, userId: sender.id, fee, token }, "Transfer fee sweep to treasury failed — reconcile later");
+      }
+    }
 
     const description = note?.trim() || `Sent to ${recipientPhone ?? `${toAddress.slice(0, 6)}…${toAddress.slice(-4)}`}`;
     const [tx] = await db.insert(transactionsTable).values({
@@ -175,6 +215,8 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
       id: tx.id,
       type: "send",
       amount,
+      fee,
+      total: amount + fee,
       currency: token,
       description,
       counterparty: tx.counterparty,

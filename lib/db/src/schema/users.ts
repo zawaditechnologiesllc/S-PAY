@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, index } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp, boolean, pgEnum, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -26,6 +26,12 @@ export const usersTable = pgTable("users", {
   notificationsReadAt: timestamp("notifications_read_at"), // everything created after this is "unread"
   isAdmin: boolean("is_admin").default(false).notNull(), // legacy, unused — see admin_role
   adminRole: text("admin_role"),                 // null = regular user; "superadmin" | "manager" | "support" (env ADMIN_EMAILS are always superadmin)
+  // Transaction PIN — bcrypt hash, never the PIN itself. Gates money actions
+  // (send, withdraw). Attempt counter + lockout window defend against guessing.
+  transactionPinHash: text("transaction_pin_hash"),
+  pinSetAt: timestamp("pin_set_at"),
+  pinAttempts: integer("pin_attempts").default(0).notNull(),
+  pinLockedUntil: timestamp("pin_locked_until"),
   celoWalletAddress: text("celo_wallet_address"), // provisioned lazily on the first money action — never at signup/login (keeps WaaS MAU billing at zero for jobs-only users)
   // Wallet-as-a-service linkage. The DB column keeps its historical name
   // (privy_wallet_id) from when Privy was the only provider; it stores the

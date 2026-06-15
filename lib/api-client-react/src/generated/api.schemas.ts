@@ -111,6 +111,8 @@ export interface User {
   emailVerified?: boolean;
   /** Present only for admin-tier accounts */
   adminRole?: UserAdminRole;
+  /** Whether the user has set a transaction PIN (required to send/withdraw) */
+  hasPin?: boolean;
   isAdmin: boolean;
   avatarUrl?: string;
   /** EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user's first money action (never at signup/login, so jobs-only users cost zero WaaS MAUs) */
@@ -190,10 +192,13 @@ export interface TransactionListResponse {
 
 export interface SendMoneyRequest {
   recipientPhone?: string;
+  recipientEmail?: string;
   recipientAddress?: string;
   amount: number;
   currency: string;
   note?: string;
+  /** Transaction PIN (4–6 digits) — required to authorize the send */
+  pin?: string;
 }
 
 export type AddFundsRequestMethod = typeof AddFundsRequestMethod[keyof typeof AddFundsRequestMethod];
@@ -293,8 +298,14 @@ export type WithdrawRequestMethod = typeof WithdrawRequestMethod[keyof typeof Wi
 
 export const WithdrawRequestMethod = {
   mpesa: 'mpesa',
-  sepa: 'sepa',
+  mtn_momo: 'mtn_momo',
+  airtel: 'airtel',
+  gcash: 'gcash',
+  nequi: 'nequi',
+  spei: 'spei',
   pix: 'pix',
+  sepa: 'sepa',
+  faster_payments: 'faster_payments',
   bank_transfer: 'bank_transfer',
 } as const;
 
@@ -306,6 +317,9 @@ export interface WithdrawRequest {
   recipientPhone?: string;
   recipientIban?: string;
   recipientTaxId?: string;
+  recipientAccount?: string;
+  /** Transaction PIN (4–6 digits) — required to authorize the cash-out */
+  pin?: string;
 }
 
 export interface WithdrawResponse {
@@ -536,8 +550,10 @@ export interface FeeSchedule {
   withdrawalFeeMin: number;
   /** One-time virtual card creation fee in USD (covers Stripe's cost + margin) */
   cardIssuanceFee: number;
-  /** Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly) */
+  /** Transfer fee — percent component of the per-send commission */
   p2pFeePercent: number;
+  /** Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount*percent/100 */
+  transferFeeFlat: number;
 }
 
 export interface CustomJob {
@@ -865,6 +881,13 @@ export interface AdminTransactionsResponse {
   transactions: AdminTransaction[];
   total: number;
 }
+
+export type SetTransactionPinBody = {
+  /** New 4–6 digit PIN */
+  pin: string;
+  /** Required only when changing an existing PIN */
+  currentPin?: string;
+};
 
 export type ForgotPasswordBody = {
   email: string;

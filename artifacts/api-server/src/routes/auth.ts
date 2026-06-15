@@ -5,6 +5,7 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { signToken } from "../lib/auth";
 import { requireAuth } from "../middlewares/auth";
 import { generateToken, hashToken, sendVerificationEmail, sendPasswordResetEmail } from "../lib/email";
+import { isValidPinFormat, hashPin } from "../lib/pin";
 import { db, usersTable } from "@workspace/db";
 import { eq, and, gt } from "drizzle-orm";
 
@@ -36,6 +37,7 @@ function userResponse(u: typeof usersTable.$inferSelect) {
     emailVerified: u.emailVerified,
     isAdmin: effectiveRole(u) !== null,
     adminRole: effectiveRole(u),
+    hasPin: Boolean(u.transactionPinHash),
     celoWalletAddress: u.celoWalletAddress ?? null,
     accountType: u.accountType,
     businessName: u.businessName ?? null,
@@ -497,6 +499,41 @@ router.post("/auth/reset-password", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Reset password error");
     res.status(500).json({ error: "internal_error", message: "Could not reset the password" });
+  }
+});
+
+// ─── Transaction PIN (second factor on money actions) ────────────────────────
+
+router.post("/auth/pin", requireAuth, async (req, res) => {
+  try {
+    const { pin, currentPin } = req.body as { pin?: unknown; currentPin?: unknown };
+    if (!isValidPinFormat(pin)) {
+      res.status(400).json({ error: "validation_error", message: "PIN must be 4–6 digits." });
+      return;
+    }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "not_found", message: "User not found" });
+      return;
+    }
+    // Changing an existing PIN requires the current one (defends a stolen session)
+    if (user.transactionPinHash) {
+      if (!isValidPinFormat(currentPin) || !(await bcrypt.compare(currentPin, user.transactionPinHash))) {
+        res.status(403).json({ error: "wrong_pin", message: "Your current PIN is incorrect." });
+        return;
+      }
+    }
+    await db.update(usersTable).set({
+      transactionPinHash: await hashPin(pin),
+      pinSetAt: new Date(),
+      pinAttempts: 0,
+      pinLockedUntil: null,
+      updatedAt: new Date(),
+    }).where(eq(usersTable.id, user.id));
+    res.json({ message: user.transactionPinHash ? "PIN updated." : "PIN set — it's now required to send or withdraw." });
+  } catch (err) {
+    req.log.error({ err }, "Set PIN error");
+    res.status(500).json({ error: "internal_error", message: "Could not save your PIN" });
   }
 });
 

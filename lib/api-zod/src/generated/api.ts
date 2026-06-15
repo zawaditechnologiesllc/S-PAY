@@ -69,6 +69,7 @@ export const LoginResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
+  "hasPin": zod.boolean().optional().describe('Whether the user has set a transaction PIN (required to send\/withdraw)'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -90,6 +91,7 @@ export const GetMeResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
+  "hasPin": zod.boolean().optional().describe('Whether the user has set a transaction PIN (required to send\/withdraw)'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -129,6 +131,7 @@ export const GoogleTokenSignInResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
+  "hasPin": zod.boolean().optional().describe('Whether the user has set a transaction PIN (required to send\/withdraw)'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -162,6 +165,7 @@ export const AppleTokenSignInResponse = zod.object({
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
+  "hasPin": zod.boolean().optional().describe('Whether the user has set a transaction PIN (required to send\/withdraw)'),
   "isAdmin": zod.boolean(),
   "avatarUrl": zod.string().optional(),
   "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
@@ -176,6 +180,19 @@ export const AppleTokenSignInResponse = zod.object({
  * @summary Re-send the email confirmation link to the signed-in user
  */
 export const ResendVerificationResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Set or change the transaction PIN (changing requires the current PIN)
+ */
+export const SetTransactionPinBody = zod.object({
+  "pin": zod.string().describe('New 4–6 digit PIN'),
+  "currentPin": zod.string().optional().describe('Required only when changing an existing PIN')
+})
+
+export const SetTransactionPinResponse = zod.object({
   "message": zod.string()
 })
 
@@ -290,10 +307,12 @@ export const sendMoneyBodyCurrencyDefault = `USDC`;
 
 export const SendMoneyBody = zod.object({
   "recipientPhone": zod.string().optional(),
+  "recipientEmail": zod.string().optional(),
   "recipientAddress": zod.string().optional(),
   "amount": zod.number(),
   "currency": zod.string().default(sendMoneyBodyCurrencyDefault),
-  "note": zod.string().optional()
+  "note": zod.string().optional(),
+  "pin": zod.string().optional().describe('Transaction PIN (4–6 digits) — required to authorize the send')
 })
 
 export const SendMoneyResponse = zod.object({
@@ -382,10 +401,12 @@ export const InitiateWithdrawBody = zod.object({
   "amount": zod.number(),
   "sourceCurrency": zod.string().default(initiateWithdrawBodySourceCurrencyDefault),
   "targetCurrency": zod.string(),
-  "method": zod.enum(['mpesa', 'sepa', 'pix', 'bank_transfer']),
+  "method": zod.enum(['mpesa', 'mtn_momo', 'airtel', 'gcash', 'nequi', 'spei', 'pix', 'sepa', 'faster_payments', 'bank_transfer']),
   "recipientPhone": zod.string().optional(),
   "recipientIban": zod.string().optional(),
-  "recipientTaxId": zod.string().optional()
+  "recipientTaxId": zod.string().optional(),
+  "recipientAccount": zod.string().optional(),
+  "pin": zod.string().optional().describe('Transaction PIN (4–6 digits) — required to authorize the cash-out')
 })
 
 export const InitiateWithdrawResponse = zod.object({
@@ -689,7 +710,8 @@ export const GetFeeScheduleResponse = zod.object({
   "withdrawalFeePercent": zod.number().describe('User-facing withdrawal fee in percent (covers Noah\'s cost + S-PAY margin)'),
   "withdrawalFeeMin": zod.number().describe('Minimum withdrawal fee in USD'),
   "cardIssuanceFee": zod.number().describe('One-time virtual card creation fee in USD (covers Stripe\'s cost + margin)'),
-  "p2pFeePercent": zod.number().describe('Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly)')
+  "p2pFeePercent": zod.number().describe('Transfer fee — percent component of the per-send commission'),
+  "transferFeeFlat": zod.number().describe('Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount\*percent\/100')
 })
 
 
@@ -700,14 +722,16 @@ export const UpdateFeeScheduleBody = zod.object({
   "withdrawalFeePercent": zod.number().describe('User-facing withdrawal fee in percent (covers Noah\'s cost + S-PAY margin)'),
   "withdrawalFeeMin": zod.number().describe('Minimum withdrawal fee in USD'),
   "cardIssuanceFee": zod.number().describe('One-time virtual card creation fee in USD (covers Stripe\'s cost + margin)'),
-  "p2pFeePercent": zod.number().describe('Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly)')
+  "p2pFeePercent": zod.number().describe('Transfer fee — percent component of the per-send commission'),
+  "transferFeeFlat": zod.number().describe('Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount\*percent\/100')
 })
 
 export const UpdateFeeScheduleResponse = zod.object({
   "withdrawalFeePercent": zod.number().describe('User-facing withdrawal fee in percent (covers Noah\'s cost + S-PAY margin)'),
   "withdrawalFeeMin": zod.number().describe('Minimum withdrawal fee in USD'),
   "cardIssuanceFee": zod.number().describe('One-time virtual card creation fee in USD (covers Stripe\'s cost + margin)'),
-  "p2pFeePercent": zod.number().describe('Internal S-PAY-to-S-PAY transfer fee in percent (0 = free, growth-friendly)')
+  "p2pFeePercent": zod.number().describe('Transfer fee — percent component of the per-send commission'),
+  "transferFeeFlat": zod.number().describe('Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount\*percent\/100')
 })
 
 

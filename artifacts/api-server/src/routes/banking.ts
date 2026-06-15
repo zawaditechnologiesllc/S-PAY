@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { getFeeSchedule, withdrawalFee } from "../lib/settings";
 import { ensureUserWallet } from "../lib/wallet-providers";
+import { verifyTransactionPin } from "../lib/pin";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -80,7 +81,7 @@ router.get("/banking/rates", requireAuth, async (req, res) => {
 });
 
 router.post("/banking/withdraw", requireAuth, async (req, res) => {
-  const { amount, targetCurrency, method } = req.body;
+  const { amount, targetCurrency, method, pin } = req.body;
   if (!amount || amount <= 0) {
     res.status(400).json({ error: "validation_error", message: "Invalid amount" });
     return;
@@ -98,10 +99,22 @@ router.post("/banking/withdraw", requireAuth, async (req, res) => {
     return;
   }
 
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+  if (!user) {
+    res.status(404).json({ error: "not_found", message: "User not found" });
+    return;
+  }
+  // Same second factor as transfers: cashing out requires the transaction PIN.
+  const pinCheck = await verifyTransactionPin(user, pin);
+  if (!pinCheck.ok) {
+    const status = pinCheck.reason === "not_set" ? 428 : pinCheck.reason === "locked" ? 423 : 401;
+    res.status(status).json({ error: `pin_${pinCheck.reason}`, message: pinCheck.message, attemptsLeft: pinCheck.attemptsLeft });
+    return;
+  }
+
   // Withdrawing is a money action: JIT-provision the wallet (the payout debits
   // USDC from it — see task D2), so it must exist before we quote.
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
-  const wallet = user ? await ensureUserWallet(user) : null;
+  const wallet = await ensureUserWallet(user);
   if (!wallet) {
     res.status(503).json({
       error: "not_configured",

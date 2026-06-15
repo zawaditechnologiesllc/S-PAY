@@ -137,7 +137,7 @@ export default function AdminSettings() {
     );
   };
 
-  const [feeForm, setFeeForm] = useState({ withdrawalFeePercent: "", withdrawalFeeMin: "", cardIssuanceFee: "", p2pFeePercent: "" });
+  const [feeForm, setFeeForm] = useState({ withdrawalFeePercent: "", withdrawalFeeMin: "", cardIssuanceFee: "", p2pFeePercent: "", transferFeeFlat: "" });
   useEffect(() => {
     if (fees) {
       setFeeForm({
@@ -145,6 +145,7 @@ export default function AdminSettings() {
         withdrawalFeeMin: String(fees.withdrawalFeeMin),
         cardIssuanceFee: String(fees.cardIssuanceFee),
         p2pFeePercent: String(fees.p2pFeePercent),
+        transferFeeFlat: String(fees.transferFeeFlat),
       });
     }
   }, [fees]);
@@ -155,6 +156,7 @@ export default function AdminSettings() {
       withdrawalFeeMin: parseFloat(feeForm.withdrawalFeeMin),
       cardIssuanceFee: parseFloat(feeForm.cardIssuanceFee),
       p2pFeePercent: parseFloat(feeForm.p2pFeePercent),
+      transferFeeFlat: parseFloat(feeForm.transferFeeFlat),
     };
     if (Object.values(parsed).some((v) => !Number.isFinite(v) || v < 0)) {
       toast({ title: "Invalid fees", description: "All fees must be zero or positive numbers.", variant: "destructive" });
@@ -439,8 +441,15 @@ export default function AdminSettings() {
             prefix="$"
           />
           <FeeInput
-            label="S-PAY → S-PAY transfer fee"
-            hint="Internal P2P transfers — keeping this 0% drives signups, like MiniPay"
+            label="Transfer fee — flat"
+            hint="Your commission per send. Covers the sub-cent Celo gas you pay + margin. Charged on top of the amount, collected to your treasury wallet"
+            value={feeForm.transferFeeFlat}
+            onChange={(v) => setFeeForm((f) => ({ ...f, transferFeeFlat: v }))}
+            prefix="$"
+          />
+          <FeeInput
+            label="Transfer fee — percent"
+            hint="Optional % component added to the flat fee per send (0 = flat-only)"
             value={feeForm.p2pFeePercent}
             onChange={(v) => setFeeForm((f) => ({ ...f, p2pFeePercent: v }))}
             suffix="%"
@@ -453,6 +462,11 @@ export default function AdminSettings() {
             >
               {updateFees.isPending ? "Saving…" : "Save Fee Schedule"}
             </button>
+          </div>
+          <div className="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 leading-relaxed">
+            <strong>Transfer fees need a treasury wallet:</strong> set <code className="bg-amber-100 px-1 rounded">TREASURY_CELO_ADDRESS</code> on
+            Render to the Celo address that should collect commissions. Until it's set, transfers stay free (the fee is only charged
+            when there's somewhere to collect it). The on-chain Celo gas you pay per transfer is sub-cent — the flat fee is your margin on top.
           </div>
           <div className="mt-3 p-3 bg-blue-50 rounded-xl text-xs text-blue-700 leading-relaxed">
             <strong>Also earning for you:</strong> card <em>interchange</em> — every time a user spends on their S-PAY card,

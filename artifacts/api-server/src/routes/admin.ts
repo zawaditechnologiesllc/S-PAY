@@ -304,11 +304,18 @@ router.get("/admin/fees", requireAuth, requireAnyAdmin, async (req, res) => {
 router.put("/admin/fees", requireAuth, requireSuperadmin, async (req, res) => {
   try {
     const body = req.body as Partial<FeeSchedule>;
-    const fields: (keyof FeeSchedule)[] = ["withdrawalFeePercent", "withdrawalFeeMin", "cardIssuanceFee", "p2pFeePercent"];
-    for (const f of fields) {
-      const v = body[f];
-      if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 100) {
-        res.status(400).json({ error: "validation_error", message: `${f} must be a number between 0 and 100` });
+    // transferFeeFlat is a USD amount (not a percent) so it has a higher ceiling
+    const fields: { key: keyof FeeSchedule; max: number }[] = [
+      { key: "withdrawalFeePercent", max: 100 },
+      { key: "withdrawalFeeMin", max: 1000 },
+      { key: "cardIssuanceFee", max: 1000 },
+      { key: "p2pFeePercent", max: 100 },
+      { key: "transferFeeFlat", max: 1000 },
+    ];
+    for (const { key, max } of fields) {
+      const v = body[key];
+      if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > max) {
+        res.status(400).json({ error: "validation_error", message: `${key} must be a number between 0 and ${max}` });
         return;
       }
     }
@@ -317,6 +324,7 @@ router.put("/admin/fees", requireAuth, requireSuperadmin, async (req, res) => {
       withdrawalFeeMin: body.withdrawalFeeMin!,
       cardIssuanceFee: body.cardIssuanceFee!,
       p2pFeePercent: body.p2pFeePercent!,
+      transferFeeFlat: body.transferFeeFlat!,
     };
     await setFeeSchedule(fees);
     req.log.info({ fees, admin: req.user!.email }, "Fee schedule updated");

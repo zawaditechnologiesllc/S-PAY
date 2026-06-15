@@ -27,6 +27,7 @@ export default function WalletScreen() {
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [pin, setPin] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -54,17 +55,36 @@ export default function WalletScreen() {
       Alert.alert("Error", "Please enter a valid recipient and amount");
       return;
     }
+    if (!/^\d{4,6}$/.test(pin)) {
+      Alert.alert("Enter your PIN", "Your 4–6 digit transaction PIN authorizes the transfer.");
+      return;
+    }
+    // Auto-detect recipient type: email, Celo address, or phone
+    const r = recipient.trim();
+    const recipientField = r.includes("@") ? { recipientEmail: r }
+      : /^0x[0-9a-fA-F]{40}$/.test(r) ? { recipientAddress: r }
+      : { recipientPhone: r };
     sendMoney.mutate(
-      { data: { recipientPhone: recipient, amount: Number(amount), currency: "USD", note } },
+      { data: { ...recipientField, amount: Number(amount), currency: "USDC", note, pin } },
       {
         onSuccess: () => {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           setSendVisible(false);
-          setRecipient(""); setAmount(""); setNote("");
+          setRecipient(""); setAmount(""); setNote(""); setPin("");
           qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
           Alert.alert("Sent!", `$${amount} sent successfully.`);
         },
         onError: (e: any) => {
+          const code = e?.response?.data?.error;
+          setPin("");
+          if (code === "pin_not_set") {
+            setSendVisible(false);
+            Alert.alert("Set up your PIN", "Sending money needs a 4–6 digit PIN. Set it once in Security.", [
+              { text: "Not now", style: "cancel" },
+              { text: "Set PIN", onPress: () => router.push("/security") },
+            ]);
+            return;
+          }
           Alert.alert("Failed", e?.response?.data?.message ?? "Transfer failed");
         },
       }
@@ -183,13 +203,14 @@ export default function WalletScreen() {
           <View style={styles.modalHandle} />
           <Text style={[styles.modalTitle, { color: colors.foreground }]}>Send Money</Text>
           <View style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card }]}>
-            <Feather name="phone" size={16} color={colors.mutedForeground} />
+            <Feather name="user" size={16} color={colors.mutedForeground} />
             <TextInput
               style={[styles.inputText, { color: colors.foreground }]}
-              placeholder="Phone or wallet address"
+              placeholder="Phone, email, or wallet address"
               placeholderTextColor={colors.mutedForeground}
               value={recipient}
               onChangeText={setRecipient}
+              autoCapitalize="none"
               testID="input-recipient"
             />
           </View>
@@ -214,6 +235,20 @@ export default function WalletScreen() {
               value={note}
               onChangeText={setNote}
               testID="input-note"
+            />
+          </View>
+          <View style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card }]}>
+            <Feather name="lock" size={16} color={colors.mutedForeground} />
+            <TextInput
+              style={[styles.inputText, { color: colors.foreground }]}
+              placeholder="Transaction PIN"
+              placeholderTextColor={colors.mutedForeground}
+              value={pin}
+              onChangeText={(v) => setPin(v.replace(/\D/g, "").slice(0, 6))}
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={6}
+              testID="input-pin"
             />
           </View>
           <TouchableOpacity

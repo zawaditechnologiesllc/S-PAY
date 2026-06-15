@@ -69,6 +69,7 @@ import type {
   ResetPasswordBody,
   SendAdminNotificationBody,
   SendMoneyRequest,
+  SetTransactionPinBody,
   SiteContent,
   SiteContentUpdateRequest,
   SpendingSummaryResponse,
@@ -750,6 +751,77 @@ export const useResendVerification = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getResendVerificationMutationOptions(options));
+    }
+
+export const getSetTransactionPinUrl = () => {
+
+
+
+
+  return `/api/auth/pin`
+}
+
+/**
+ * @summary Set or change the transaction PIN (changing requires the current PIN)
+ */
+export const setTransactionPin = async (setTransactionPinBody: SetTransactionPinBody, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getSetTransactionPinUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setTransactionPinBody,)
+  }
+);}
+
+
+
+
+export const getSetTransactionPinMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setTransactionPin>>, TError,{data: BodyType<SetTransactionPinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setTransactionPin>>, TError,{data: BodyType<SetTransactionPinBody>}, TContext> => {
+
+const mutationKey = ['setTransactionPin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setTransactionPin>>, {data: BodyType<SetTransactionPinBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  setTransactionPin(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetTransactionPinMutationResult = NonNullable<Awaited<ReturnType<typeof setTransactionPin>>>
+    export type SetTransactionPinMutationBody = BodyType<SetTransactionPinBody>
+    export type SetTransactionPinMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Set or change the transaction PIN (changing requires the current PIN)
+ */
+export const useSetTransactionPin = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setTransactionPin>>, TError,{data: BodyType<SetTransactionPinBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setTransactionPin>>,
+        TError,
+        {data: BodyType<SetTransactionPinBody>},
+        TContext
+      > => {
+      return useMutation(getSetTransactionPinMutationOptions(options));
     }
 
 export const getForgotPasswordUrl = () => {

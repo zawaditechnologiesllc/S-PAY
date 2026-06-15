@@ -112,6 +112,7 @@ S-PAY/
 | Layer | How it's protected |
 |---|---|
 | **Passwords** | bcrypt (cost factor 12) — never stored in plain text |
+| **Transaction PIN** | Separate bcrypt-hashed 4–6 digit PIN required for every send & withdrawal — the login session alone never moves money; 5 wrong tries locks it for 15 min |
 | **Auth tokens** | Stateless JWT, signed with `JWT_SECRET` (HS256), 30-day expiry |
 | **Transport** | TLS enforced by Render (API) and Vercel (web) — HTTP redirects to HTTPS |
 | **Webhooks** | HMAC-SHA256 over the raw request body, constant-time compare; unsigned requests rejected once a secret is configured |

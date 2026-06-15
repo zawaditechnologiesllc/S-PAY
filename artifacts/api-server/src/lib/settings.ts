@@ -132,7 +132,11 @@ export interface FeeSchedule {
   withdrawalFeePercent: number; // % of withdrawal amount
   withdrawalFeeMin: number;     // USD floor per withdrawal
   cardIssuanceFee: number;      // one-time USD price for creating the virtual card
-  p2pFeePercent: number;        // internal transfers (0 = free, growth-friendly)
+  p2pFeePercent: number;        // internal transfers — % component (0 = free, growth-friendly)
+  // Per-transfer commission (your revenue; also covers the sub-cent on-chain
+  // CELO gas you pay). Charged ON TOP of the send amount. Collected to
+  // TREASURY_CELO_ADDRESS. Total fee = transferFeeFlat + amount*transferFeePercent/100.
+  transferFeeFlat: number;      // flat USDC per transfer (e.g. 0.10)
 }
 
 export const DEFAULT_FEES: FeeSchedule = {
@@ -140,7 +144,20 @@ export const DEFAULT_FEES: FeeSchedule = {
   withdrawalFeeMin: 0.49,
   cardIssuanceFee: 1.0,
   p2pFeePercent: 0,
+  transferFeeFlat: 0,
 };
+
+/** Total transfer fee (commission) for a send amount, given the schedule. */
+export function transferFee(amount: number, fees: FeeSchedule): number {
+  const fee = fees.transferFeeFlat + amount * (fees.p2pFeePercent / 100);
+  return Math.max(0, Math.round(fee * 1e6) / 1e6); // round to USDC's 6 decimals
+}
+
+/** Treasury wallet that collects transfer/withdrawal commissions. */
+export function treasuryAddress(): string | null {
+  const addr = process.env.TREASURY_CELO_ADDRESS?.trim();
+  return addr && /^0x[0-9a-fA-F]{40}$/.test(addr) ? addr : null;
+}
 
 const FEES_KEY = "fee_schedule";
 
