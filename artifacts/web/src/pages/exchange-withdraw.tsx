@@ -12,13 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, AlertTriangle, CheckCircle2, ExternalLink, ShieldCheck,
 } from "lucide-react";
+import { NetworkIcon } from "@/components/network-icon";
 
 // MiniPay-style guided exchange withdrawal: pick the destination, follow
 // exchange-specific steps to find the Celo deposit address, paste it,
 // review, confirm. The transfer itself is the on-chain USDC/USDT send.
 const EXCHANGES = [
   {
-    id: "binance", name: "Binance", emoji: "🟡",
+    id: "binance", name: "Binance", brand: "binance",
     steps: [
       "Open Binance → tap Deposit",
       "Choose the coin: USDT or USDC",
@@ -27,7 +28,7 @@ const EXCHANGES = [
     ],
   },
   {
-    id: "bybit", name: "Bybit", emoji: "⚫",
+    id: "bybit", name: "Bybit", brand: "bybit",
     steps: [
       "Open Bybit → Assets → Deposit",
       "Choose USDT or USDC",
@@ -36,7 +37,7 @@ const EXCHANGES = [
     ],
   },
   {
-    id: "okx", name: "OKX", emoji: "⚪",
+    id: "okx", name: "OKX", brand: "okx",
     steps: [
       "Open OKX → Assets → Deposit",
       "Choose USDT or USDC",
@@ -45,7 +46,7 @@ const EXCHANGES = [
     ],
   },
   {
-    id: "other", name: "Other wallet / exchange", emoji: "🌐",
+    id: "other", name: "Other wallet / exchange", brand: "other",
     steps: [
       "Open the destination wallet or exchange",
       "Find the deposit address for USDT or USDC",
@@ -154,7 +155,7 @@ export default function ExchangeWithdraw() {
                       className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-[#4DC9EE] hover:bg-[#4DC9EE]/5 transition-all text-left"
                     >
                       <span className="flex items-center gap-3 font-semibold text-gray-900 dark:text-gray-100 text-sm">
-                        <span className="text-xl">{ex.emoji}</span> {ex.name}
+                        <NetworkIcon brand={ex.brand} size={28} /> {ex.name}
                       </span>
                       <span className="text-gray-400 text-sm">→</span>
                     </button>
@@ -179,7 +180,7 @@ export default function ExchangeWithdraw() {
               </button>
 
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{exchange.emoji}</span>
+                <NetworkIcon brand={exchange.brand} size={40} />
                 <div>
                   <h2 className="font-bold text-gray-900 dark:text-gray-100">Withdraw to {exchange.name}</h2>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Follow the steps exactly — this keeps your funds safe.</p>
