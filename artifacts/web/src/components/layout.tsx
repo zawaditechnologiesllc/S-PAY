@@ -80,19 +80,23 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
 
         <div className="relative z-10 p-4 md:p-8 max-w-5xl mx-auto space-y-6">
           {/* Top bar — brand on mobile (sidebar carries it on desktop), page title on desktop */}
-          <header className="flex justify-between items-center pt-2">
-            <div className="flex items-center gap-3 min-w-0 md:hidden">
-              <img src={spayLogo} alt="S-PAY" className="w-10 h-10 rounded-[22%] flex-shrink-0 shadow-md ring-2 ring-white/30" />
-              <div className="min-w-0">
-                <span className="font-black text-white text-lg tracking-tight leading-none block">S-PAY</span>
-                <span className="text-[10px] text-[#A8DEFF] font-semibold tracking-wide uppercase">Digital Wallet · {title ?? "Dashboard"}</span>
+          <header className="flex justify-between items-center gap-3 pt-2">
+            {/* Mobile brand — tap to go home. Page title moved to its own line below
+                so the logo + name + slogan have room and don't feel crowded. */}
+            <Link href="/dashboard" className="md:hidden min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0 cursor-pointer">
+                <img src={spayLogo} alt="S-PAY" className="w-9 h-9 rounded-[22%] flex-shrink-0 shadow-md ring-2 ring-white/30" />
+                <div className="min-w-0 leading-tight">
+                  <span className="font-black text-white text-base tracking-tight block">S-PAY</span>
+                  <span className="text-[10px] text-[#A8DEFF] font-medium tracking-wide block truncate">Digital Wallet</span>
+                </div>
               </div>
-            </div>
+            </Link>
             <div className="hidden md:flex items-center gap-3 min-w-0">
               {back && <BackButton />}
               <h1 className="text-xl md:text-2xl font-bold text-white truncate">{title ?? "Dashboard"}</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <ThemeToggle />
               <NotificationsBell />
               {/* My QR — one tap from anywhere to get paid (WeChat/Alipay pattern) */}
@@ -102,13 +106,19 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
                 </button>
               </Link>
               <Link href="/profile">
-                <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors">
+                <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors" aria-label="Profile">
                   <CircleUser size={19} />
                 </button>
               </Link>
             </div>
           </header>
-          {back && <div className="md:hidden -mt-2"><BackButton /></div>}
+          {/* Mobile page title on its own line (keeps the brand block uncluttered) */}
+          {(title || back) && (
+            <div className="md:hidden flex items-center gap-2 -mt-2">
+              {back && <BackButton />}
+              {title && <h1 className="text-lg font-bold text-white truncate">{title}</h1>}
+            </div>
+          )}
 
           {children}
         </div>

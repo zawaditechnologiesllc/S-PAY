@@ -404,9 +404,10 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
       <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
         <CardContent className="p-5 space-y-4">
           <PanelHeader title="My QR code" onBack={() => setView(null)} />
-          <div className="bg-gradient-to-b from-[#FCFF52]/40 to-white rounded-3xl border border-gray-100 dark:border-gray-800 p-6 flex flex-col items-center gap-3">
+          <div className="bg-gradient-to-b from-[#FCFF52]/40 to-white rounded-3xl border border-gray-100 dark:border-gray-800 p-4 sm:p-6 flex flex-col items-center gap-3 w-full">
             <p className="font-bold text-gray-900">{me?.fullName ?? "My S-PAY"}</p>
-            <canvas ref={canvasRef} className="w-56 h-56 rounded-xl" aria-label="Your S-PAY receive QR code" />
+            {/* Responsive QR: fills the available width on small screens, caps at 240px on larger — always square, never overflows */}
+            <canvas ref={canvasRef} className="w-full max-w-[240px] h-auto aspect-square rounded-xl bg-white" aria-label="Your S-PAY receive QR code" />
             <button onClick={copy} className="font-mono text-[11px] text-gray-600 break-all text-center hover:text-gray-900 transition-colors" title="Tap to copy">
               {address}
             </button>
