@@ -32,6 +32,7 @@ function userResponse(u: typeof usersTable.$inferSelect) {
     email: u.email,
     fullName: u.fullName,
     phoneNumber: u.phoneNumber ?? null,
+    country: u.country ?? null,
     avatarUrl: u.avatarUrl ?? null,
     kycStatus: u.kycStatus,
     emailVerified: u.emailVerified,
@@ -157,6 +158,92 @@ router.get("/auth/me", requireAuth, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Get me error");
     res.status(500).json({ error: "internal_error", message: "Failed to fetch user" });
+  }
+});
+
+// ─── Update profile ───────────────────────────────────────────────────────────
+// Editable fields only (name, phone, country, business name, avatar). Email is
+// immutable here (it's the login identity + KYC anchor). Every change is
+// validated server-side, persisted to the users row, and stamps updatedAt so the
+// record stays the single source of truth as the user adopts more features.
+
+router.patch("/auth/me", requireAuth, async (req, res) => {
+  try {
+    const body = req.body as Record<string, unknown>;
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "not_found", message: "User not found" });
+      return;
+    }
+
+    const updates: Partial<typeof usersTable.$inferInsert> = {};
+
+    // fullName — required to be a non-empty name when present
+    if (body.fullName !== undefined) {
+      const name = typeof body.fullName === "string" ? body.fullName.trim() : "";
+      if (name.length < 1 || name.length > 120) {
+        res.status(400).json({ error: "validation_error", message: "Please enter your name (up to 120 characters)." });
+        return;
+      }
+      updates.fullName = name;
+    }
+
+    // phoneNumber — nullable; trimmed; must be unique (it's the P2P send key)
+    if (body.phoneNumber !== undefined) {
+      const raw = body.phoneNumber === null ? "" : typeof body.phoneNumber === "string" ? body.phoneNumber.trim() : "";
+      if (raw && !/^\+?[0-9 ()\-]{6,20}$/.test(raw)) {
+        res.status(400).json({ error: "validation_error", message: "That phone number doesn't look right. Use digits, spaces, +, -, ( )." });
+        return;
+      }
+      if (raw) {
+        const [clash] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.phoneNumber, raw)).limit(1);
+        if (clash && clash.id !== user.id) {
+          res.status(400).json({ error: "phone_in_use", message: "That phone number is already linked to another S-PAY account." });
+          return;
+        }
+      }
+      updates.phoneNumber = raw || null;
+    }
+
+    // country — nullable free text
+    if (body.country !== undefined) {
+      const c = body.country === null ? "" : typeof body.country === "string" ? body.country.trim().slice(0, 56) : "";
+      updates.country = c || null;
+    }
+
+    // businessName — only meaningful for business accounts; required to stay set there
+    if (body.businessName !== undefined) {
+      const bn = body.businessName === null ? "" : typeof body.businessName === "string" ? body.businessName.trim().slice(0, 120) : "";
+      if (user.accountType === "business" && !bn) {
+        res.status(400).json({ error: "validation_error", message: "Business accounts need a business name." });
+        return;
+      }
+      // Ignore on personal accounts so it can never silently flip account behavior
+      if (user.accountType === "business") updates.businessName = bn;
+    }
+
+    // avatarUrl — nullable; only http(s) URLs (blocks javascript:/data: injection)
+    if (body.avatarUrl !== undefined) {
+      const a = body.avatarUrl === null ? "" : typeof body.avatarUrl === "string" ? body.avatarUrl.trim() : "";
+      if (a && (!/^https?:\/\//i.test(a) || a.length > 512)) {
+        res.status(400).json({ error: "validation_error", message: "Avatar must be a valid http(s) image URL." });
+        return;
+      }
+      updates.avatarUrl = a || null;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      res.json(userResponse(user));
+      return;
+    }
+
+    updates.updatedAt = new Date();
+    const [updated] = await db.update(usersTable).set(updates).where(eq(usersTable.id, user.id)).returning();
+    req.log.info({ userId: user.id, fields: Object.keys(updates) }, "Profile updated");
+    res.json(userResponse(updated));
+  } catch (err) {
+    req.log.error({ err }, "Update profile error");
+    res.status(500).json({ error: "internal_error", message: "Could not save your changes" });
   }
 });
 

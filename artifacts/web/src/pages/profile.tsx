@@ -1,16 +1,24 @@
 import { Layout } from "@/components/layout";
-import { useStartKyc } from "@workspace/api-client-react";
+import { useStartKyc, useUpdateProfile } from "@workspace/api-client-react";
 import { useGetMe, getGetMeQueryKey, useDeleteAccount } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CircleUser, Mail, Phone, ShieldCheck, LogOut, BadgeCheck, Wallet, Globe, HelpCircle, Link2, Trash2 } from "lucide-react";
+import { CircleUser, Mail, Phone, ShieldCheck, LogOut, BadgeCheck, Wallet, Globe, HelpCircle, Link2, Trash2, Pencil, Save, X, MapPin } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Profile() {
   const startKyc = useStartKyc();
+  const queryClient = useQueryClient();
+  const updateProfile = useUpdateProfile();
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ fullName: "", phoneNumber: "", country: "", businessName: "" });
   const verifyIdentity = () => {
     startKyc.mutate(undefined, {
       onSuccess: (r) => {
@@ -28,6 +36,37 @@ export default function Profile() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const deleteAccount = useDeleteAccount();
+
+  const startEdit = () => {
+    setForm({
+      fullName: user?.fullName ?? "",
+      phoneNumber: user?.phoneNumber ?? "",
+      country: user?.country ?? "",
+      businessName: user?.businessName ?? "",
+    });
+    setEditing(true);
+  };
+
+  const handleSave = () => {
+    const data: Record<string, string | null> = {
+      fullName: form.fullName.trim(),
+      phoneNumber: form.phoneNumber.trim() || null,
+      country: form.country.trim() || null,
+    };
+    if (user?.accountType === "business") data.businessName = form.businessName.trim();
+    updateProfile.mutate({ data }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        setEditing(false);
+        toast({ title: "Profile updated", description: "Your details have been saved." });
+      },
+      onError: (err) => toast({
+        title: "Couldn't save",
+        description: (err as { data?: { message?: string } })?.data?.message ?? "Please check your details and try again.",
+        variant: "destructive",
+      }),
+    });
+  };
 
   const handleLogout = () => {
     clearToken();
@@ -59,9 +98,16 @@ export default function Profile() {
       <div className="space-y-6">
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
           <CardHeader className="bg-gray-50 dark:bg-gray-800/60 border-b pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CircleUser className="text-primary" /> Personal Information
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CircleUser className="text-primary" /> Personal Information
+              </CardTitle>
+              {!isLoading && !editing && (
+                <Button variant="ghost" size="sm" className="text-primary" onClick={startEdit}>
+                  <Pencil size={15} className="mr-1.5" /> Edit
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="p-6">
             {isLoading ? (
@@ -69,6 +115,44 @@ export default function Profile() {
                 <Skeleton className="h-4 w-1/2" />
                 <Skeleton className="h-4 w-1/3" />
                 <Skeleton className="h-4 w-1/3" />
+              </div>
+            ) : editing ? (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="fullName" className="text-sm text-gray-500 dark:text-gray-400">Full Name</Label>
+                  <Input id="fullName" value={form.fullName} maxLength={120}
+                    onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
+                    placeholder="Your full name" className="mt-1" />
+                </div>
+                {user?.accountType === "business" && (
+                  <div>
+                    <Label htmlFor="businessName" className="text-sm text-gray-500 dark:text-gray-400">Business Name</Label>
+                    <Input id="businessName" value={form.businessName} maxLength={120}
+                      onChange={(e) => setForm((f) => ({ ...f, businessName: e.target.value }))}
+                      placeholder="Registered business name" className="mt-1" />
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="phoneNumber" className="text-sm text-gray-500 dark:text-gray-400">Phone Number</Label>
+                  <Input id="phoneNumber" type="tel" value={form.phoneNumber} maxLength={32}
+                    onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))}
+                    placeholder="+254 700 000 000" className="mt-1" />
+                  <p className="text-xs text-gray-400 mt-1">Others can send you money using this number.</p>
+                </div>
+                <div>
+                  <Label htmlFor="country" className="text-sm text-gray-500 dark:text-gray-400">Country</Label>
+                  <Input id="country" value={form.country} maxLength={56}
+                    onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
+                    placeholder="e.g. Kenya" className="mt-1" />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <Button onClick={handleSave} disabled={updateProfile.isPending || !form.fullName.trim()} className="flex-1">
+                    <Save size={16} className="mr-1.5" /> {updateProfile.isPending ? "Saving…" : "Save changes"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditing(false)} disabled={updateProfile.isPending}>
+                    <X size={16} className="mr-1.5" /> Cancel
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="space-y-6">
@@ -97,6 +181,15 @@ export default function Profile() {
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Phone Number</p>
                       <p className="font-medium text-gray-900 dark:text-gray-100">{user?.phoneNumber}</p>
+                    </div>
+                  </div>
+                )}
+                {user?.country && (
+                  <div className="flex items-center gap-3">
+                    <MapPin className="text-gray-400" size={18} />
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Country</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{user?.country}</p>
                     </div>
                   </div>
                 )}
