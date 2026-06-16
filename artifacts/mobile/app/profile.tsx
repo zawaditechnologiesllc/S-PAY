@@ -1,13 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
   ActivityIndicator, Alert, Platform, Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useGetMe, getGetMeQueryKey, useDeleteAccount } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGetMe, getGetMeQueryKey, useDeleteAccount, useUpdateProfile } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -25,6 +26,42 @@ export default function ProfileScreen() {
   const { data: user, isLoading } = useGetMe({
     query: { queryKey: getGetMeQueryKey() },
   });
+
+  const queryClient = useQueryClient();
+  const updateProfile = useUpdateProfile();
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ fullName: "", phoneNumber: "", country: "", businessName: "" });
+
+  const startEdit = () => {
+    setForm({
+      fullName: user?.fullName ?? "",
+      phoneNumber: user?.phoneNumber ?? "",
+      country: user?.country ?? "",
+      businessName: user?.businessName ?? "",
+    });
+    setEditing(true);
+  };
+
+  const handleSaveProfile = () => {
+    if (!form.fullName.trim()) {
+      Alert.alert("Name required", "Please enter your full name.");
+      return;
+    }
+    const data: Record<string, string | null> = {
+      fullName: form.fullName.trim(),
+      phoneNumber: form.phoneNumber.trim() || null,
+      country: form.country.trim() || null,
+    };
+    if (user?.accountType === "business") data.businessName = form.businessName.trim();
+    updateProfile.mutate({ data }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        setEditing(false);
+      },
+      onError: (e: any) =>
+        Alert.alert("Couldn't save", e?.response?.data?.message ?? e?.data?.message ?? "Please check your details and try again."),
+    });
+  };
 
   const deleteAccount = useDeleteAccount();
 
@@ -101,22 +138,72 @@ export default function ProfileScreen() {
         <View style={{ paddingHorizontal: 16, paddingTop: 20, gap: 14 }}>
           {/* Info Card */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>Account Details</Text>
-            {[
-              { icon: "user" as const, label: "Full Name", value: user.fullName },
-              { icon: "mail" as const, label: "Email", value: user.email },
-              { icon: "phone" as const, label: "Phone", value: user.phoneNumber ?? "Not set" },
-            ].map((item) => (
-              <View key={item.label} style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-                <View style={[styles.infoIcon, { backgroundColor: colors.muted }]}>
-                  <Feather name={item.icon} size={15} color={colors.primary} />
+            <View style={styles.cardHeaderRow}>
+              <Text style={[styles.cardTitle, { color: colors.foreground, padding: 0 }]}>Account Details</Text>
+              {!editing && (
+                <TouchableOpacity onPress={startEdit} style={styles.editLink} testID="button-edit-profile">
+                  <Feather name="edit-2" size={13} color={colors.primary} />
+                  <Text style={[styles.editLinkText, { color: colors.primary }]}>Edit</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {editing ? (
+              <View style={{ padding: 16, paddingTop: 8, gap: 12 }}>
+                <View>
+                  <Text style={[styles.editLabel, { color: colors.mutedForeground }]}>Full Name</Text>
+                  <TextInput value={form.fullName} onChangeText={(t) => setForm((f) => ({ ...f, fullName: t }))}
+                    placeholder="Your full name" placeholderTextColor={colors.mutedForeground} maxLength={120}
+                    style={[styles.editInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.muted }]} />
                 </View>
-                <View style={styles.infoText}>
-                  <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>{item.label}</Text>
-                  <Text style={[styles.infoValue, { color: colors.foreground }]}>{item.value}</Text>
+                {user.accountType === "business" && (
+                  <View>
+                    <Text style={[styles.editLabel, { color: colors.mutedForeground }]}>Business Name</Text>
+                    <TextInput value={form.businessName} onChangeText={(t) => setForm((f) => ({ ...f, businessName: t }))}
+                      placeholder="Registered business name" placeholderTextColor={colors.mutedForeground} maxLength={120}
+                      style={[styles.editInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.muted }]} />
+                  </View>
+                )}
+                <View>
+                  <Text style={[styles.editLabel, { color: colors.mutedForeground }]}>Phone Number</Text>
+                  <TextInput value={form.phoneNumber} onChangeText={(t) => setForm((f) => ({ ...f, phoneNumber: t }))}
+                    placeholder="+254 700 000 000" placeholderTextColor={colors.mutedForeground} keyboardType="phone-pad" maxLength={32}
+                    style={[styles.editInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.muted }]} />
+                </View>
+                <View>
+                  <Text style={[styles.editLabel, { color: colors.mutedForeground }]}>Country</Text>
+                  <TextInput value={form.country} onChangeText={(t) => setForm((f) => ({ ...f, country: t }))}
+                    placeholder="e.g. Kenya" placeholderTextColor={colors.mutedForeground} maxLength={56}
+                    style={[styles.editInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.muted }]} />
+                </View>
+                <View style={styles.editActions}>
+                  <TouchableOpacity onPress={handleSaveProfile} disabled={updateProfile.isPending}
+                    style={[styles.saveBtn, { backgroundColor: colors.primary }]} testID="button-save-profile">
+                    {updateProfile.isPending ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnText}>Save changes</Text>}
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setEditing(false)} disabled={updateProfile.isPending} style={[styles.cancelBtn, { borderColor: colors.border }]}>
+                    <Text style={[styles.cancelBtnText, { color: colors.foreground }]}>Cancel</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-            ))}
+            ) : (
+              [
+                { icon: "user" as const, label: "Full Name", value: user.fullName },
+                { icon: "mail" as const, label: "Email", value: user.email },
+                { icon: "phone" as const, label: "Phone", value: user.phoneNumber ?? "Not set" },
+                { icon: "map-pin" as const, label: "Country", value: user.country ?? "Not set" },
+              ].map((item) => (
+                <View key={item.label} style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+                  <View style={[styles.infoIcon, { backgroundColor: colors.muted }]}>
+                    <Feather name={item.icon} size={15} color={colors.primary} />
+                  </View>
+                  <View style={styles.infoText}>
+                    <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>{item.label}</Text>
+                    <Text style={[styles.infoValue, { color: colors.foreground }]}>{item.value}</Text>
+                  </View>
+                </View>
+              ))
+            )}
           </View>
 
           {/* Celo Wallet */}
@@ -215,6 +302,16 @@ const styles = StyleSheet.create({
   kycText: { color: "#fff", fontSize: 13, fontFamily: "Inter_500Medium" },
   card: { borderRadius: 16, borderWidth: 1, overflow: "hidden", gap: 0 },
   cardTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", padding: 16, paddingBottom: 0 },
+  cardHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, paddingBottom: 8 },
+  editLink: { flexDirection: "row", alignItems: "center", gap: 4 },
+  editLinkText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  editLabel: { fontSize: 12, fontFamily: "Inter_400Regular", marginBottom: 6 },
+  editInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, fontFamily: "Inter_500Medium" },
+  editActions: { flexDirection: "row", gap: 10, marginTop: 4 },
+  saveBtn: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: "center", justifyContent: "center" },
+  saveBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  cancelBtn: { borderWidth: 1.5, borderRadius: 12, paddingVertical: 13, paddingHorizontal: 20, alignItems: "center", justifyContent: "center" },
+  cancelBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   infoRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderBottomWidth: 1 },
   infoIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   infoText: { flex: 1 },

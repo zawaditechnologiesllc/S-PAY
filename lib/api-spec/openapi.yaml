@@ -122,6 +122,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateProfile
+      tags: [auth]
+      summary: Update the current user's profile (name, phone, country, business name, avatar)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       operationId: deleteAccount
       tags: [auth]
@@ -1351,6 +1382,32 @@ components:
         - token
         - user
 
+    UpdateProfileRequest:
+      type: object
+      description: All fields optional; only the ones provided are changed. Email is immutable here.
+      properties:
+        fullName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        phoneNumber:
+          type: string
+          maxLength: 32
+          nullable: true
+        country:
+          type: string
+          maxLength: 56
+          nullable: true
+        businessName:
+          type: string
+          maxLength: 120
+          nullable: true
+          description: Only applies to business accounts
+        avatarUrl:
+          type: string
+          maxLength: 512
+          nullable: true
+
     User:
       type: object
       properties:
@@ -1362,6 +1419,10 @@ components:
           type: string
         phoneNumber:
           type: string
+        country:
+          type: string
+          nullable: true
+          description: Self-reported country (drives payout-method defaults); editable from the profile screen
         kycStatus:
           type: string
           enum: [pending, approved, rejected]

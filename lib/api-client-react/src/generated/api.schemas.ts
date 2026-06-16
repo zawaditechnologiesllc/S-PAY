@@ -106,6 +106,8 @@ export interface User {
   email: string;
   fullName: string;
   phoneNumber?: string;
+  /** Self-reported country (drives payout-method defaults); editable from the profile screen */
+  country?: string | null;
   kycStatus: UserKycStatus;
   /** Soft email confirmation — login is never blocked; the app shows a banner until confirmed */
   emailVerified?: boolean;
@@ -125,6 +127,28 @@ export interface User {
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+/**
+ * All fields optional; only the ones provided are changed. Email is immutable here.
+ */
+export interface UpdateProfileRequest {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  fullName?: string;
+  /** @maxLength 32 */
+  phoneNumber?: string | null;
+  /** @maxLength 56 */
+  country?: string | null;
+  /**
+     * Only applies to business accounts
+     * @maxLength 120
+     */
+  businessName?: string | null;
+  /** @maxLength 512 */
+  avatarUrl?: string | null;
 }
 
 export type TransactionType = typeof TransactionType[keyof typeof TransactionType];

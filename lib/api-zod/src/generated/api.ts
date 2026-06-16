@@ -66,6 +66,7 @@ export const LoginResponse = zod.object({
   "email": zod.string(),
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
+  "country": zod.string().nullish().describe('Self-reported country (drives payout-method defaults); editable from the profile screen'),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
@@ -88,6 +89,49 @@ export const GetMeResponse = zod.object({
   "email": zod.string(),
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
+  "country": zod.string().nullish().describe('Self-reported country (drives payout-method defaults); editable from the profile screen'),
+  "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
+  "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
+  "hasPin": zod.boolean().optional().describe('Whether the user has set a transaction PIN (required to send\/withdraw)'),
+  "isAdmin": zod.boolean(),
+  "avatarUrl": zod.string().optional(),
+  "celoWalletAddress": zod.string().nullish().describe('EVM wallet address on the Celo network — provisioned lazily by the active wallet provider on the user\'s first money action (never at signup\/login, so jobs-only users cost zero WaaS MAUs)'),
+  "accountType": zod.enum(['personal', 'business']).optional(),
+  "businessName": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update the current user's profile (name, phone, country, business name, avatar)
+ */
+export const updateProfileBodyFullNameMax = 120;
+
+export const updateProfileBodyPhoneNumberMax = 32;
+
+export const updateProfileBodyCountryMax = 56;
+
+export const updateProfileBodyBusinessNameMax = 120;
+
+export const updateProfileBodyAvatarUrlMax = 512;
+
+
+
+export const UpdateProfileBody = zod.object({
+  "fullName": zod.string().min(1).max(updateProfileBodyFullNameMax).optional(),
+  "phoneNumber": zod.string().max(updateProfileBodyPhoneNumberMax).nullish(),
+  "country": zod.string().max(updateProfileBodyCountryMax).nullish(),
+  "businessName": zod.string().max(updateProfileBodyBusinessNameMax).nullish().describe('Only applies to business accounts'),
+  "avatarUrl": zod.string().max(updateProfileBodyAvatarUrlMax).nullish()
+}).describe('All fields optional; only the ones provided are changed. Email is immutable here.')
+
+export const UpdateProfileResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "fullName": zod.string(),
+  "phoneNumber": zod.string().optional(),
+  "country": zod.string().nullish().describe('Self-reported country (drives payout-method defaults); editable from the profile screen'),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
@@ -128,6 +172,7 @@ export const GoogleTokenSignInResponse = zod.object({
   "email": zod.string(),
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
+  "country": zod.string().nullish().describe('Self-reported country (drives payout-method defaults); editable from the profile screen'),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
@@ -162,6 +207,7 @@ export const AppleTokenSignInResponse = zod.object({
   "email": zod.string(),
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
+  "country": zod.string().nullish().describe('Self-reported country (drives payout-method defaults); editable from the profile screen'),
   "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
   "emailVerified": zod.boolean().optional().describe('Soft email confirmation — login is never blocked; the app shows a banner until confirmed'),
   "adminRole": zod.enum(['superadmin', 'manager', 'support']).nullish().describe('Present only for admin-tier accounts'),
