@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
-  ArrowLeft, AlertTriangle, CheckCircle2, ExternalLink, ShieldCheck,
+  ArrowLeft, AlertTriangle, CheckCircle2, ExternalLink, ShieldCheck, Lock,
 } from "lucide-react";
 import { NetworkIcon } from "@/components/network-icon";
 
@@ -66,6 +66,7 @@ export default function ExchangeWithdraw() {
   const [token, setToken] = useState<"USDC" | "USDT">("USDC");
   const [address, setAddress] = useState("");
   const [amount, setAmount] = useState("");
+  const [pin, setPin] = useState("");
   const [confirmedNetwork, setConfirmedNetwork] = useState(false);
   const [result, setResult] = useState<{ txHash?: string } | null>(null);
 
@@ -74,7 +75,8 @@ export default function ExchangeWithdraw() {
   const addressValid = /^0x[0-9a-fA-F]{40}$/.test(address.trim());
   const isOwnAddress = !!balance?.celoAddress && address.trim().toLowerCase() === balance.celoAddress.toLowerCase();
   const amountValid = Number.isFinite(parsedAmount) && parsedAmount > 0 && parsedAmount <= available;
-  const canSubmit = addressValid && !isOwnAddress && amountValid && confirmedNetwork && !sendMoney.isPending;
+  const pinValid = /^\d{4,6}$/.test(pin);
+  const canSubmit = addressValid && !isOwnAddress && amountValid && pinValid && confirmedNetwork && !sendMoney.isPending;
 
   const handleConfirm = () => {
     sendMoney.mutate(
@@ -84,17 +86,25 @@ export default function ExchangeWithdraw() {
           currency: token,
           recipientAddress: address.trim(),
           note: `Withdrawal to ${exchange?.name ?? "exchange"}`,
+          pin,
         },
       },
       {
         onSuccess: (tx: any) => {
           setResult({ txHash: tx?.txHash });
+          setPin("");
           refetchBalance();
         },
         onError: (e: any) => {
+          setPin("");
+          const code = e?.data?.error as string | undefined;
+          if (code === "pin_not_set") {
+            toast({ title: "Set up your PIN first", description: "Cashing out needs a transaction PIN. Set it in Security, then try again.", variant: "destructive" });
+            return;
+          }
           toast({
-            title: "Withdrawal not sent",
-            description: e?.message ?? "Your funds were not moved. Please try again.",
+            title: code === "pin_wrong" ? "Incorrect PIN" : code === "pin_locked" ? "PIN locked" : "Withdrawal not sent",
+            description: e?.data?.message ?? e?.message ?? "Your funds were not moved. Please try again.",
             variant: "destructive",
           });
         },
@@ -268,6 +278,28 @@ export default function ExchangeWithdraw() {
                 {amount && !amountValid && (
                   <p className="text-[11px] text-red-500 font-medium">Enter an amount up to your {token} balance.</p>
                 )}
+              </div>
+
+              {/* Transaction PIN — same second factor that authorizes every transfer/withdrawal */}
+              <div className="space-y-1.5">
+                <Label htmlFor="exPin" className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <Lock size={13} /> Transaction PIN
+                </Label>
+                <Input
+                  id="exPin"
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={6}
+                  placeholder="••••"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                  className="rounded-xl h-11 border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] tracking-[0.4em]"
+                />
+                <p className="text-[11px] text-gray-400">
+                  Your 4–6 digit PIN authorizes the cash-out.{" "}
+                  <Link href="/security"><span className="text-[#4DC9EE] font-medium hover:underline cursor-pointer">Set or change it</span></Link>.
+                </p>
               </div>
 
               {/* Safety confirmation */}

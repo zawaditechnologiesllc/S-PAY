@@ -53,9 +53,20 @@ app.use(
 //    visitor even if CORS_ORIGIN is mis-set or they browse via www/preview.
 //  • Everything else (auth, wallet, admin…) is locked to the CORS_ORIGIN
 //    allowlist with credentials. Unset = allow all (dev-friendly).
-const allowedOrigins = process.env.CORS_ORIGIN
+// S-PAY's own production web origins. These are ALWAYS allowed when an
+// allowlist is in force, so a CORS_ORIGIN typo (e.g. setting the apex but
+// forgetting the www. host) can never lock real users out of login/wallet —
+// the symptom is a browser "Failed to fetch" on the credentialed endpoints
+// even though the public jobs board still loads.
+const BUILTIN_ORIGINS = ["https://spayewallet.com", "https://www.spayewallet.com"];
+
+const envOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
   : null;
+
+// Unset CORS_ORIGIN => null => allow any origin (dev-friendly). When set, merge
+// in the built-in production origins so they're always permitted.
+const allowedOrigins = envOrigins ? Array.from(new Set([...envOrigins, ...BUILTIN_ORIGINS])) : null;
 
 const PUBLIC_READ = [/^\/api\/jobs/, /^\/api\/sitemap\.xml/, /^\/api\/site-content/, /^\/api\/status/, /^\/api\/healthz/];
 
