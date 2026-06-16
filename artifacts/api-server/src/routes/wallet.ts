@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { getTokenBalances, type CeloToken } from "../lib/celo-chain";
 import { ensureUserWallet, getSendableProvider } from "../lib/wallet-providers";
+import { resolveByIdentifier } from "../lib/socialconnect";
 import { getFeeSchedule, transferFee, treasuryAddress } from "../lib/settings";
 import { verifyTransactionPin } from "../lib/pin";
 import { notifyUser } from "../lib/notify";
@@ -131,21 +132,33 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
       } else if (recipientEmail) {
         [recipientUser] = await db.select().from(usersTable).where(eq(usersTable.email, recipientEmail.trim().toLowerCase())).limit(1);
       }
-      if (!recipientUser) {
-        res.status(404).json({ error: "recipient_not_found", message: "No S-PAY member with that phone number or email. Ask them to join — it's free!" });
-        return;
+      if (recipientUser) {
+        if (recipientUser.id === sender.id) {
+          res.status(400).json({ error: "validation_error", message: "You can't send money to yourself." });
+          return;
+        }
+        // Receiving money is a money action too — JIT-provision the recipient
+        const recipientWallet = await ensureUserWallet(recipientUser);
+        if (!recipientWallet) {
+          res.status(503).json({ error: "recipient_wallet_unavailable", message: "The recipient's wallet couldn't be prepared. Try again shortly." });
+          return;
+        }
+        toAddress = recipientWallet.address;
+      } else {
+        // Not an S-PAY member — try the Celo SocialConnect registry (only if the
+        // admin enabled it AND issuer keys are configured; otherwise returns null
+        // and we 404 exactly as before). A hit means the recipient is an external
+        // Celo user, so there's no recipientUser and no in-app receive record.
+        const resolved = await resolveByIdentifier(
+          (recipientPhone ?? recipientEmail ?? "").trim(),
+          recipientPhone ? "phone" : "email",
+        );
+        if (!resolved) {
+          res.status(404).json({ error: "recipient_not_found", message: "No S-PAY member with that phone number or email. Ask them to join — it's free!" });
+          return;
+        }
+        toAddress = resolved;
       }
-      if (recipientUser.id === sender.id) {
-        res.status(400).json({ error: "validation_error", message: "You can't send money to yourself." });
-        return;
-      }
-      // Receiving money is a money action too — JIT-provision the recipient
-      const recipientWallet = await ensureUserWallet(recipientUser);
-      if (!recipientWallet) {
-        res.status(503).json({ error: "recipient_wallet_unavailable", message: "The recipient's wallet couldn't be prepared. Try again shortly." });
-        return;
-      }
-      toAddress = recipientWallet.address;
     }
     if (!/^0x[0-9a-fA-F]{40}$/.test(toAddress)) {
       res.status(400).json({ error: "validation_error", message: "Invalid recipient wallet address" });

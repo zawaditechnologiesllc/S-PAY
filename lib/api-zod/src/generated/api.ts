@@ -1136,7 +1136,9 @@ export const GetFeatureFlagsResponse = zod.object({
   "stripeConfigured": zod.boolean().describe('Whether STRIPE_SECRET_KEY is set — cards can only be issued when true'),
   "cardWaitlistCount": zod.number().describe('How many users are waiting for the card'),
   "maintenanceMode": zod.boolean().describe('When true, the API serves 503 for user traffic (admin + auth + webhooks stay up)'),
-  "maintenanceMessage": zod.string().optional().describe('Message shown to users while in maintenance')
+  "maintenanceMessage": zod.string().optional().describe('Message shown to users while in maintenance'),
+  "socialConnectEnabled": zod.boolean().optional().describe('Master switch for Celo SocialConnect phone\/email → address resolution on sends (admin-controlled)'),
+  "socialConnectConfigured": zod.boolean().optional().describe('Whether the SocialConnect issuer env keys are set — the switch only takes effect when true')
 })
 
 
@@ -1150,7 +1152,8 @@ export const updateFeatureFlagsBodyMaintenanceMessageMax = 280;
 export const UpdateFeatureFlagsBody = zod.object({
   "cardProgramEnabled": zod.boolean().optional(),
   "maintenanceMode": zod.boolean().optional(),
-  "maintenanceMessage": zod.string().max(updateFeatureFlagsBodyMaintenanceMessageMax).optional()
+  "maintenanceMessage": zod.string().max(updateFeatureFlagsBodyMaintenanceMessageMax).optional(),
+  "socialConnectEnabled": zod.boolean().optional()
 }).describe('Partial update — provide any subset of flags')
 
 export const UpdateFeatureFlagsResponse = zod.object({
@@ -1158,5 +1161,7 @@ export const UpdateFeatureFlagsResponse = zod.object({
   "stripeConfigured": zod.boolean().describe('Whether STRIPE_SECRET_KEY is set — cards can only be issued when true'),
   "cardWaitlistCount": zod.number().describe('How many users are waiting for the card'),
   "maintenanceMode": zod.boolean().describe('When true, the API serves 503 for user traffic (admin + auth + webhooks stay up)'),
-  "maintenanceMessage": zod.string().optional().describe('Message shown to users while in maintenance')
+  "maintenanceMessage": zod.string().optional().describe('Message shown to users while in maintenance'),
+  "socialConnectEnabled": zod.boolean().optional().describe('Master switch for Celo SocialConnect phone\/email → address resolution on sends (admin-controlled)'),
+  "socialConnectConfigured": zod.boolean().optional().describe('Whether the SocialConnect issuer env keys are set — the switch only takes effect when true')
 })

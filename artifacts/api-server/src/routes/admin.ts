@@ -7,8 +7,10 @@ import {
   getFeeSchedule, setFeeSchedule, type FeeSchedule,
   getWalletProviderConfig, setWalletProviderConfig,
   WALLET_PROVIDER_KEYS, type WalletProviderKey,
+  getSocialConnect, setSocialConnectEnabled,
 } from "../lib/settings";
 import { walletProviderCatalog } from "../lib/wallet-providers";
+import { isSocialConnectConfigured } from "../lib/socialconnect";
 import {
   requireAnyAdmin, requireManager, requireSuperadmin,
   effectiveRole, isEnvAdmin, ENV_ADMIN_EMAILS, ADMIN_ROLES, type AdminRole,
@@ -147,9 +149,10 @@ router.get("/admin/transactions", requireAuth, requireAnyAdmin, async (req, res)
 // ─── Feature flags: the admin master switches ─────────────────────────────────
 
 async function featureFlagsPayload() {
-  const [cardProgramEnabled, maintenance, [{ total: cardWaitlistCount }]] = await Promise.all([
+  const [cardProgramEnabled, maintenance, socialConnect, [{ total: cardWaitlistCount }]] = await Promise.all([
     isCardProgramEnabled(),
     getMaintenance(),
+    getSocialConnect(),
     db.select({ total: count() }).from(cardWaitlistTable),
   ]);
   return {
@@ -158,6 +161,8 @@ async function featureFlagsPayload() {
     cardWaitlistCount,
     maintenanceMode: maintenance.enabled,
     maintenanceMessage: maintenance.message,
+    socialConnectEnabled: socialConnect.enabled,
+    socialConnectConfigured: isSocialConnectConfigured(),
   };
 }
 
@@ -172,12 +177,20 @@ router.get("/admin/feature-flags", requireAuth, requireAnyAdmin, async (req, res
 
 router.put("/admin/feature-flags", requireAuth, requireSuperadmin, async (req, res) => {
   try {
-    const { cardProgramEnabled, maintenanceMode, maintenanceMessage } = req.body as {
-      cardProgramEnabled?: unknown; maintenanceMode?: unknown; maintenanceMessage?: unknown;
+    const { cardProgramEnabled, maintenanceMode, maintenanceMessage, socialConnectEnabled } = req.body as {
+      cardProgramEnabled?: unknown; maintenanceMode?: unknown; maintenanceMessage?: unknown; socialConnectEnabled?: unknown;
     };
-    if (cardProgramEnabled === undefined && maintenanceMode === undefined && maintenanceMessage === undefined) {
+    if (cardProgramEnabled === undefined && maintenanceMode === undefined && maintenanceMessage === undefined && socialConnectEnabled === undefined) {
       res.status(400).json({ error: "validation_error", message: "Provide at least one flag to update" });
       return;
+    }
+    if (socialConnectEnabled !== undefined) {
+      if (typeof socialConnectEnabled !== "boolean") {
+        res.status(400).json({ error: "validation_error", message: "socialConnectEnabled must be a boolean" });
+        return;
+      }
+      await setSocialConnectEnabled(socialConnectEnabled);
+      req.log.info({ socialConnectEnabled, admin: req.user!.email }, "SocialConnect switch changed");
     }
     if (cardProgramEnabled !== undefined) {
       if (typeof cardProgramEnabled !== "boolean") {
@@ -590,6 +603,7 @@ router.get("/admin/settings", requireAuth, requireAnyAdmin, (req, res) => {
       webhookConfigured: check("NOAH_WEBHOOK_SECRET"),
     },
     wallet: Object.fromEntries(walletProviderCatalog().map((p) => [p.key, { configured: p.configured }])),
+    socialConnect: { configured: isSocialConnectConfigured() },
     stripe: {
       configured: check("STRIPE_SECRET_KEY"),
       webhookConfigured: check("STRIPE_WEBHOOK_SECRET"),

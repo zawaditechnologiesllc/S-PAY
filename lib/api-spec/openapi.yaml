@@ -2117,6 +2117,12 @@ components:
         maintenanceMessage:
           type: string
           description: Message shown to users while in maintenance
+        socialConnectEnabled:
+          type: boolean
+          description: Master switch for Celo SocialConnect phone/email → address resolution on sends (admin-controlled)
+        socialConnectConfigured:
+          type: boolean
+          description: Whether the SocialConnect issuer env keys are set — the switch only takes effect when true
       required:
         - cardProgramEnabled
         - stripeConfigured
@@ -2134,6 +2140,8 @@ components:
         maintenanceMessage:
           type: string
           maxLength: 280
+        socialConnectEnabled:
+          type: boolean
 
     AdminTeamMember:
       type: object

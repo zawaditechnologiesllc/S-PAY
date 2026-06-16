@@ -10,7 +10,7 @@ import {
   useGetAdminTeam, getGetAdminTeamQueryKey, useGrantAdminRole, useRevokeAdminRole,
   type WalletProvidersUpdateRequestActiveProvider,
 } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone, UserPlus, Trash2 } from "lucide-react";
+import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone, UserPlus, Trash2, Link2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatusRow({ label, ok, note }: { label: string; ok: boolean; note?: string }) {
@@ -227,6 +227,25 @@ export default function AdminSettings() {
     );
   };
 
+  const toggleSocialConnect = () => {
+    const next = !flags?.socialConnectEnabled;
+    updateFlags.mutate(
+      { data: { socialConnectEnabled: next } },
+      {
+        onSuccess: () => {
+          toast({
+            title: next ? "SocialConnect switched ON" : "SocialConnect switched OFF",
+            description: next
+              ? "Sends will resolve phone/email via Celo's registry when the address isn't an S-PAY member (no effect until issuer keys are set)."
+              : "Sends resolve recipients from the S-PAY database only.",
+          });
+          refetchFlags();
+        },
+        onError: () => toast({ title: "Could not update", description: "Please try again.", variant: "destructive" }),
+      },
+    );
+  };
+
   if (isLoading) {
     return (
       <AdminLayout title="Settings">
@@ -371,6 +390,39 @@ export default function AdminSettings() {
             <p>• <strong>On/Off toggle</strong> — kill switch per provider. OFF blocks new wallets <em>and</em> pauses sends from wallets it holds keys for (users see “transfers briefly paused”). Balances and deposits are unaffected — funds live on-chain, not at the provider.</p>
             <p>• <strong>Existing wallets never migrate.</strong> A wallet's private key stays with the provider that created it, so keep a provider's env keys set (even when OFF for new wallets) as long as it still holds wallets.</p>
             <p>• Full setup steps per provider: <code className="bg-blue-100 px-1 rounded">docs/WALLET-PROVIDERS.md</code> in the repo.</p>
+          </div>
+        </Section>
+
+        <Section icon={<Link2 size={16} />} title="SocialConnect (Celo identity)">
+          <div className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-gray-800">
+            <div className="pr-3">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">SocialConnect Resolution</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {flags?.socialConnectEnabled
+                  ? (flags?.socialConnectConfigured
+                      ? "ON — sends resolve phone/email via Celo's registry when the recipient isn't an S-PAY member"
+                      : "ON, but inactive until issuer keys are set (SOCIALCONNECT_ISSUER_ADDRESS + _PRIVATE_KEY)")
+                  : "OFF — sends resolve recipients from the S-PAY database only"}
+              </p>
+            </div>
+            <button
+              onClick={toggleSocialConnect}
+              disabled={updateFlags.isPending}
+              aria-label="Toggle SocialConnect"
+              className={`relative w-14 h-8 rounded-full transition-colors flex-shrink-0 disabled:opacity-60 ${
+                flags?.socialConnectEnabled ? "bg-green-500" : "bg-gray-300"
+              }`}
+            >
+              <span className={`absolute top-1 w-6 h-6 bg-white dark:bg-gray-900 rounded-full shadow transition-all ${
+                flags?.socialConnectEnabled ? "left-7" : "left-1"
+              }`} />
+            </button>
+          </div>
+          <StatusRow label="Issuer keys" ok={s?.socialConnect?.configured} note="SOCIALCONNECT_ISSUER_ADDRESS + SOCIALCONNECT_ISSUER_PRIVATE_KEY" />
+          <div className="mt-3 p-3 bg-blue-50 rounded-xl text-xs text-blue-700 leading-relaxed space-y-1.5">
+            <p><strong>What this is:</strong> SocialConnect is Celo's decentralized directory mapping phone/email → wallet address. It is <em>not</em> a wallet provider and does <em>not</em> replace or reduce your WaaS bill — it's an optional add-on so sends can reach people who aren't S-PAY members yet.</p>
+            <p><strong>Safe to leave OFF.</strong> The switch is a no-op until you finish the setup; nothing changes for existing sends. Turning it on without issuer keys does nothing.</p>
+            <p>• Step-by-step setup (do it slowly): <code className="bg-blue-100 px-1 rounded">docs/SOCIALCONNECT.md</code> in the repo.</p>
           </div>
         </Section>
 

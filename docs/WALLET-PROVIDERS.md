@@ -42,14 +42,23 @@ where Privy got expensive. S-PAY now fixes the cost problem two ways:
 Provider pricing as of mid-2026 (re-verify on their pricing pages before
 budgeting — these numbers move):
 
-| Provider | Pricing model | Numbers (mid-2026) |
-|---|---|---|
-| **Privy** | Per monthly-active wallet user (MAU) tiers | Free under ~500 MAUs, then **$299/mo** (Core, up to 2,500 MAUs), usage-based beyond 10K MAUs |
-| **Coinbase CDP** | Per wallet *operation* (create/sign/broadcast) | **$0.005 per operation, first 5,000 ops/month free** — no MAU billing |
-| **Turnkey** | Per *signature* | 25 free signatures/mo, PAYG **$0.10/signature**, Pro $99/mo at ~$0.01/signature — no MAU billing |
-| **Openfort** | Per *operation* (create/transaction) | **First 2,000 operations/month free**, up to 1,000 monthly-active wallets on the free tier — no MAU billing |
-| **thirdweb** | Plan tiers + usage | **No free tier since 2026-01-01**: Starter ~$9/mo, Growth $99/mo; server wallets included, queued Transactions API — no MAU billing |
-| **Dynamic** | "Onchain Automation" operations | Free tier to 1,000 MAUs; **server-wallet operation rates not public** — confirm with their dashboard/sales before committing |
+| Provider | Pricing model | Free tier — what you get | Paid pricing |
+|---|---|---|---|
+| **Privy** *(current default)* | Per monthly-active wallet user (MAU) | Free under **~500 MAUs** | **$299/mo** (Core, ≤2,500 MAUs), then usage-based beyond 10K MAUs |
+| **Coinbase CDP** | Per wallet *operation* (create/sign/broadcast) | **First 5,000 operations/month free** | **$0.005 / operation** after — no MAU billing |
+| **Turnkey** | Per *signature* | **25 free signatures/month** | PAYG **$0.10/signature**, or Pro **$99/mo** at ~$0.01/signature — no MAU billing |
+| **Openfort** | Per *operation* (create/transaction) | **First 2,000 operations/month free** (up to 1,000 monthly-active wallets) | Usage-based after — no MAU billing |
+| **thirdweb** | Plan tiers + usage | **No free tier** (since 2026-01-01) | Starter **~$9/mo**, Growth **$99/mo**; server wallets + queued Transactions API — no MAU billing |
+| **Dynamic** | "Onchain Automation" operations | Free tier up to **1,000 MAUs** | Server-wallet operation rates **not public** — confirm with their sales before committing |
+
+> **Which to pick for cost?** For a money app whose users transact occasionally,
+> **per-operation** providers are by far the cheapest because idle/jobs-only users
+> cost **$0**. Practical ranking by cost-at-scale: **Coinbase CDP** ($0.005/op,
+> 5K free/mo) ≈ **Openfort** (2K free/mo) → **Turnkey** (per-signature) → **Privy**
+> (MAU tiers — fine while you're under ~500 active wallets, expensive after).
+> Switch the active provider anytime in `/admin/settings → Wallet Infrastructure`
+> (existing wallets keep their original provider — see §5). **A cheaper WaaS — not
+> SocialConnect — is the lever for cutting wallet costs** (see `docs/SOCIALCONNECT.md`).
 
 The jobs board is S-PAY's acquisition funnel: thousands of people sign up just
 to apply for jobs. Under the old "wallet at signup + backfill at login" flow,
