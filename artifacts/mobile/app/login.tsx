@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useLogin } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
@@ -37,7 +38,13 @@ export default function LoginScreen() {
           router.replace("/(tabs)");
         },
         onError: (e: any) => {
-          Alert.alert("Login failed", e?.response?.data?.message ?? "Invalid credentials");
+          const isNetwork = !e?.status && /failed to fetch|networkerror|load failed|network request failed|fetch/i.test(e?.message ?? "");
+          Alert.alert(
+            isNetwork ? "Can't reach the server" : "Login failed",
+            isNetwork
+              ? "Check your internet connection and try again. If the app was idle, the server may be waking up — wait a few seconds and retry."
+              : (e?.response?.data?.message ?? e?.data?.message ?? "Invalid email or password."),
+          );
         },
       }
     );
@@ -49,6 +56,15 @@ export default function LoginScreen() {
       contentContainerStyle={[styles.container, { paddingTop: topPad + 24, paddingBottom: bottomPad + 24 }]}
       keyboardShouldPersistTaps="handled"
     >
+      <TouchableOpacity
+        onPress={() => (router.canGoBack() ? router.back() : router.replace("/welcome"))}
+        style={styles.backRow}
+        testID="button-back"
+      >
+        <Feather name="arrow-left" size={20} color={colors.foreground} />
+        <Text style={[styles.backText, { color: colors.foreground }]}>Back</Text>
+      </TouchableOpacity>
+
       <LinearGradient
         colors={[colors.gradientStart, colors.gradientEnd]}
         style={styles.logoCard}
@@ -132,6 +148,8 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { alignItems: "center", paddingHorizontal: 20, gap: 20 },
+  backRow: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
+  backText: { fontSize: 15, fontFamily: "Inter_500Medium" },
   logoCard: { width: "100%", borderRadius: 24, alignItems: "center", padding: 32, gap: 10 },
   logoImage: { width: 72, height: 72, borderRadius: 18 },
   logoName: { color: "#fff", fontSize: 28, fontFamily: "Inter_700Bold" },

@@ -25,6 +25,7 @@ export default function WithdrawScreen() {
   const [method, setMethod] = useState(METHODS[0]);
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState("");
+  const [pin, setPin] = useState("");
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
@@ -44,6 +45,10 @@ export default function WithdrawScreen() {
       Alert.alert("Invalid amount", "Please enter a valid amount");
       return;
     }
+    if (!/^\d{4,6}$/.test(pin)) {
+      Alert.alert("Enter your PIN", "Your 4–6 digit transaction PIN authorizes the cash-out.");
+      return;
+    }
     withdraw.mutate(
       {
         data: {
@@ -53,10 +58,12 @@ export default function WithdrawScreen() {
           method: method.id as any,
           recipientPhone: method.id === "mpesa" ? recipient : undefined,
           recipientIban: method.id === "sepa" ? recipient : undefined,
+          pin,
         },
       },
       {
         onSuccess: (data: any) => {
+          setPin("");
           Alert.alert(
             "Withdrawal Initiated",
             `${data.localAmount?.toFixed(2)} ${data.localCurrency} will arrive ${data.estimatedArrival}.`,
@@ -64,7 +71,19 @@ export default function WithdrawScreen() {
           );
         },
         onError: (e: any) => {
-          Alert.alert("Failed", e?.response?.data?.message ?? "Withdrawal failed");
+          setPin("");
+          const code = e?.response?.data?.error ?? e?.data?.error;
+          if (code === "pin_not_set") {
+            Alert.alert("Set up your PIN", "Cashing out needs a 4–6 digit PIN. Set it once in Security.", [
+              { text: "Cancel", style: "cancel" },
+              { text: "Set PIN", onPress: () => router.push("/security") },
+            ]);
+            return;
+          }
+          Alert.alert(
+            code === "pin_wrong" ? "Incorrect PIN" : code === "pin_locked" ? "PIN locked" : "Failed",
+            e?.response?.data?.message ?? e?.data?.message ?? "Withdrawal failed",
+          );
         },
       }
     );
@@ -155,6 +174,28 @@ export default function WithdrawScreen() {
         </View>
       </View>
 
+      {/* Transaction PIN — second factor on every cash-out */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Transaction PIN</Text>
+        <View style={[styles.recipientBox, { borderColor: colors.border, backgroundColor: colors.card }]}>
+          <Feather name="lock" size={16} color={colors.mutedForeground} />
+          <TextInput
+            style={[styles.recipientInput, { color: colors.foreground, letterSpacing: 6 }]}
+            placeholder="••••"
+            placeholderTextColor={colors.mutedForeground}
+            value={pin}
+            onChangeText={(v) => setPin(v.replace(/\D/g, "").slice(0, 6))}
+            keyboardType="number-pad"
+            secureTextEntry
+            maxLength={6}
+            testID="input-pin"
+          />
+        </View>
+        <TouchableOpacity onPress={() => router.push("/security")}>
+          <Text style={[styles.pinHint, { color: colors.primary }]}>Set or change your PIN in Security</Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity
         style={[styles.btn, { backgroundColor: colors.primary }]}
         onPress={handleWithdraw}
@@ -191,6 +232,7 @@ const styles = StyleSheet.create({
   receiveText: { fontSize: 15, fontFamily: "Inter_600SemiBold", textAlign: "center" },
   recipientBox: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
   recipientInput: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
+  pinHint: { fontSize: 12, fontFamily: "Inter_500Medium", marginTop: 2 },
   btn: { borderRadius: 14, paddingVertical: 16, alignItems: "center" },
   btnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
 });

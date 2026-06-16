@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { setToken } from "@/lib/auth";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 export default function Login() {
@@ -15,6 +16,7 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Redirect to ?next= param after login, or dashboard by default.
   const nextUrl = (() => {
@@ -36,10 +38,16 @@ export default function Login() {
           setToken(data.token);
           setLocation(nextUrl);
         },
-        onError: (error) => {
+        onError: (error: any) => {
+          // A network/CORS failure throws a bare TypeError ("Failed to fetch")
+          // with no HTTP status — turn that into something a user can act on,
+          // instead of the cryptic browser message.
+          const isNetwork = !error?.status && /failed to fetch|networkerror|load failed|fetch/i.test(error?.message ?? "");
           toast({
-            title: "Login Failed",
-            description: error.message || "Invalid credentials",
+            title: isNetwork ? "Can't reach the server" : "Login failed",
+            description: isNetwork
+              ? "Check your internet connection and try again. If you just opened the app, the server may be waking up — wait a few seconds and retry."
+              : (error?.data?.message ?? error?.message ?? "Invalid email or password."),
             variant: "destructive",
           });
         },
@@ -107,14 +115,24 @@ export default function Login() {
                   <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">Password</Label>
                   <Link href="/forgot-password" className="text-xs text-[#4DC9EE] hover:underline font-medium">Forgot password?</Link>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11 pr-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-[#2E8FD6] transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <Button
                 className="w-full h-11 rounded-xl bg-[#4DC9EE] hover:bg-[#1A2B4A] text-white font-semibold transition-colors"
@@ -137,8 +155,17 @@ export default function Login() {
           </div>
         </div>
 
+        {/* Back to landing / app home */}
+        <button
+          type="button"
+          onClick={() => setLocation("/")}
+          className="mt-6 w-full flex items-center justify-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-[#2E8FD6] transition-colors"
+        >
+          <ArrowLeft size={16} /> Back to home
+        </button>
+
         {/* Bottom link */}
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-gray-400 mt-4">
           <Link href="/about" className="hover:text-[#4DC9EE] transition-colors">About S-PAY</Link>
           {" · "}
           <Link href="/privacy" className="hover:text-[#4DC9EE] transition-colors">Privacy</Link>
