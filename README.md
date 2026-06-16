@@ -239,6 +239,26 @@ Wallets need **one** of the three providers below configured (admin picks the ac
 | `STRIPE_WEBHOOK_SECRET` | Card transaction events | Stripe webhook endpoint config (`/api/webhooks/stripe`) |
 | `TREASURY_CELO_ADDRESS` | Business revenue collection | Your Celo (0x…) wallet that receives transfer/withdrawal commissions. Get it from any Celo-capable wallet or an exchange that supports Celo deposits (e.g. Binance → Deposit → USDC/USDT → network **CELO**). Unset = no fees are charged. Tune the amounts in `/admin/settings → Fees & Revenue` |
 
+**Wallet provider pricing — free tier at a glance** (mid-2026; re-verify before budgeting — full breakdown in [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md) §2):
+
+| Provider | Free tier | After free tier | Bills per |
+|---|---|---|---|
+| **Privy** (default) | ~500 MAUs | $299/mo (≤2,500 MAUs) | monthly-active user |
+| **Coinbase CDP** | 5,000 ops/month | $0.005 / operation | operation (idle users = $0) |
+| **Openfort** | 2,000 ops/month (≤1,000 wallets) | usage-based | operation (idle users = $0) |
+| **Turnkey** | 25 signatures/month | $0.10/sig PAYG, ~$0.01 on $99/mo Pro | signature |
+| **thirdweb** | none (since 2026) | ~$9/mo Starter, $99/mo Growth | plan + usage |
+| **Dynamic** | up to 1,000 MAUs | not public — confirm with sales | operation |
+
+> For a money app, **per-operation providers (CDP, Openfort) are cheapest** because jobs-only/idle users cost $0. Switch the active provider live in `/admin/settings → Wallet Infrastructure`.
+
+**Identity / SocialConnect (optional — not a WaaS replacement):**
+
+| Variable | Description |
+|---|---|
+| `SOCIALCONNECT_ISSUER_ADDRESS` + `SOCIALCONNECT_ISSUER_PRIVATE_KEY` | Issuer identity for Celo SocialConnect — lets sends resolve a phone/email to an address even when the recipient isn't an S-PAY member. Optional, off by default. **Does not reduce your WaaS bill** (different layer). Full step-by-step: [`docs/SOCIALCONNECT.md`](./docs/SOCIALCONNECT.md) |
+| `SOCIALCONNECT_REGISTRY_ADDRESS` | Celo `FederatedAttestations` contract address (verify the current Celo L2 value — see the SocialConnect setup doc) |
+
 **Sign-in providers (optional):**
 
 | Variable | Description |

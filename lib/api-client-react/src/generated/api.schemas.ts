@@ -636,6 +636,10 @@ export interface FeatureFlagsResponse {
   maintenanceMode: boolean;
   /** Message shown to users while in maintenance */
   maintenanceMessage?: string;
+  /** Master switch for Celo SocialConnect phone/email → address resolution on sends (admin-controlled) */
+  socialConnectEnabled?: boolean;
+  /** Whether the SocialConnect issuer env keys are set — the switch only takes effect when true */
+  socialConnectConfigured?: boolean;
 }
 
 /**
@@ -646,6 +650,7 @@ export interface FeatureFlagsUpdateRequest {
   maintenanceMode?: boolean;
   /** @maxLength 280 */
   maintenanceMessage?: string;
+  socialConnectEnabled?: boolean;
 }
 
 export type AdminTeamMemberRole = typeof AdminTeamMemberRole[keyof typeof AdminTeamMemberRole];

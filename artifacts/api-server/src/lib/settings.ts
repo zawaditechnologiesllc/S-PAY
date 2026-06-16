@@ -122,6 +122,30 @@ export async function setWalletProviderConfig(update: {
   return next;
 }
 
+// ── SocialConnect master switch ───────────────────────────────────────────────
+// Celo SocialConnect maps off-chain identifiers (phone/email) → on-chain
+// addresses via a decentralized registry, so a send can reach someone who
+// isn't an S-PAY member yet. This flag only takes effect once the issuer env
+// keys are set (see lib/socialconnect.ts + docs/SOCIALCONNECT.md); until then
+// it's a no-op and the in-DB recipient lookup remains the single source of truth.
+
+const SOCIALCONNECT_KEY = "socialconnect";
+
+export interface SocialConnectState {
+  enabled: boolean;
+}
+
+const DEFAULT_SOCIALCONNECT: SocialConnectState = { enabled: false };
+
+export async function getSocialConnect(): Promise<SocialConnectState> {
+  const stored = await getSetting<Partial<SocialConnectState>>(SOCIALCONNECT_KEY, {});
+  return { ...DEFAULT_SOCIALCONNECT, ...stored };
+}
+
+export async function setSocialConnectEnabled(enabled: boolean): Promise<void> {
+  await setSetting(SOCIALCONNECT_KEY, { enabled });
+}
+
 // ── Platform fee schedule ─────────────────────────────────────────────────────
 // User price = provider cost + S-PAY margin. Providers bill S-PAY separately
 // (Stripe nets fees from the Stripe balance, Noah nets from settlement, Celo
