@@ -29,7 +29,7 @@ S-PAY was born in 2016 by a team of full-stack fintech and crypto engineers frus
 
 S-PAY's onboarding follows the [MiniPay](https://www.opera.com/products/minipay) playbook: a wallet in seconds, no seed phrase, no crypto knowledge required.
 
-1. **Sign up in under 2 minutes** — email + password, or one tap with Google. Phone number optional (used for P2P transfers, M-Pesa/MoMo payouts). Signup and login run **entirely on S-PAY's own database + JWT** — no third-party wallet service is contacted.
+1. **Sign up in under 2 minutes** — email + password, or one tap with Google. Phone number optional (used for P2P transfers, M-Pesa/MoMo payouts). Signup and login run **entirely on S-PAY's own database + JWT** — no third-party wallet service is contacted. Users can edit their profile (name, phone, country, business name) anytime from the **Profile** screen — changes persist to their account record.
 2. **Celo wallet created invisibly at the first money action** — the first time a user asks for a deposit address, sends money, or withdraws, S-PAY provisions an EVM wallet on the **Celo network** through the admin-selected wallet provider (**Privy**, **Coinbase CDP**, **Turnkey**, **Openfort**, **thirdweb**, or **Dynamic** — switchable live in `/admin/settings`). No seed phrase to write down; private keys live in the provider's TEE infrastructure and **never touch S-PAY servers or the database** — we store only the public address (`celoWalletAddress`).
    *Why lazy? Wallet providers bill for active wallet users. The jobs board brings thousands of signups who may never move money — they cost zero this way, and only paying users ever appear on the WaaS bill. Full rationale: [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md).*
 3. **Receiving is one tap away** — tap "Add funds" and the wallet (created on the spot if needed) holds **USDC on Celo** (stablecoin-first, like MiniPay's cUSD/USDC). Friends and clients can pay you by phone number or wallet address; P2P recipients get their wallet auto-created the moment someone first pays them.
@@ -64,7 +64,7 @@ The user chooses a payout method and enters the recipient details:
 All payouts are processed by **Noah Global Payouts** — no third-party wallet required. The user just enters a phone number (M-Pesa/MTN) or IBAN (SEPA) and hits confirm.
 
 ### Internal transfers
-Users send USDC/USDT peer-to-peer within S-PAY by entering a recipient phone number — settled on-chain on Celo in ~5 seconds, free by default (admin-tunable).
+Users send USDC/USDT peer-to-peer within S-PAY by entering a recipient **phone number, email address, or wallet address** — settled on-chain on Celo in ~5 seconds. A flat transfer fee and/or a P2P percentage (both admin-tunable) can be charged on top and swept to the business treasury wallet (`TREASURY_CELO_ADDRESS`); with no treasury configured, transfers are free. Every send is authorized by the user's transaction PIN.
 
 ---
 
@@ -112,7 +112,7 @@ S-PAY/
 | Layer | How it's protected |
 |---|---|
 | **Passwords** | bcrypt (cost factor 12) — never stored in plain text |
-| **Transaction PIN** | Separate bcrypt-hashed 4–6 digit PIN required for every send & withdrawal — the login session alone never moves money; 5 wrong tries locks it for 15 min |
+| **Transaction PIN** | Separate bcrypt-hashed 4–6 digit PIN required for **every money-out action** — P2P send, exchange/crypto cash-out, and bank/mobile-money withdrawal — the login session alone never moves money; 5 wrong tries locks it for 15 min. Set/changed from the Security screen; changing it requires the current PIN |
 | **Auth tokens** | Stateless JWT, signed with `JWT_SECRET` (HS256), 30-day expiry |
 | **Transport** | TLS enforced by Render (API) and Vercel (web) — HTTP redirects to HTTPS |
 | **Webhooks** | HMAC-SHA256 over the raw request body, constant-time compare; unsigned requests rejected once a secret is configured |
@@ -121,7 +121,7 @@ S-PAY/
 | **On-chain settlement** | USDC on Celo — auditable, 5s finality, sub-cent fees; no custom bridge or contract risk |
 | **Database** | PostgreSQL on Render private network; `DATABASE_URL` never exposed to client |
 | **Admin access** | Controlled by `ADMIN_EMAILS` env var — not a role in the DB |
-| **CORS** | Locked to `CORS_ORIGIN` env var — only the web app can call the API |
+| **CORS** | Credentialed endpoints (auth, wallet, admin) are locked to the `CORS_ORIGIN` allowlist; S-PAY's own production origins (`spayewallet.com` + `www.`) are **always** allowed so a misconfigured `CORS_ORIGIN` can't lock users out of login. Public read-only endpoints (jobs board, sitemap, status) are open to any origin |
 | **No secrets in code** | All keys are environment variables; nothing sensitive is in the repository |
 
 ---
@@ -218,7 +218,7 @@ Set these on **Render** (API server) and **Vercel** (web app):
 | `DATABASE_URL` | ✅ | PostgreSQL connection string (auto-wired by the render.yaml Blueprint, or Supabase URI) |
 | `JWT_SECRET` | ✅ | Random 64-char hex (auto-generated by the Blueprint) |
 | `SESSION_SECRET` | ✅ | Random secret (auto-generated by the Blueprint) |
-| `CORS_ORIGIN` | ✅ | Web app URL(s), comma-separated: `https://spayewallet.com,https://spay.vercel.app` |
+| `CORS_ORIGIN` | ✅ | Web app URL(s), comma-separated: `https://spayewallet.com,https://www.spayewallet.com`. Include every host users visit (apex **and** `www.`). S-PAY's own production origins are always allowed regardless, but list yours here for any custom domains |
 | `ADMIN_EMAILS` | ✅ | Comma-separated admin emails — controls /admin access |
 
 **Money rails (each unlocks a feature when set):**
@@ -237,18 +237,19 @@ Wallets need **one** of the three providers below configured (admin picks the ac
 | `NOAH_WEBHOOK_SECRET` | KYC auto-approval | From Noah webhook endpoint config (`/api/webhooks/noah`) |
 | `STRIPE_SECRET_KEY` | Virtual cards (with the admin switch) | Stripe → Developers → API keys (Issuing enabled) |
 | `STRIPE_WEBHOOK_SECRET` | Card transaction events | Stripe webhook endpoint config (`/api/webhooks/stripe`) |
+| `TREASURY_CELO_ADDRESS` | Business revenue collection | Your Celo (0x…) wallet that receives transfer/withdrawal commissions. Get it from any Celo-capable wallet or an exchange that supports Celo deposits (e.g. Binance → Deposit → USDC/USDT → network **CELO**). Unset = no fees are charged. Tune the amounts in `/admin/settings → Fees & Revenue` |
 
 **Sign-in providers (optional):**
 
 | Variable | Description |
 |---|---|
-| `RESEND_API_KEY` | Transactional email via [resend.com](https://resend.com) — email confirmation + password reset. Unset = links are logged on Render instead of emailed |
-| `EMAIL_FROM` | Sender identity, e.g. `S-PAY <noreply@spayewallet.com>` (verify the domain in Resend first; defaults to Resend's test sender) |
+| `RESEND_API_KEY` | Transactional email via [resend.com](https://resend.com) — branded email confirmation + password reset (S-PAY navy/cyan template). Unset = links are logged on Render instead of emailed |
+| `EMAIL_FROM` | Sender identity, e.g. `S-PAY <noreply@spayewallet.com>`. Add your domain in Resend → Domains and add the SPF/DKIM DNS records it shows, then verify — otherwise emails fall back to Resend's test sender |
 | `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google OAuth (web flow) |
 | `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` | Native Google sign-in token audiences (mobile) |
 | `APPLE_BUNDLE_ID` | Sign in with Apple audience (defaults to `com.zawaditechnologies.spay`) |
-| `FRONTEND_URL` | Vercel URL — Google OAuth redirect target |
-| `API_BASE_URL` | Render API URL — Google OAuth callback base |
+| `FRONTEND_URL` | Public web app URL, e.g. `https://spayewallet.com`. Used for the Google OAuth redirect **and** the links inside password-reset / email-verified pages. **Set this in production** — it defaults to `http://localhost:5173`, which breaks those links if left unset |
+| `API_BASE_URL` | Public Render API URL, e.g. `https://s-pay.onrender.com`. Used for the Google OAuth callback **and** the email-verification link. **Set this in production** — defaults to `http://localhost:5000` |
 
 **Tuning (all optional, sensible defaults):**
 
