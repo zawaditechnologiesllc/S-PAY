@@ -60,7 +60,11 @@ const allowedOrigins = process.env.CORS_ORIGIN
 const PUBLIC_READ = [/^\/api\/jobs/, /^\/api\/sitemap\.xml/, /^\/api\/site-content/, /^\/api\/status/, /^\/api\/healthz/];
 
 app.use(cors((req, done) => {
-  const isPublicRead = req.method === "GET" && PUBLIC_READ.some((re) => re.test(req.path));
+  // Match the GET *and* its preflight: once a user logs in the client adds an
+  // Authorization header, which makes /api/jobs a non-simple request — the
+  // browser sends an OPTIONS preflight first. Both must use the open policy or
+  // the authenticated jobs/board fetch gets blocked even though the data is public.
+  const isPublicRead = (req.method === "GET" || req.method === "OPTIONS") && PUBLIC_READ.some((re) => re.test(req.path));
   if (isPublicRead || !allowedOrigins) {
     // Reflect any origin; no credentials needed for public data
     done(null, { origin: true, credentials: false });
