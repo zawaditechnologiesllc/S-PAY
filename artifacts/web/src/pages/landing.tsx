@@ -19,8 +19,8 @@ const QUICK_ACTIONS = [
 
 const STEPS = [
   { num: "01", title: "Create your account", desc: "Sign up in 2 minutes with just your email. No branch visit, no paperwork required." },
-  { num: "02", title: "Get your account number", desc: "Receive a real US ACH routing number and European IBAN instantly after sign-up." },
-  { num: "03", title: "Cash out instantly", desc: "Bank deposits auto-convert to USDC/USDT. Withdraw to M-Pesa, MTN, PIX, Binance and 50+ destinations in seconds." },
+  { num: "02", title: "Get your account number", desc: "Receive a real US bank account and European account instantly after sign-up." },
+  { num: "03", title: "Cash out instantly", desc: "Your money is held in US dollars. Withdraw to M-Pesa, MTN, PIX, Binance and 50+ destinations in seconds." },
 ];
 
 const MARKETS = [
@@ -335,11 +335,11 @@ export default function Landing() {
                 Your money, ready<br className="hidden md:block" /> anywhere.
               </h2>
               <p className="text-gray-500 leading-relaxed mb-7 text-base md:text-lg">
-                Hold digital dollars (USDC), send money anywhere in the world, and receive payments from employers and clients — all with near-zero fees.
+                Hold US dollars, send money anywhere in the world, and receive payments from employers and clients — all with near-zero fees.
               </p>
               <ul className="space-y-3.5 mb-8">
                 {[
-                  "Hold USDC / digital USD with no monthly fee",
+                  "Hold digital US dollars with no monthly fee",
                   "Send to anyone in 180+ countries instantly",
                   "Receive from Toptal, Upwork, Deel, Stripe payouts",
                   "Real-time balance and transaction tracking",
@@ -497,7 +497,7 @@ export default function Landing() {
                 {[
                   "Business verification (KYB) — company + representative, fully automated via Noah",
                   "Business virtual accounts: US ACH + EU IBAN in your company's name",
-                  "Hold and pay in USDC & USDT on Celo — same instant rails as personal accounts",
+                  "Hold and pay in digital US dollars — same instant rails as personal accounts",
                   "Pay contractors and teams in 180+ countries, cash-outs to 50+ local methods",
                   "Post roles to 500K+ remote workers on the S-PAY jobs board",
                 ].map((item) => (
@@ -537,17 +537,17 @@ export default function Landing() {
                       <p className="text-white font-black text-xl">$48,250.00</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-blue-300 text-[10px] uppercase">Holds</p>
-                      <p className="text-white text-sm font-semibold">USDC · USDT</p>
+                      <p className="text-blue-300 text-[10px] uppercase">Currency</p>
+                      <p className="text-white text-sm font-semibold">USD</p>
                     </div>
                   </div>
                 </div>
                 <div className="bg-white rounded-2xl p-5 shadow-md border border-gray-100">
                   <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">Latest payroll</p>
                   {[
-                    { who: "James O. — Nairobi", amount: "1,200 USDC", flag: "🇰🇪" },
-                    { who: "Maria F. — São Paulo", amount: "950 USDT", flag: "🇧🇷" },
-                    { who: "Priya S. — Manila", amount: "800 USDC", flag: "🇵🇭" },
+                    { who: "James O. — Nairobi", amount: "$1,200", flag: "🇰🇪" },
+                    { who: "Maria F. — São Paulo", amount: "$950", flag: "🇧🇷" },
+                    { who: "Priya S. — Manila", amount: "$800", flag: "🇵🇭" },
                   ].map((row) => (
                     <div key={row.who} className="flex items-center justify-between py-2 border-t border-gray-50 first:border-0">
                       <span className="text-xs text-gray-600 flex items-center gap-2"><span>{row.flag}</span>{row.who}</span>
