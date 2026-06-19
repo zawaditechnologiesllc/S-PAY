@@ -2173,6 +2173,9 @@ components:
           type: string
         recipientAddress:
           type: string
+        recipientSpayId:
+          type: string
+          description: S-PAY ID (spay_*) — alternative recipient identifier
         amount:
           type: number
         currency:

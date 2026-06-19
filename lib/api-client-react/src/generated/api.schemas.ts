@@ -459,6 +459,8 @@ export interface SendMoneyRequest {
   recipientPhone?: string;
   recipientEmail?: string;
   recipientAddress?: string;
+  /** S-PAY ID (spay_*) — alternative recipient identifier */
+  recipientSpayId?: string;
   amount: number;
   currency: string;
   note?: string;

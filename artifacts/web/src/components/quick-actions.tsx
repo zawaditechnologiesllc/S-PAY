@@ -70,7 +70,7 @@ function QuickAction({ icon, label, bgColor, onClick }: {
 
 // ─── Transfer ─────────────────────────────────────────────────────────────────
 
-type SendMode = "phone" | "email" | "address";
+type SendMode = "phone" | "email" | "address" | "spay-id";
 
 function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onClose: () => void; initialAddress?: string }) {
   const { toast } = useToast();
@@ -96,6 +96,7 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
   const recipientField =
     mode === "phone" ? { recipientPhone: recipient.trim() } :
     mode === "email" ? { recipientEmail: recipient.trim() } :
+    mode === "spay-id" ? { recipientSpayId: recipient.trim() } :
     { recipientAddress: recipient.trim() };
 
   const submit = () => {
@@ -129,6 +130,7 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
   const modes: { id: SendMode; icon: React.ReactNode; label: string; placeholder: string }[] = [
     { id: "phone", icon: <Smartphone size={13} />, label: "Phone", placeholder: "+254712345678" },
     { id: "email", icon: <Mail size={13} />, label: "Email", placeholder: "name@email.com" },
+    { id: "spay-id", icon: <Wallet2 size={13} />, label: "S-PAY ID", placeholder: "spay_…" },
     { id: "address", icon: <Wallet2 size={13} />, label: "Address", placeholder: "0x…" },
   ];
   const activeMode = modes.find((m) => m.id === mode)!;
@@ -179,7 +181,7 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="qa-recipient">
-                  {mode === "phone" ? "Recipient's phone number" : mode === "email" ? "Recipient's email" : "Recipient's Celo address"}
+                  {mode === "phone" ? "Recipient's phone number" : mode === "email" ? "Recipient's email" : mode === "spay-id" ? "Recipient's S-PAY ID" : "Recipient's Celo address"}
                 </Label>
                 <Input id="qa-recipient" placeholder={activeMode.placeholder} value={recipient} onChange={(e) => setRecipient(e.target.value)} />
               </div>

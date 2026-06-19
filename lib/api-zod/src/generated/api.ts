@@ -376,6 +376,7 @@ export const SendMoneyBody = zod.object({
   "recipientPhone": zod.string().optional(),
   "recipientEmail": zod.string().optional(),
   "recipientAddress": zod.string().optional(),
+  "recipientSpayId": zod.string().optional().describe('S-PAY ID (spay_\*) — alternative recipient identifier'),
   "amount": zod.number(),
   "currency": zod.string().default(sendMoneyBodyCurrencyDefault),
   "note": zod.string().optional(),
