@@ -1,22 +1,25 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
-import { useLogin } from "@workspace/api-client-react";
+import { useLogin, useVerifyLoginCode } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { setToken } from "@/lib/auth";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, Mail } from "lucide-react";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 export default function Login() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const loginMutation = useLogin();
+  const verifyCodeMutation = useVerifyLoginCode();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState<"login" | "verify">("login");
+  const [verificationCode, setVerificationCode] = useState("");
 
   // Redirect to ?next= param after login, or dashboard by default.
   const nextUrl = (() => {
@@ -29,19 +32,23 @@ export default function Login() {
     }
   })();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     loginMutation.mutate(
       { data: { email, password } },
       {
-        onSuccess: (data) => {
-          setToken(data.token);
-          setLocation(nextUrl);
+        onSuccess: (data: any) => {
+          if (data.requiresVerification) {
+            setStep("verify");
+            setVerificationCode("");
+            toast({ title: "Code sent", description: "Check your email for the verification code." });
+          } else {
+            // Legacy: if no requiresVerification, direct login
+            setToken(data.token);
+            setLocation(nextUrl);
+          }
         },
         onError: (error: any) => {
-          // A network/CORS failure throws a bare TypeError ("Failed to fetch")
-          // with no HTTP status — turn that into something a user can act on,
-          // instead of the cryptic browser message.
           const isNetwork = !error?.status && /failed to fetch|networkerror|load failed|fetch/i.test(error?.message ?? "");
           toast({
             title: isNetwork ? "Can't reach the server" : "Login failed",
@@ -53,6 +60,32 @@ export default function Login() {
         },
       }
     );
+  };
+
+  const handleCodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    verifyCodeMutation.mutate(
+      { data: { email, code: verificationCode } },
+      {
+        onSuccess: (data: any) => {
+          setToken(data.token);
+          setLocation(nextUrl);
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Verification failed",
+            description: error?.data?.message ?? "Invalid or expired code. Please try signing in again.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  const handleBackToLogin = () => {
+    setStep("login");
+    setVerificationCode("");
+    setPassword("");
   };
 
   return (
@@ -69,7 +102,7 @@ export default function Login() {
         {/* Card */}
         <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
 
-          {/* Google button */}
+          {step === "login" && (
           <div className="px-8 pt-8 pb-6">
             <button
               type="button"
@@ -85,7 +118,6 @@ export default function Login() {
               Continue with Google
             </button>
 
-            {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200 dark:border-gray-700" />
@@ -95,9 +127,8 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Email form */}
             <p className="text-sm font-semibold text-[#1A2B4A] mb-4">Sign in with email</p>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</Label>
                 <Input
@@ -143,6 +174,52 @@ export default function Login() {
               </Button>
             </form>
           </div>
+        )}
+
+        {step === "verify" && (
+          <div className="px-8 pt-8 pb-6">
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Mail size={24} />
+              </div>
+              <h2 className="text-lg font-bold text-[#1A2B4A] mb-1">Check your email</h2>
+              <p className="text-sm text-gray-600">We sent a 6-digit code to {email}</p>
+              <p className="text-xs text-gray-500 mt-2">Code expires in 10 minutes</p>
+            </div>
+
+            <form onSubmit={handleCodeSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="code" className="text-sm font-medium text-gray-700 dark:text-gray-300">Verification code</Label>
+                <Input
+                  id="code"
+                  type="text"
+                  placeholder="000000"
+                  maxLength={6}
+                  required
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
+                  className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-11 text-center text-2xl tracking-widest font-mono"
+                />
+              </div>
+              <Button
+                className="w-full h-11 rounded-xl bg-[#4DC9EE] hover:bg-[#1A2B4A] text-white font-semibold transition-colors"
+                type="submit"
+                disabled={verifyCodeMutation.isPending || verificationCode.length !== 6}
+              >
+                {verifyCodeMutation.isPending ? "Verifying..." : "Verify"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleBackToLogin}
+                disabled={verifyCodeMutation.isPending}
+              >
+                Back to sign in
+              </Button>
+            </form>
+          </div>
+        )}
 
           {/* Footer */}
           <div className="bg-gray-50 dark:bg-gray-800/60 px-8 py-4 border-t border-gray-100 dark:border-gray-800 text-center">

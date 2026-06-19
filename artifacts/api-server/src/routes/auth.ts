@@ -4,7 +4,7 @@ import axios from "axios";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { signToken } from "../lib/auth";
 import { requireAuth } from "../middlewares/auth";
-import { generateToken, hashToken, sendVerificationEmail, sendPasswordResetEmail } from "../lib/email";
+import { generateToken, hashToken, sendVerificationEmail, sendPasswordResetEmail, generateLoginCode, sendLoginVerificationEmail } from "../lib/email";
 import { isValidPinFormat, hashPin } from "../lib/pin";
 import { db, usersTable } from "@workspace/db";
 import { eq, and, gt } from "drizzle-orm";
@@ -135,13 +135,63 @@ router.post("/auth/login", async (req, res) => {
       return;
     }
 
-    // No wallet call on login either — wallets are provisioned (or backfilled)
-    // lazily by the first money action, so jobs-only traffic costs zero WaaS MAUs.
-    const token = signToken({ userId: user.id, email: user.email });
-    res.json({ token, user: userResponse(user) });
+    // Email-only MFA: generate 6-digit code, store with 10-minute expiry, send email
+    const code = generateLoginCode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await db.update(usersTable).set({
+      loginVerificationCode: code,
+      loginVerificationExpires: expiresAt,
+    }).where(eq(usersTable.id, user.id));
+
+    void sendLoginVerificationEmail(user.email, user.fullName, code);
+
+    req.log.info({ userId: user.id, email: user.email }, "Login code sent");
+    res.json({ requiresVerification: true, email: user.email });
   } catch (err) {
     req.log.error({ err }, "Login error");
     res.status(500).json({ error: "internal_error", message: "Login failed" });
+  }
+});
+
+// ─── Email verification code for login ──────────────────────────────────────
+
+router.post("/auth/verify-login-code", async (req, res) => {
+  try {
+    const { email, code } = req.body as Record<string, string>;
+
+    if (!email || !code) {
+      res.status(400).json({ error: "validation_error", message: "email and code are required" });
+      return;
+    }
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    if (!user) {
+      res.status(401).json({ error: "invalid_credentials", message: "Invalid email or verification code" });
+      return;
+    }
+
+    // Check code exists, matches, and hasn't expired
+    if (!user.loginVerificationCode || user.loginVerificationCode !== code) {
+      res.status(401).json({ error: "invalid_code", message: "Invalid or expired verification code" });
+      return;
+    }
+
+    if (!user.loginVerificationExpires || user.loginVerificationExpires < new Date()) {
+      res.status(401).json({ error: "code_expired", message: "Verification code has expired. Please sign in again." });
+      return;
+    }
+
+    // Code is valid — clear it from the database and issue JWT
+    await db.update(usersTable).set({
+      loginVerificationCode: null,
+      loginVerificationExpires: null,
+    }).where(eq(usersTable.id, user.id));
+
+    const token = signToken({ userId: user.id, email: user.email });
+    res.json({ token, user: userResponse(user) });
+  } catch (err) {
+    req.log.error({ err }, "Login verification error");
+    res.status(500).json({ error: "internal_error", message: "Verification failed" });
   }
 });
 

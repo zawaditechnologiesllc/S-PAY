@@ -350,6 +350,27 @@ export interface AuthResponse {
 }
 
 /**
+ * Response after email/password login (verification code sent via email)
+ */
+export interface LoginResponse {
+  requiresVerification: boolean;
+  email: string;
+}
+
+/**
+ * Email and verification code for login
+ */
+export interface VerifyLoginCodeRequest {
+  email: string;
+  /**
+     * @minLength 6
+     * @maxLength 6
+     * @pattern ^[0-9]{6}$
+     */
+  code: string;
+}
+
+/**
  * All fields optional; only the ones provided are changed. Email is immutable here.
  */
 export interface UpdateProfileRequest {

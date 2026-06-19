@@ -42,6 +42,8 @@ export const usersTable = pgTable("users", {
   noahCustomerId: text("noah_customer_id"),
   stripeCardholderId: text("stripe_cardholder_id"),
   stripeCardId: text("stripe_card_id"),
+  loginVerificationCode: text("login_verification_code"),  // 6-digit code for email MFA
+  loginVerificationExpires: timestamp("login_verification_expires"), // code expiry
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [

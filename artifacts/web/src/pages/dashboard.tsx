@@ -55,7 +55,7 @@ export default function Dashboard() {
                 <Skeleton className="h-10 w-40" />
               ) : (
                 <h2 className="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-                  {summary?.currency} {(summary?.walletBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  ${(summary?.walletBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </h2>
               )}
             </div>
@@ -154,7 +154,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className={`font-semibold ${tx.type === 'receive' || tx.type === 'recharge' ? 'text-green-600' : 'text-gray-900 dark:text-gray-100'}`}>
-                  {tx.type === 'receive' || tx.type === 'recharge' ? '+' : '-'}{tx.currency} {tx.amount.toFixed(2)}
+                  {tx.type === 'receive' || tx.type === 'recharge' ? '+' : '-'}${tx.amount.toFixed(2)}
                 </div>
               </div>
             ))

@@ -83,7 +83,7 @@ paths:
     post:
       operationId: login
       tags: [auth]
-      summary: Login with email and password
+      summary: Login with email and password (sends verification code via email)
       requestBody:
         required: true
         content:
@@ -92,13 +92,38 @@ paths:
               $ref: "#/components/schemas/LoginRequest"
       responses:
         "200":
-          description: Login successful
+          description: Code sent to email (requires verification)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/verify-login-code:
+    post:
+      operationId: verifyLoginCode
+      tags: [auth]
+      summary: Verify login email code and get session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyLoginCodeRequest"
+      responses:
+        "200":
+          description: Code verified, session token issued
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthResponse"
         "401":
-          description: Invalid credentials
+          description: Invalid or expired code
           content:
             application/json:
               schema:
@@ -1917,6 +1942,35 @@ components:
       required:
         - token
         - user
+
+    LoginResponse:
+      type: object
+      description: Response after email/password login (verification code sent via email)
+      properties:
+        requiresVerification:
+          type: boolean
+        email:
+          type: string
+          format: email
+      required:
+        - requiresVerification
+        - email
+
+    VerifyLoginCodeRequest:
+      type: object
+      description: Email and verification code for login
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: "^[0-9]{6}$"
+      required:
+        - email
+        - code
 
     UpdateProfileRequest:
       type: object

@@ -162,3 +162,30 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
     resetUrl,
   );
 }
+
+/** Generate a 6-digit verification code for login MFA. */
+export function generateLoginCode(): string {
+  return crypto.randomInt(100000, 999999).toString();
+}
+
+export async function sendLoginVerificationEmail(to: string, fullName: string, code: string): Promise<void> {
+  const firstName = fullName.split(" ")[0] || "there";
+  const codeDisplay = code.split("").join(" ");
+  await sendEmail(
+    to,
+    "Your S-PAY login code",
+    wrap({
+      title: "Verify your login",
+      preheader: "Your S-PAY verification code (valid 10 minutes).",
+      bodyHtml: `<p style="font-size:15px;line-height:1.6;margin:0 0 24px;color:#334155;">Hi ${firstName}, here's your S-PAY login verification code. It's valid for <strong>10 minutes</strong>.</p><div style="background-color:#f8fafc;border:2px solid #4DC9EE;border-radius:12px;padding:24px;text-align:center;"><div style="font-family:monospace;font-size:32px;font-weight:700;color:#1A2B4A;letter-spacing:8px;">${codeDisplay}</div></div><p style="font-size:15px;line-height:1.6;margin:24px 0 0;color:#334155;">If you didn't try to sign in, ignore this email. Your account is safe.</p>`,
+      ctaLabel: "Enter code in S-PAY",
+      ctaUrl: "", // No CTA link for codes, just display
+    }),
+    plain(
+      [`Hi ${firstName}, here's your S-PAY login verification code:`, codeDisplay, "It's valid for 10 minutes. If you didn't try to sign in, ignore this email."],
+      "Enter code in S-PAY",
+      "",
+    ),
+    "",
+  );
+}

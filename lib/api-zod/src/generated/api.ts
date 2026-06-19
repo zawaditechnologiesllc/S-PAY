@@ -52,7 +52,7 @@ export const RegisterBody = zod.object({
 
 
 /**
- * @summary Login with email and password
+ * @summary Login with email and password (sends verification code via email)
  */
 export const LoginBody = zod.object({
   "email": zod.string().email(),
@@ -60,6 +60,27 @@ export const LoginBody = zod.object({
 })
 
 export const LoginResponse = zod.object({
+  "requiresVerification": zod.boolean(),
+  "email": zod.string().email()
+}).describe('Response after email\/password login (verification code sent via email)')
+
+
+/**
+ * @summary Verify login email code and get session token
+ */
+export const verifyLoginCodeBodyCodeMin = 6;
+export const verifyLoginCodeBodyCodeMax = 6;
+
+
+export const verifyLoginCodeBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+
+
+export const VerifyLoginCodeBody = zod.object({
+  "email": zod.string().email(),
+  "code": zod.string().min(verifyLoginCodeBodyCodeMin).max(verifyLoginCodeBodyCodeMax).regex(verifyLoginCodeBodyCodeRegExp)
+}).describe('Email and verification code for login')
+
+export const VerifyLoginCodeResponse = zod.object({
   "token": zod.string(),
   "user": zod.object({
   "id": zod.string(),

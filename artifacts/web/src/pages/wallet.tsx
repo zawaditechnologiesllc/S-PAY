@@ -90,7 +90,7 @@ export default function Wallet() {
                     </div>
                     <div className="text-right">
                       <div className={`font-semibold ${isPositive ? 'text-green-600' : 'text-gray-900 dark:text-gray-100'}`}>
-                        {isPositive ? '+' : '-'}{tx.currency} {tx.amount.toFixed(2)}
+                        {isPositive ? '+' : '-'}${tx.amount.toFixed(2)}
                       </div>
                       {tx.counterparty && (
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tx.counterparty}</div>

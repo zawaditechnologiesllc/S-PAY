@@ -75,6 +75,7 @@ import type {
   ListPayrollBatchPaymentsParams,
   ListPayrollBatchesParams,
   LoginRequest,
+  LoginResponse,
   MessageResponse,
   NoahWebhookBody,
   NotificationsResponse,
@@ -99,6 +100,7 @@ import type {
   UpdateEnquiryBody,
   UpdateProfileRequest,
   User,
+  VerifyLoginCodeRequest,
   WalletBalance,
   WalletProvidersResponse,
   WalletProvidersUpdateRequest,
@@ -353,11 +355,11 @@ export const getLoginUrl = () => {
 }
 
 /**
- * @summary Login with email and password
+ * @summary Login with email and password (sends verification code via email)
  */
-export const login = async (loginRequest: LoginRequest, options?: RequestInit): Promise<AuthResponse> => {
+export const login = async (loginRequest: LoginRequest, options?: RequestInit): Promise<LoginResponse> => {
 
-  return customFetch<AuthResponse>(getLoginUrl(),
+  return customFetch<LoginResponse>(getLoginUrl(),
   {
     ...options,
     method: 'POST',
@@ -402,7 +404,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type LoginMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Login with email and password
+ * @summary Login with email and password (sends verification code via email)
  */
 export const useLogin = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof login>>, TError,{data: BodyType<LoginRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -413,6 +415,77 @@ export const useLogin = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getLoginMutationOptions(options));
+    }
+
+export const getVerifyLoginCodeUrl = () => {
+
+
+
+
+  return `/api/auth/verify-login-code`
+}
+
+/**
+ * @summary Verify login email code and get session token
+ */
+export const verifyLoginCode = async (verifyLoginCodeRequest: VerifyLoginCodeRequest, options?: RequestInit): Promise<AuthResponse> => {
+
+  return customFetch<AuthResponse>(getVerifyLoginCodeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      verifyLoginCodeRequest,)
+  }
+);}
+
+
+
+
+export const getVerifyLoginCodeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyLoginCode>>, TError,{data: BodyType<VerifyLoginCodeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyLoginCode>>, TError,{data: BodyType<VerifyLoginCodeRequest>}, TContext> => {
+
+const mutationKey = ['verifyLoginCode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyLoginCode>>, {data: BodyType<VerifyLoginCodeRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  verifyLoginCode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyLoginCodeMutationResult = NonNullable<Awaited<ReturnType<typeof verifyLoginCode>>>
+    export type VerifyLoginCodeMutationBody = BodyType<VerifyLoginCodeRequest>
+    export type VerifyLoginCodeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Verify login email code and get session token
+ */
+export const useVerifyLoginCode = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyLoginCode>>, TError,{data: BodyType<VerifyLoginCodeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyLoginCode>>,
+        TError,
+        {data: BodyType<VerifyLoginCodeRequest>},
+        TContext
+      > => {
+      return useMutation(getVerifyLoginCodeMutationOptions(options));
     }
 
 export const getGetMeUrl = () => {
