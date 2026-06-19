@@ -7,6 +7,7 @@ import {
   Star, Quote, Building2, Handshake,
 } from "lucide-react";
 import { PublicLayout } from "@/components/public-layout";
+import { EnquiryChat } from "@/components/enquiry-chat";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -487,18 +488,18 @@ export default function Landing() {
                 <Building2 size={13} /> Payroll & Batch Payments
               </div>
               <h2 className="text-2xl md:text-4xl font-black text-[#1A2B4A] leading-tight mb-4">
-                Payroll at global scale.<br className="hidden md:block" /> No setup fees.
+                Built for companies<br className="hidden md:block" /> and partnerships too.
               </h2>
               <p className="text-gray-500 leading-relaxed mb-7 text-base md:text-lg">
-                Pay your distributed team in 180+ countries — freelancers, contractors, or full-time workers. Batch payouts with instant local cash-outs. No onboarding fees. No minimums.
+                Get business virtual accounts, manage compliance with automated KYB, and pay your global team in 180+ countries. No setup fees. No per-transaction minimums.
               </p>
               <ul className="space-y-3.5 mb-8">
                 {[
-                  "Batch payroll API — integrate in minutes, same format for every marketplace",
-                  "Worker auto-onboarding — email or phone, we handle KYC, they get paid instantly",
-                  "Fee-free provider switching — Noah, Conduit, Yellow Card, Bridge, Thunes — all live rates",
-                  "Smart routing — automatic best-rate selection for every payout corridor",
-                  "Webhook webhooks for compliance — real-time status on every payment, every worker",
+                  "US ACH account + EU IBAN — issued instantly in your business name",
+                  "Automated KYB — company verification in minutes, no paperwork",
+                  "Batch payroll API — register teams, submit payments, track status in real-time",
+                  "Instant worker onboarding — email or phone, auto-created, auto-paid",
+                  "Global payouts — 180+ countries via M-Pesa, PIX, SEPA, ACH, and 50+ local methods",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
                     <CheckCircle size={17} className="text-[#1A2B4A] flex-shrink-0 mt-0.5" />
@@ -512,11 +513,16 @@ export default function Landing() {
                     Start Paying Your Team <ArrowRight size={15} />
                   </button>
                 </Link>
-                <a href="mailto:partnerships@spayewallet.com">
-                  <button className="flex items-center justify-center gap-2 bg-white text-[#1A2B4A] font-semibold px-6 py-3 rounded-xl border border-gray-200 hover:border-[#1A2B4A]/30 transition-colors text-sm w-full sm:w-auto">
-                    <Handshake size={15} /> Talk to Sales
-                  </button>
-                </a>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const btn = document.querySelector('[aria-label="Contact support"]') as HTMLButtonElement;
+                    btn?.click();
+                  }}
+                  className="flex items-center justify-center gap-2 bg-white text-[#1A2B4A] font-semibold px-6 py-3 rounded-xl border border-gray-200 hover:border-[#1A2B4A]/30 transition-colors text-sm w-full sm:w-auto"
+                >
+                  <Handshake size={15} /> Talk to Sales
+                </button>
               </div>
             </div>
 
@@ -797,6 +803,7 @@ export default function Landing() {
         </div>
       </section>
 
+      <EnquiryChat />
     </PublicLayout>
   );
 }
