@@ -141,7 +141,6 @@ export function PublicFooter() {
               The money super app for remote workers. Get a real US &amp; EU bank account, digital wallet, and local cash-outs — all in one place.
             </p>
             <p className="text-blue-400 text-xs mb-3">By Zawadi Technologies LLC</p>
-            <p className="text-blue-400 text-xs mb-3">Zawadi Technologies LLC is a registered Money Services Business</p>
             {/* Built on Celo — same declaration MiniPay makes */}
             <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3.5 py-1.5 mb-6">
               <span className="w-2.5 h-2.5 rounded-full bg-[#FCFF52] flex-shrink-0" />

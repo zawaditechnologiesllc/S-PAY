@@ -25,8 +25,8 @@ const FAQ = [
     a: "Mobile money payouts (M-Pesa, MTN, etc.) typically arrive within minutes. Bank transfers usually settle within 1–2 business days depending on the destination country and local banking rails.",
   },
   {
-    q: "Is S-PAY safe and regulated?",
-    a: "Yes. S-PAY operates as a Money Services Business (MSB) under US federal law. We use bank-grade AES-256 encryption, require identity verification for all users, and screen transactions for compliance with AML/sanctions regulations.",
+    q: "Is S-PAY safe?",
+    a: "We take security seriously. We use bank-grade AES-256 encryption, require identity verification for all users, and screen transactions against AML and sanctions watchlists.",
   },
 ];
 
