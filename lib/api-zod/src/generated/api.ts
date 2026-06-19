@@ -1165,3 +1165,352 @@ export const UpdateFeatureFlagsResponse = zod.object({
   "socialConnectEnabled": zod.boolean().optional().describe('Master switch for Celo SocialConnect phone\/email → address resolution on sends (admin-controlled)'),
   "socialConnectConfigured": zod.boolean().optional().describe('Whether the SocialConnect issuer env keys are set — the switch only takes effect when true')
 })
+
+
+/**
+ * @summary Register the signed-in user's company as a payroll employer
+ */
+export const RegisterEmployerBody = zod.object({
+  "companyName": zod.string(),
+  "email": zod.string().optional(),
+  "websiteUrl": zod.string().optional(),
+  "country": zod.string().optional(),
+  "webhookUrl": zod.string().optional(),
+  "autoCreateWorkers": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Get the signed-in owner's employer account
+ */
+export const GetEmployerResponse = zod.object({
+  "employer": zod.object({
+  "id": zod.string(),
+  "companyName": zod.string(),
+  "email": zod.string(),
+  "websiteUrl": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "status": zod.enum(['pending', 'verified', 'rejected', 'suspended']),
+  "balanceUsdc": zod.number(),
+  "fundingAddress": zod.string().nullish(),
+  "webhookUrl": zod.string().nullish(),
+  "autoCreateWorkers": zod.boolean(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary Update employer profile
+ */
+export const UpdateEmployerBody = zod.object({
+  "companyName": zod.string().optional(),
+  "email": zod.string().optional(),
+  "websiteUrl": zod.string().optional(),
+  "country": zod.string().optional(),
+  "webhookUrl": zod.string().optional(),
+  "autoCreateWorkers": zod.boolean().optional()
+})
+
+export const UpdateEmployerResponse = zod.object({
+  "employer": zod.object({
+  "id": zod.string(),
+  "companyName": zod.string(),
+  "email": zod.string(),
+  "websiteUrl": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "status": zod.enum(['pending', 'verified', 'rejected', 'suspended']),
+  "balanceUsdc": zod.number(),
+  "fundingAddress": zod.string().nullish(),
+  "webhookUrl": zod.string().nullish(),
+  "autoCreateWorkers": zod.boolean(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary List the employer's API keys (masked)
+ */
+export const ListEmployerApiKeysResponse = zod.object({
+  "apiKeys": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string().nullish(),
+  "prefix": zod.string(),
+  "sandbox": zod.boolean(),
+  "scopes": zod.array(zod.string()),
+  "lastUsedAt": zod.string().nullish(),
+  "revokedAt": zod.string().nullish(),
+  "expiresAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Mint an API key (plaintext returned once)
+ */
+export const CreateEmployerApiKeyBody = zod.object({
+  "name": zod.string().optional(),
+  "sandbox": zod.boolean().optional(),
+  "scopes": zod.array(zod.string()).optional(),
+  "expiresInDays": zod.number().optional()
+})
+
+
+/**
+ * @summary Revoke an API key
+ */
+export const RevokeEmployerApiKeyParams = zod.object({
+  "keyId": zod.coerce.string()
+})
+
+export const RevokeEmployerApiKeyResponse = zod.object({
+  "revoked": zod.boolean().optional(),
+  "id": zod.string().optional()
+})
+
+
+/**
+ * Authenticated with a sandbox API key as a Bearer token.
+ * @summary Credit test balance (sandbox API key only)
+ */
+export const FundSandboxBalanceBody = zod.object({
+  "amount": zod.number()
+})
+
+export const FundSandboxBalanceResponse = zod.object({
+  "balanceUsdc": zod.number().optional(),
+  "credited": zod.number().optional(),
+  "sandbox": zod.boolean().optional()
+})
+
+
+/**
+ * Authenticated with a payroll API key as a Bearer token.
+ * @summary Create a payroll batch (draft)
+ */
+export const CreatePayrollBatchBody = zod.object({
+  "reference": zod.string().optional(),
+  "description": zod.string().optional(),
+  "currency": zod.string().optional(),
+  "idempotencyKey": zod.string().optional(),
+  "webhookUrl": zod.string().optional(),
+  "payments": zod.array(zod.object({
+  "workerIdentifier": zod.string(),
+  "identifierType": zod.enum(['email', 'phone', 'spay_id', 'celo_address']).optional(),
+  "amount": zod.number(),
+  "currency": zod.string().optional(),
+  "reason": zod.string().optional(),
+  "externalId": zod.string().optional()
+}))
+})
+
+
+/**
+ * @summary List payroll batches
+ */
+export const ListPayrollBatchesQueryParams = zod.object({
+  "status": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().optional(),
+  "offset": zod.coerce.number().optional()
+})
+
+export const ListPayrollBatchesResponse = zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "reference": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "sandbox": zod.boolean().optional(),
+  "currency": zod.string(),
+  "status": zod.enum(['draft', 'processing', 'completed', 'partially_completed', 'failed', 'cancelled']),
+  "totalAmount": zod.number(),
+  "feeAmount": zod.number(),
+  "totalCost": zod.number().optional(),
+  "paymentCount": zod.number(),
+  "completedCount": zod.number().optional(),
+  "failedCount": zod.number().optional(),
+  "webhookUrl": zod.string().nullish(),
+  "submittedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number(),
+  "limit": zod.number().optional(),
+  "offset": zod.number().optional()
+})
+
+
+/**
+ * @summary Get a payroll batch
+ */
+export const GetPayrollBatchParams = zod.object({
+  "batchId": zod.coerce.string()
+})
+
+export const GetPayrollBatchResponse = zod.object({
+  "batch": zod.object({
+  "id": zod.string(),
+  "reference": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "sandbox": zod.boolean().optional(),
+  "currency": zod.string(),
+  "status": zod.enum(['draft', 'processing', 'completed', 'partially_completed', 'failed', 'cancelled']),
+  "totalAmount": zod.number(),
+  "feeAmount": zod.number(),
+  "totalCost": zod.number().optional(),
+  "paymentCount": zod.number(),
+  "completedCount": zod.number().optional(),
+  "failedCount": zod.number().optional(),
+  "webhookUrl": zod.string().nullish(),
+  "submittedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}),
+  "idempotent": zod.boolean().optional(),
+  "alreadySubmitted": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Submit a batch — resolve workers and pay
+ */
+export const SubmitPayrollBatchParams = zod.object({
+  "batchId": zod.coerce.string()
+})
+
+export const SubmitPayrollBatchResponse = zod.object({
+  "batch": zod.object({
+  "id": zod.string(),
+  "reference": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "sandbox": zod.boolean().optional(),
+  "currency": zod.string(),
+  "status": zod.enum(['draft', 'processing', 'completed', 'partially_completed', 'failed', 'cancelled']),
+  "totalAmount": zod.number(),
+  "feeAmount": zod.number(),
+  "totalCost": zod.number().optional(),
+  "paymentCount": zod.number(),
+  "completedCount": zod.number().optional(),
+  "failedCount": zod.number().optional(),
+  "webhookUrl": zod.string().nullish(),
+  "submittedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}),
+  "idempotent": zod.boolean().optional(),
+  "alreadySubmitted": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Cancel a still-draft batch
+ */
+export const CancelPayrollBatchParams = zod.object({
+  "batchId": zod.coerce.string()
+})
+
+export const CancelPayrollBatchResponse = zod.object({
+  "batch": zod.object({
+  "id": zod.string(),
+  "reference": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "sandbox": zod.boolean().optional(),
+  "currency": zod.string(),
+  "status": zod.enum(['draft', 'processing', 'completed', 'partially_completed', 'failed', 'cancelled']),
+  "totalAmount": zod.number(),
+  "feeAmount": zod.number(),
+  "totalCost": zod.number().optional(),
+  "paymentCount": zod.number(),
+  "completedCount": zod.number().optional(),
+  "failedCount": zod.number().optional(),
+  "webhookUrl": zod.string().nullish(),
+  "submittedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}),
+  "idempotent": zod.boolean().optional(),
+  "alreadySubmitted": zod.boolean().optional()
+})
+
+
+/**
+ * @summary List the payments in a batch
+ */
+export const ListPayrollBatchPaymentsParams = zod.object({
+  "batchId": zod.coerce.string()
+})
+
+export const ListPayrollBatchPaymentsQueryParams = zod.object({
+  "limit": zod.coerce.number().optional(),
+  "offset": zod.coerce.number().optional()
+})
+
+export const ListPayrollBatchPaymentsResponse = zod.object({
+  "payments": zod.array(zod.object({
+  "id": zod.string(),
+  "workerIdentifier": zod.string(),
+  "identifierType": zod.string().optional(),
+  "amount": zod.number(),
+  "currency": zod.string().optional(),
+  "reason": zod.string().nullish(),
+  "status": zod.enum(['pending', 'resolved', 'completed', 'failed']),
+  "resolvedUserId": zod.string().nullish(),
+  "workerCreated": zod.boolean().optional(),
+  "transactionId": zod.string().nullish(),
+  "errorMessage": zod.string().nullish(),
+  "externalId": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number(),
+  "limit": zod.number().optional(),
+  "offset": zod.number().optional()
+})
+
+
+/**
+ * @summary Employer payroll rollup (API key)
+ */
+export const GetPayrollSummaryResponse = zod.object({
+  "balanceUsdc": zod.number().optional(),
+  "totalBatches": zod.number().optional(),
+  "totalDisbursed": zod.number().optional(),
+  "totalFees": zod.number().optional(),
+  "totalPayments": zod.number().optional(),
+  "completedPayments": zod.number().optional(),
+  "failedPayments": zod.number().optional(),
+  "workersOnboarded": zod.number().optional()
+})
+
+
+/**
+ * @summary Fire a test webhook
+ */
+export const TestPayrollWebhookBody = zod.object({
+  "url": zod.string().optional()
+})
+
+export const TestPayrollWebhookResponse = zod.object({
+  "queued": zod.boolean().optional(),
+  "deliveryId": zod.string().nullish()
+})
+
+
+/**
+ * @summary Webhook delivery audit log
+ */
+export const ListPayrollWebhookDeliveriesResponse = zod.object({
+  "deliveries": zod.array(zod.object({
+  "id": zod.string(),
+  "eventType": zod.string(),
+  "url": zod.string(),
+  "status": zod.string(),
+  "responseStatus": zod.number().nullish(),
+  "attempts": zod.number(),
+  "lastError": zod.string().nullish(),
+  "batchId": zod.string().nullish(),
+  "deliveredAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})

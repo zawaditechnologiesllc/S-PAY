@@ -24,6 +24,8 @@ tags:
     description: Dashboard summary and overview
   - name: webhooks
     description: External service webhooks
+  - name: payroll
+    description: Payouts-as-a-service — companies pay their workers through S-PAY
 
 paths:
   /healthz:
@@ -1263,6 +1265,324 @@ paths:
               schema:
                 $ref: "#/components/schemas/FeatureFlagsResponse"
 
+  /payroll/employers/register:
+    post:
+      operationId: registerEmployer
+      tags: [payroll]
+      summary: Register the signed-in user's company as a payroll employer
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployerRegisterRequest"
+      responses:
+        "201":
+          description: Employer created (webhookSecret shown once)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployerRegisterResponse"
+
+  /payroll/employers/me:
+    get:
+      operationId: getEmployer
+      tags: [payroll]
+      summary: Get the signed-in owner's employer account
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Employer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployerResponse"
+    patch:
+      operationId: updateEmployer
+      tags: [payroll]
+      summary: Update employer profile
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployerUpdateRequest"
+      responses:
+        "200":
+          description: Updated employer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployerResponse"
+
+  /payroll/employers/me/api-keys:
+    get:
+      operationId: listEmployerApiKeys
+      tags: [payroll]
+      summary: List the employer's API keys (masked)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: API keys
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyListResponse"
+    post:
+      operationId: createEmployerApiKey
+      tags: [payroll]
+      summary: Mint an API key (plaintext returned once)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiKeyCreateRequest"
+      responses:
+        "201":
+          description: Created key (store it now)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyCreateResponse"
+
+  /payroll/employers/me/api-keys/{keyId}:
+    delete:
+      operationId: revokeEmployerApiKey
+      tags: [payroll]
+      summary: Revoke an API key
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revoked: { type: boolean }
+                  id: { type: string }
+
+  /payroll/sandbox/fund:
+    post:
+      operationId: fundSandboxBalance
+      tags: [payroll]
+      summary: Credit test balance (sandbox API key only)
+      description: Authenticated with a sandbox API key as a Bearer token.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: number }
+      responses:
+        "200":
+          description: New balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balanceUsdc: { type: number }
+                  credited: { type: number }
+                  sandbox: { type: boolean }
+
+  /payroll/batches:
+    post:
+      operationId: createPayrollBatch
+      tags: [payroll]
+      summary: Create a payroll batch (draft)
+      description: Authenticated with a payroll API key as a Bearer token.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchCreateRequest"
+      responses:
+        "201":
+          description: Created batch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchResponse"
+    get:
+      operationId: listPayrollBatches
+      tags: [payroll]
+      summary: List payroll batches
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: offset
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Batches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchListResponse"
+
+  /payroll/batches/{batchId}:
+    get:
+      operationId: getPayrollBatch
+      tags: [payroll]
+      summary: Get a payroll batch
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Batch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchResponse"
+
+  /payroll/batches/{batchId}/submit:
+    post:
+      operationId: submitPayrollBatch
+      tags: [payroll]
+      summary: Submit a batch — resolve workers and pay
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Final batch state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchResponse"
+        "402":
+          description: Insufficient prepaid balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payroll/batches/{batchId}/cancel:
+    post:
+      operationId: cancelPayrollBatch
+      tags: [payroll]
+      summary: Cancel a still-draft batch
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Cancelled batch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchResponse"
+
+  /payroll/batches/{batchId}/payments:
+    get:
+      operationId: listPayrollBatchPayments
+      tags: [payroll]
+      summary: List the payments in a batch
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: offset
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Payments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentListResponse"
+
+  /payroll/summary:
+    get:
+      operationId: getPayrollSummary
+      tags: [payroll]
+      summary: Employer payroll rollup (API key)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollSummary"
+
+  /payroll/webhooks/test:
+    post:
+      operationId: testPayrollWebhook
+      tags: [payroll]
+      summary: Fire a test webhook
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url: { type: string }
+      responses:
+        "200":
+          description: Queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queued: { type: boolean }
+                  deliveryId: { type: string, nullable: true }
+
+  /payroll/webhooks/deliveries:
+    get:
+      operationId: listPayrollWebhookDeliveries
+      tags: [payroll]
+      summary: Webhook delivery audit log
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Deliveries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookDeliveryListResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1278,6 +1598,222 @@ components:
           type: string
       required:
         - status
+
+    # ── Payroll ──────────────────────────────────────────────────────────────
+    Employer:
+      type: object
+      properties:
+        id: { type: string }
+        companyName: { type: string }
+        email: { type: string }
+        websiteUrl: { type: string, nullable: true }
+        country: { type: string, nullable: true }
+        status: { type: string, enum: [pending, verified, rejected, suspended] }
+        balanceUsdc: { type: number }
+        fundingAddress: { type: string, nullable: true }
+        webhookUrl: { type: string, nullable: true }
+        autoCreateWorkers: { type: boolean }
+        createdAt: { type: string }
+      required: [id, companyName, email, status, balanceUsdc, autoCreateWorkers, createdAt]
+
+    EmployerRegisterRequest:
+      type: object
+      required: [companyName]
+      properties:
+        companyName: { type: string }
+        email: { type: string }
+        websiteUrl: { type: string }
+        country: { type: string }
+        webhookUrl: { type: string }
+        autoCreateWorkers: { type: boolean }
+
+    EmployerRegisterResponse:
+      type: object
+      properties:
+        employer: { $ref: "#/components/schemas/Employer" }
+        webhookSecret: { type: string }
+        message: { type: string }
+      required: [employer]
+
+    EmployerResponse:
+      type: object
+      properties:
+        employer: { $ref: "#/components/schemas/Employer" }
+      required: [employer]
+
+    EmployerUpdateRequest:
+      type: object
+      properties:
+        companyName: { type: string }
+        email: { type: string }
+        websiteUrl: { type: string }
+        country: { type: string }
+        webhookUrl: { type: string }
+        autoCreateWorkers: { type: boolean }
+
+    ApiKey:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string, nullable: true }
+        prefix: { type: string }
+        sandbox: { type: boolean }
+        scopes: { type: array, items: { type: string } }
+        lastUsedAt: { type: string, nullable: true }
+        revokedAt: { type: string, nullable: true }
+        expiresAt: { type: string, nullable: true }
+        createdAt: { type: string }
+      required: [id, prefix, sandbox, scopes, createdAt]
+
+    ApiKeyListResponse:
+      type: object
+      properties:
+        apiKeys: { type: array, items: { $ref: "#/components/schemas/ApiKey" } }
+      required: [apiKeys]
+
+    ApiKeyCreateRequest:
+      type: object
+      properties:
+        name: { type: string }
+        sandbox: { type: boolean }
+        scopes: { type: array, items: { type: string } }
+        expiresInDays: { type: integer }
+
+    ApiKeyCreateResponse:
+      type: object
+      properties:
+        apiKey: { type: string }
+        id: { type: string }
+        name: { type: string }
+        prefix: { type: string }
+        sandbox: { type: boolean }
+        scopes: { type: array, items: { type: string } }
+        expiresAt: { type: string, nullable: true }
+        message: { type: string }
+      required: [apiKey, id]
+
+    BatchPaymentInput:
+      type: object
+      required: [workerIdentifier, amount]
+      properties:
+        workerIdentifier: { type: string }
+        identifierType: { type: string, enum: [email, phone, spay_id, celo_address] }
+        amount: { type: number }
+        currency: { type: string }
+        reason: { type: string }
+        externalId: { type: string }
+
+    BatchCreateRequest:
+      type: object
+      required: [payments]
+      properties:
+        reference: { type: string }
+        description: { type: string }
+        currency: { type: string }
+        idempotencyKey: { type: string }
+        webhookUrl: { type: string }
+        payments:
+          type: array
+          items: { $ref: "#/components/schemas/BatchPaymentInput" }
+
+    Batch:
+      type: object
+      properties:
+        id: { type: string }
+        reference: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        sandbox: { type: boolean }
+        currency: { type: string }
+        status: { type: string, enum: [draft, processing, completed, partially_completed, failed, cancelled] }
+        totalAmount: { type: number }
+        feeAmount: { type: number }
+        totalCost: { type: number }
+        paymentCount: { type: integer }
+        completedCount: { type: integer }
+        failedCount: { type: integer }
+        webhookUrl: { type: string, nullable: true }
+        submittedAt: { type: string, nullable: true }
+        completedAt: { type: string, nullable: true }
+        createdAt: { type: string }
+      required: [id, status, currency, totalAmount, feeAmount, paymentCount, createdAt]
+
+    BatchResponse:
+      type: object
+      properties:
+        batch: { $ref: "#/components/schemas/Batch" }
+        idempotent: { type: boolean }
+        alreadySubmitted: { type: boolean }
+      required: [batch]
+
+    BatchListResponse:
+      type: object
+      properties:
+        batches: { type: array, items: { $ref: "#/components/schemas/Batch" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+      required: [batches, total]
+
+    Payment:
+      type: object
+      properties:
+        id: { type: string }
+        workerIdentifier: { type: string }
+        identifierType: { type: string }
+        amount: { type: number }
+        currency: { type: string }
+        reason: { type: string, nullable: true }
+        status: { type: string, enum: [pending, resolved, completed, failed] }
+        resolvedUserId: { type: string, nullable: true }
+        workerCreated: { type: boolean }
+        transactionId: { type: string, nullable: true }
+        errorMessage: { type: string, nullable: true }
+        externalId: { type: string, nullable: true }
+        paidAt: { type: string, nullable: true }
+        createdAt: { type: string }
+      required: [id, workerIdentifier, amount, status, createdAt]
+
+    PaymentListResponse:
+      type: object
+      properties:
+        payments: { type: array, items: { $ref: "#/components/schemas/Payment" } }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+      required: [payments, total]
+
+    PayrollSummary:
+      type: object
+      properties:
+        balanceUsdc: { type: number }
+        totalBatches: { type: integer }
+        totalDisbursed: { type: number }
+        totalFees: { type: number }
+        totalPayments: { type: integer }
+        completedPayments: { type: integer }
+        failedPayments: { type: integer }
+        workersOnboarded: { type: integer }
+
+    WebhookDelivery:
+      type: object
+      properties:
+        id: { type: string }
+        eventType: { type: string }
+        url: { type: string }
+        status: { type: string }
+        responseStatus: { type: integer, nullable: true }
+        attempts: { type: integer }
+        lastError: { type: string, nullable: true }
+        batchId: { type: string, nullable: true }
+        deliveredAt: { type: string, nullable: true }
+        createdAt: { type: string }
+      required: [id, eventType, url, status, attempts, createdAt]
+
+    WebhookDeliveryListResponse:
+      type: object
+      properties:
+        deliveries: { type: array, items: { $ref: "#/components/schemas/WebhookDelivery" } }
+      required: [deliveries]
 
     ErrorResponse:
       type: object

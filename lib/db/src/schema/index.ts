@@ -6,3 +6,4 @@ export * from "./app-settings";
 export * from "./custom-jobs";
 export * from "./notifications";
 export * from "./enquiries";
+export * from "./payroll";
