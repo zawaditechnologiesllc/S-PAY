@@ -7,7 +7,6 @@ import {
   Star, Quote, Building2, Handshake,
 } from "lucide-react";
 import { PublicLayout } from "@/components/public-layout";
-import { EnquiryChat } from "@/components/enquiry-chat";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -803,7 +802,6 @@ export default function Landing() {
         </div>
       </section>
 
-      <EnquiryChat />
     </PublicLayout>
   );
 }

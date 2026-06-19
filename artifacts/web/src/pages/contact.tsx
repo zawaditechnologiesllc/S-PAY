@@ -142,12 +142,15 @@ export default function Contact() {
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-black text-white mb-4">Still have questions?</h2>
           <p className="text-blue-50 mb-8">Our support team typically replies within one business day.</p>
-          <a
-            href="mailto:support@spayewallet.com"
+          <button
+            onClick={() => {
+              const btn = document.querySelector('[aria-label="Contact support"]') as HTMLButtonElement | null;
+              btn?.click();
+            }}
             className="inline-flex items-center gap-2 bg-[#1A2B4A] text-white font-bold px-8 py-4 rounded-2xl hover:bg-[#0d1f38] transition-colors shadow-lg"
           >
-            <Mail size={18} /> Email Support
-          </a>
+            <Mail size={18} /> Chat with us
+          </button>
         </div>
       </section>
 

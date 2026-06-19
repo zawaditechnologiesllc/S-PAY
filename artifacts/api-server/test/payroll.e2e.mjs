@@ -87,8 +87,8 @@ async function main() {
     const uniq = Date.now();
     const ownerEmail = `e2e_owner_${uniq}@test.com`;
 
-    // 1. owner user + employer + sandbox key
-    const reg = await api("POST", "/auth/register", { body: { email: ownerEmail, password: "Sup3rSecret!", fullName: "E2E Owner" } });
+    // 1. owner user (business account — payroll is business-only) + employer + sandbox key
+    const reg = await api("POST", "/auth/register", { body: { email: ownerEmail, password: "Sup3rSecret!", fullName: "E2E Owner", accountType: "business", businessName: "E2E Marketplace" } });
     const token = reg.body.token;
     check("owner registers", reg.status === 200 || reg.status === 201, `status ${reg.status}`);
 

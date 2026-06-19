@@ -10,7 +10,6 @@ import {
   useGetAdminTeam, getGetAdminTeamQueryKey, useGrantAdminRole, useRevokeAdminRole,
   type WalletProvidersUpdateRequestActiveProvider,
 } from "@workspace/api-client-react";
-import { useGetPayoutProviders, useUpdatePayoutProviders } from "@workspace/api-client-react";
 import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone, UserPlus, Trash2, Link2, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 

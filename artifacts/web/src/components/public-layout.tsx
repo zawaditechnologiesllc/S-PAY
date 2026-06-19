@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useGetSiteContent, getGetSiteContentQueryKey } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { Globe, Mail, Menu, X, ArrowRight } from "lucide-react";
+import { EnquiryChat } from "@/components/enquiry-chat";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 interface PublicNavProps {
@@ -218,6 +219,7 @@ export function PublicLayout({
       <PublicNav active={active} />
       {children}
       <PublicFooter />
+      <EnquiryChat />
     </div>
   );
 }

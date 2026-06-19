@@ -19,7 +19,7 @@ export function EnquiryChat() {
     }
 
     create.mutate(
-      { data: { email: email.trim(), subject: subject.trim(), message: message.trim() } },
+      { data: { email: email.trim(), subject: subject.trim(), message: message.trim(), source: "sales_chat" } },
       {
         onSuccess: () => {
           setSubmitted(true);

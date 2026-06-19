@@ -63,6 +63,7 @@ export const LoginResponse = zod.object({
   "token": zod.string(),
   "user": zod.object({
   "id": zod.string(),
+  "spayId": zod.string().optional().describe('Public S-PAY identifier (spay_…) for receiving payments and payroll worker resolution'),
   "email": zod.string(),
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
@@ -86,6 +87,7 @@ export const LoginResponse = zod.object({
  */
 export const GetMeResponse = zod.object({
   "id": zod.string(),
+  "spayId": zod.string().optional().describe('Public S-PAY identifier (spay_…) for receiving payments and payroll worker resolution'),
   "email": zod.string(),
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
@@ -128,6 +130,7 @@ export const UpdateProfileBody = zod.object({
 
 export const UpdateProfileResponse = zod.object({
   "id": zod.string(),
+  "spayId": zod.string().optional().describe('Public S-PAY identifier (spay_…) for receiving payments and payroll worker resolution'),
   "email": zod.string(),
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
@@ -169,6 +172,7 @@ export const GoogleTokenSignInResponse = zod.object({
   "token": zod.string(),
   "user": zod.object({
   "id": zod.string(),
+  "spayId": zod.string().optional().describe('Public S-PAY identifier (spay_…) for receiving payments and payroll worker resolution'),
   "email": zod.string(),
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),
@@ -204,6 +208,7 @@ export const AppleTokenSignInResponse = zod.object({
   "token": zod.string(),
   "user": zod.object({
   "id": zod.string(),
+  "spayId": zod.string().optional().describe('Public S-PAY identifier (spay_…) for receiving payments and payroll worker resolution'),
   "email": zod.string(),
   "fullName": zod.string(),
   "phoneNumber": zod.string().optional(),

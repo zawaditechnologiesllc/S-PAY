@@ -323,6 +323,8 @@ export const UserAccountType = {
 
 export interface User {
   id: string;
+  /** Public S-PAY identifier (spay_…) for receiving payments and payroll worker resolution */
+  spayId?: string;
   email: string;
   fullName: string;
   phoneNumber?: string;

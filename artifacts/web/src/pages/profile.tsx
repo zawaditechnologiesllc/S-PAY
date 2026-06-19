@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CircleUser, Mail, Phone, ShieldCheck, LogOut, BadgeCheck, Wallet, Globe, HelpCircle, Link2, Trash2, Pencil, Save, X, MapPin } from "lucide-react";
+import { CircleUser, Mail, Phone, ShieldCheck, LogOut, BadgeCheck, Wallet, Globe, HelpCircle, Link2, Trash2, Pencil, Save, X, MapPin, QrCode, Copy, Check } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { QRModal } from "@/components/qr-modal";
 
 export default function Profile() {
   const startKyc = useStartKyc();
@@ -36,6 +37,15 @@ export default function Profile() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const deleteAccount = useDeleteAccount();
+  const [qrOpen, setQrOpen] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
+
+  const copySpayId = () => {
+    if (!user?.spayId) return;
+    navigator.clipboard.writeText(user.spayId);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  };
 
   const startEdit = () => {
     setForm({
@@ -168,6 +178,24 @@ export default function Profile() {
                       : "Personal (KYC)"}
                   </p>
                 </div>
+                {user?.spayId && (
+                  <div className="flex items-start gap-3">
+                    <QrCode className="text-gray-400 mt-0.5" size={18} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Your S-PAY ID</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <code className="font-mono font-medium text-gray-900 dark:text-gray-100 break-all">{user.spayId}</code>
+                        <button onClick={copySpayId} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded" aria-label="Copy S-PAY ID">
+                          {copiedId ? <Check size={14} className="text-green-600" /> : <Copy size={14} className="text-gray-400" />}
+                        </button>
+                        <button onClick={() => setQrOpen(true)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">
+                          <QrCode size={13} /> Show QR
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">Share this so anyone can pay you — no bank details needed.</p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
                   <Mail className="text-gray-400" size={18} />
                   <div>
@@ -339,6 +367,10 @@ export default function Profile() {
           {deleteAccount.isPending ? "Deleting…" : "Delete my account permanently"}
         </button>
       </div>
+
+      {user?.spayId && (
+        <QRModal open={qrOpen} onClose={() => setQrOpen(false)} spayId={user.spayId} userName={user.fullName ?? ""} />
+      )}
     </Layout>
   );
 }

@@ -55,6 +55,20 @@ router.post("/payroll/employers/register", requireAuth, async (req, res) => {
       return;
     }
     const ownerId = req.user!.userId;
+
+    // Payroll is a business-only feature: paying workers is a company function,
+    // and live mode requires KYB on a business entity. Personal accounts are
+    // pointed at the business-account upgrade instead of silently registered.
+    const [owner] = await db.select({ accountType: usersTable.accountType })
+      .from(usersTable).where(eq(usersTable.id, ownerId)).limit(1);
+    if (owner?.accountType !== "business") {
+      res.status(403).json({
+        error: "business_account_required",
+        message: "Payroll is available on business accounts only. Upgrade to a business account to pay your team.",
+      });
+      return;
+    }
+
     const [existing] = await db.select().from(employersTable)
       .where(eq(employersTable.ownerUserId, ownerId)).limit(1);
     if (existing) {

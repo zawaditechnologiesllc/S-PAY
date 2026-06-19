@@ -1949,6 +1949,9 @@ components:
       properties:
         id:
           type: string
+        spayId:
+          type: string
+          description: Public S-PAY identifier (spay_…) for receiving payments and payroll worker resolution
         email:
           type: string
         fullName:

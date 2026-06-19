@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import jsQR from "jsqr";
-import { useSendMoney, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
+import { useSendMoney, getGetDashboardSummaryQueryKey, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { QRModal } from "@/components/qr-modal";
 import {
   ScanLine, ArrowRightLeft, Plus, Banknote,
-  CheckCircle2, Smartphone, Wallet2, Mail, Lock, ShieldAlert, ExternalLink, CameraOff,
+  CheckCircle2, Smartphone, Wallet2, Mail, Lock, ShieldAlert, ExternalLink, CameraOff, QrCode,
 } from "lucide-react";
 
 /**
@@ -84,6 +85,8 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
   const [pin, setPin] = useState("");
   const [needsPinSetup, setNeedsPinSetup] = useState(false);
   const [result, setResult] = useState<{ txHash?: string; fee?: number; total?: number } | null>(null);
+  const [qrOpen, setQrOpen] = useState(false);
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), staleTime: 60_000 } });
 
   useEffect(() => {
     if (open) {
@@ -200,10 +203,22 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
                 {send.isPending ? "Sending…" : "Send now"}
               </Button>
               <p className="text-[11px] text-gray-400 text-center">Settled on Celo in ~5s · any network fee shows on your receipt</p>
+              {/* Flip side of sending: let the user show their own S-PAY ID QR so
+                  the other party can pay them without typing anything. */}
+              <button
+                type="button"
+                onClick={() => setQrOpen(true)}
+                className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-[#4DC9EE] hover:underline pt-1"
+              >
+                <QrCode size={13} /> Show my QR to get paid instead
+              </button>
             </div>
           </>
         )}
       </DialogContent>
+      {me?.spayId && (
+        <QRModal open={qrOpen} onClose={() => setQrOpen(false)} spayId={me.spayId} userName={me.fullName ?? ""} />
+      )}
     </Dialog>
   );
 }

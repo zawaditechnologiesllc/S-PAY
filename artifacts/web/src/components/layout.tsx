@@ -1,16 +1,21 @@
+import { useState } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import {
   Wallet, Landmark, CreditCard, Briefcase,
   CircleUser, QrCode, HelpCircle, LogOut, LayoutDashboard, Lock, Building2,
 } from "lucide-react";
+import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { clearToken } from "@/lib/auth";
 import { BackButton } from "@/components/back-button";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { ThemeToggle } from "@/components/theme";
+import { QRModal } from "@/components/qr-modal";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 export function Layout({ children, title, back }: { children: React.ReactNode; title?: string; back?: boolean }) {
   const [, setLocation] = useLocation();
+  const [qrOpen, setQrOpen] = useState(false);
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), staleTime: 60_000 } });
 
   const handleSignOut = () => {
     clearToken();
@@ -100,12 +105,15 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <ThemeToggle />
               <NotificationsBell />
-              {/* My QR — one tap from anywhere to get paid (WeChat/Alipay pattern) */}
-              <Link href="/deposit?m=crypto">
-                <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors" aria-label="My QR code">
-                  <QrCode size={19} />
-                </button>
-              </Link>
+              {/* My QR — one tap from anywhere to get paid (WeChat/Alipay pattern).
+                  Opens the S-PAY ID QR so anyone can scan to pay this user. */}
+              <button
+                onClick={() => setQrOpen(true)}
+                className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors"
+                aria-label="My QR code"
+              >
+                <QrCode size={19} />
+              </button>
               <Link href="/profile">
                 <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors" aria-label="Profile">
                   <CircleUser size={19} />
@@ -133,6 +141,15 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
         <MobileNavLink href="/card" icon={<CreditCard size={22} />} label="Card" />
         <MobileNavLink href="/jobs" icon={<Briefcase size={22} />} label="Jobs" />
       </nav>
+
+      {me?.spayId && (
+        <QRModal
+          open={qrOpen}
+          onClose={() => setQrOpen(false)}
+          spayId={me.spayId}
+          userName={me.fullName ?? ""}
+        />
+      )}
     </div>
   );
 }

@@ -29,6 +29,7 @@ import { effectiveRole } from "../lib/admin-roles";
 function userResponse(u: typeof usersTable.$inferSelect) {
   return {
     id: u.id,
+    spayId: u.spayId,
     email: u.email,
     fullName: u.fullName,
     phoneNumber: u.phoneNumber ?? null,
