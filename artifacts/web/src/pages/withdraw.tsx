@@ -14,9 +14,9 @@ import { MoveRight, Landmark, Smartphone, BadgeCheck, CheckCircle2 } from "lucid
 import { Link, useLocation } from "wouter";
 
 export default function Withdraw() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
   const [amount, setAmount] = useState<string>("100");
   const MOMO_PROVIDERS = [
     { id: "mpesa", flag: "🇰🇪", label: "M-Pesa", currency: "KES" },
@@ -26,9 +26,11 @@ export default function Withdraw() {
     { id: "nequi", flag: "🇨🇴", label: "Nequi", currency: "COP" },
   ] as const;
   const MOMO_IDS = MOMO_PROVIDERS.map((p) => p.id as string);
-  // /banking/withdraw?m=momo (dashboard tile) lands with mobile money open
-  const [method, setMethod] = useState<string>("mpesa");
-  const [momoExpanded, setMomoExpanded] = useState(true);
+
+  // Check if coming from dashboard mobile money tile (?m=momo)
+  const fromMomoTile = new URLSearchParams(location.split("?")[1] ?? "").get("m") === "momo";
+  const [method, setMethod] = useState<string>(fromMomoTile ? "mpesa" : "mpesa");
+  const [momoExpanded, setMomoExpanded] = useState(fromMomoTile);
   const [targetCurrency, setTargetCurrency] = useState("KES");
   const [recipient, setRecipient] = useState("");
   const [pin, setPin] = useState("");
@@ -186,14 +188,36 @@ export default function Withdraw() {
             {/* Recipient Details based on method */}
             <div className="space-y-2">
               <Label>
-                {method === "mpesa" ? "Phone Number" : 
-                 method === "sepa" ? "IBAN" : 
+                {method === "mpesa" ? "Phone Number" :
+                 method === "mtn_momo" ? "Phone Number" :
+                 method === "airtel" ? "Phone Number" :
+                 method === "gcash" ? "Phone Number" :
+                 method === "nequi" ? "Phone Number" :
+                 method === "sepa" ? "IBAN" :
                  method === "pix" ? "CPF/CNPJ (Tax ID)" : "Account Number"}
               </Label>
-              <Input 
-                type="text" 
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {method === "mpesa" ? "Your M-Pesa registered phone number" :
+                 method === "mtn_momo" ? "Your MTN Mobile Money registered phone" :
+                 method === "airtel" ? "Your Airtel Money registered phone" :
+                 method === "gcash" ? "Your GCash registered phone" :
+                 method === "nequi" ? "Your Nequi registered phone" :
+                 method === "sepa" ? "Your full IBAN (26-34 characters)" :
+                 method === "pix" ? "Your Brazilian CPF or CNPJ" :
+                 method === "pix" ? "Your Brazilian CPF or CNPJ" :
+                 method === "spei" ? "Your CLABE account number (18 digits)" :
+                 method === "faster_payments" ? "Your UK sort code and account number" :
+                 method === "bank_transfer" ? "Your account number or IBAN" :
+                 "Recipient account details"}
+              </p>
+              <Input
+                type="text"
                 className="h-12"
-                placeholder={method === "mpesa" ? "+254..." : ""}
+                placeholder={
+                  method === "mpesa" || MOMO_IDS.includes(method) ? "+254..." :
+                  method === "sepa" ? "DE89 3704 0044 0532 0130 00" :
+                  method === "pix" ? "123.456.789-00 or 12.345.678/0001-99" : ""
+                }
                 value={recipient}
                 onChange={e => setRecipient(e.target.value)}
                 required
