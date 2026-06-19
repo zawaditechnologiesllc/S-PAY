@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Copy, Check } from "lucide-react";
+import { X, Copy, Check, Download } from "lucide-react";
 import { brandedQRDataUrl } from "@/lib/branded-qr";
 
 interface QRModalProps {
@@ -25,6 +25,14 @@ export function QRModal({ open, onClose, spayId, userName }: QRModalProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleDownload = () => {
+    if (!qrUrl) return;
+    const a = document.createElement("a");
+    a.href = qrUrl;                                   // already a branded PNG data URL
+    a.download = `spay-id-${spayId}.png`;
+    a.click();
+  };
+
   if (!open) return null;
 
   return (
@@ -47,10 +55,19 @@ export function QRModal({ open, onClose, spayId, userName }: QRModalProps) {
         {/* Content */}
         <div className="p-6 space-y-6">
           {/* QR Code */}
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-3">
             <div className="bg-white p-4 rounded-xl border border-gray-100">
-              {qrUrl && <img src={qrUrl} alt="S-PAY ID QR Code" className="w-64 h-64" />}
+              {qrUrl
+                ? <img src={qrUrl} alt="S-PAY ID QR Code" className="w-64 h-64" />
+                : <div className="w-64 h-64 bg-gray-100 rounded-lg animate-pulse" />}
             </div>
+            <button
+              onClick={handleDownload}
+              disabled={!qrUrl}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4DC9EE] hover:text-[#2E8FD6] transition-colors disabled:opacity-50"
+            >
+              <Download size={15} /> Save QR code
+            </button>
           </div>
 
           {/* S-PAY ID Display */}
