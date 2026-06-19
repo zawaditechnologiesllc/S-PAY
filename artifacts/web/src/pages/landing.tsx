@@ -195,7 +195,7 @@ export default function Landing() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mb-10">
                 <Link href="/register">
-                  <button style={site?.primaryColor ? { backgroundColor: site.primaryColor } : undefined} className="flex items-center justify-center gap-2 bg-[#4DC9EE] text-white font-bold px-7 py-3.5 rounded-2xl hover:opacity-90 transition-all text-sm md:text-base shadow-lg shadow-[#4DC9EE]/30 w-full sm:w-auto">
+                  <button style={site?.primaryColor ? { backgroundColor: site.primaryColor } : undefined} className="flex items-center justify-center gap-2 bg-[#4DC9EE] text-[#0d1f38] font-bold px-7 py-3.5 rounded-2xl hover:opacity-90 transition-all text-sm md:text-base shadow-lg shadow-[#4DC9EE]/30 w-full sm:w-auto">
                     {site?.heroCta ?? "Open Free Account"} <ArrowRight size={16} />
                   </button>
                 </Link>
@@ -298,7 +298,7 @@ export default function Landing() {
       <section id="how" className="py-16 md:py-24 px-5 md:px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 md:mb-16">
-            <p className="text-[#4DC9EE] font-semibold text-sm mb-2 uppercase tracking-widest">Getting started</p>
+            <p className="text-[#0E7490] font-semibold text-sm mb-2 uppercase tracking-widest">Getting started</p>
             <h2 className="text-2xl md:text-4xl font-black text-[#1A2B4A] mb-3">Up and running in 3 minutes</h2>
             <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">No branch visits. No paperwork. No waiting.</p>
           </div>
@@ -328,7 +328,7 @@ export default function Landing() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
             {/* Text */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-[#4DC9EE]/10 text-[#4DC9EE] text-xs font-bold px-3 py-1.5 rounded-full mb-5 border border-[#4DC9EE]/20">
+              <div className="inline-flex items-center gap-2 bg-[#4DC9EE]/10 text-[#0E7490] text-xs font-bold px-3 py-1.5 rounded-full mb-5 border border-[#4DC9EE]/20">
                 <Wallet size={13} /> Digital Dollar Wallet
               </div>
               <h2 className="text-2xl md:text-4xl font-black text-[#1A2B4A] leading-tight mb-4">
@@ -352,7 +352,7 @@ export default function Landing() {
                 ))}
               </ul>
               <Link href="/register">
-                <button className="flex items-center gap-2 bg-[#4DC9EE] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#2E8FD6] transition-colors text-sm shadow-md shadow-[#4DC9EE]/20">
+                <button className="flex items-center gap-2 bg-[#4DC9EE] text-[#0d1f38] font-bold px-6 py-3 rounded-xl hover:bg-[#2E8FD6] hover:text-white transition-colors text-sm shadow-md shadow-[#4DC9EE]/20">
                   Open Free Wallet <ArrowRight size={15} />
                 </button>
               </Link>
@@ -365,7 +365,7 @@ export default function Landing() {
                   <div>
                     <p className="text-blue-300 text-xs mb-1.5">Available balance</p>
                     <p className="text-white text-3xl font-black">$1,245.60</p>
-                    <p className="text-[#4DC9EE] text-xs font-medium mt-1">+$500.00 this week</p>
+                    <p className="text-[#0E7490] text-xs font-medium mt-1">+$500.00 this week</p>
                   </div>
                   <div className="w-10 h-10 rounded-xl bg-[#4DC9EE]/20 flex items-center justify-center">
                     <Wallet size={18} className="text-[#4DC9EE]" />
@@ -444,7 +444,7 @@ export default function Landing() {
 
             {/* Text */}
             <div className="order-1 lg:order-2">
-              <div className="inline-flex items-center gap-2 bg-[#22C55E]/10 text-[#22C55E] text-xs font-bold px-3 py-1.5 rounded-full mb-5 border border-[#22C55E]/20">
+              <div className="inline-flex items-center gap-2 bg-[#22C55E]/10 text-[#15803D] text-xs font-bold px-3 py-1.5 rounded-full mb-5 border border-[#22C55E]/20">
                 <Landmark size={13} /> Virtual Bank Account
               </div>
               <h2 className="text-2xl md:text-4xl font-black text-[#1A2B4A] leading-tight mb-4">
@@ -603,7 +603,7 @@ export default function Landing() {
                 ))}
               </ul>
               <Link href="/register">
-                <button className="flex items-center gap-2 bg-[#4DC9EE] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#2E8FD6] transition-colors text-sm shadow-md shadow-[#4DC9EE]/20">
+                <button className="flex items-center gap-2 bg-[#4DC9EE] text-[#0d1f38] font-bold px-6 py-3 rounded-xl hover:bg-[#2E8FD6] hover:text-white transition-colors text-sm shadow-md shadow-[#4DC9EE]/20">
                   Join the Waitlist <ArrowRight size={15} />
                 </button>
               </Link>
@@ -650,7 +650,7 @@ export default function Landing() {
       <section className="py-16 md:py-24 bg-white overflow-hidden">
         <div className="max-w-6xl mx-auto px-5 md:px-6">
           <div className="text-center mb-12 md:mb-16">
-            <p className="text-[#4DC9EE] font-semibold text-sm mb-2 uppercase tracking-widest">Real people. Real freedom.</p>
+            <p className="text-[#0E7490] font-semibold text-sm mb-2 uppercase tracking-widest">Real people. Real freedom.</p>
             <h2 className="text-2xl md:text-4xl font-black text-[#1A2B4A] mb-3">
               Loved by remote workers<br className="hidden md:block" /> in every corner of the world
             </h2>
@@ -709,7 +709,7 @@ export default function Landing() {
                 ))}
               </ul>
               <Link href="/register">
-                <button className="flex items-center gap-2 bg-[#F59E0B] text-white font-bold px-7 py-3.5 rounded-2xl hover:bg-[#d97706] transition-colors text-sm shadow-lg">
+                <button className="flex items-center gap-2 bg-[#F59E0B] text-[#0d1f38] font-bold px-7 py-3.5 rounded-2xl hover:bg-[#d97706] hover:text-white transition-colors text-sm shadow-lg">
                   Browse Jobs <ArrowRight size={16} />
                 </button>
               </Link>
@@ -741,7 +741,7 @@ export default function Landing() {
       <section id="markets" className="py-16 md:py-24 px-5 md:px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 md:mb-16">
-            <p className="text-[#4DC9EE] font-semibold text-sm mb-2 uppercase tracking-widest">Cash out</p>
+            <p className="text-[#0E7490] font-semibold text-sm mb-2 uppercase tracking-widest">Cash out</p>
             <h2 className="text-2xl md:text-4xl font-black text-[#1A2B4A] mb-3">Cash out where you live</h2>
             <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto">Live exchange rates · Same-day delivery · 50+ payout methods</p>
           </div>
@@ -785,12 +785,12 @@ export default function Landing() {
       {/* ─── FINAL CTA ────────────────────────────────────────────────────── */}
       <section className="py-20 md:py-28 px-5 md:px-6 bg-[#4DC9EE]">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-white mb-5 leading-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-[#0d1f38] mb-5 leading-tight">
             Start in under 2 minutes.
             <br />
-            <span className="text-blue-50">It's free, forever.</span>
+            <span className="text-[#0d1f38]">It's free, forever.</span>
           </h2>
-          <p className="text-blue-50 text-base md:text-xl mb-10 max-w-xl mx-auto leading-relaxed">
+          <p className="text-[#0d1f38]/80 text-base md:text-xl mb-10 max-w-xl mx-auto leading-relaxed">
             Join 500,000+ remote workers who use S-PAY to get paid globally and spend locally — in 180+ countries.
           </p>
           <Link href="/register">
@@ -798,7 +798,7 @@ export default function Landing() {
               Open Free Account <ArrowRight size={18} />
             </button>
           </Link>
-          <p className="text-blue-100 text-sm mt-5">No credit card · No monthly fee · Cancel anytime</p>
+          <p className="text-[#0d1f38]/70 text-sm mt-5">No credit card · No monthly fee · Cancel anytime</p>
         </div>
       </section>
 
