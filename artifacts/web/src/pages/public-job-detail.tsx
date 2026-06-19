@@ -14,6 +14,37 @@ function sanitizeDescription(html: string): string {
     .replace(/javascript\s*:/gi, "");
 }
 
+// Best-effort free-text salary → schema.org MonetaryAmount (for baseSalary).
+// Returns null for non-numeric salaries ("Competitive"), so the field is omitted.
+function parseBaseSalary(salary?: string): object | null {
+  if (!salary || !/\d/.test(salary)) return null;
+  const currency = /€|eur/i.test(salary) ? "EUR" : /£|gbp/i.test(salary) ? "GBP" : "USD";
+  const unitText = /hour|\/\s*hr|\bhr\b|per hour|hourly/i.test(salary) ? "HOUR"
+    : /\/\s*wk|per week|weekly|\bweek\b/i.test(salary) ? "WEEK"
+    : /\/\s*mo|per month|monthly|\bmonth\b/i.test(salary) ? "MONTH"
+    : "YEAR";
+  const nums: number[] = [];
+  const re = /(\d[\d,.]*)\s*([kK])?/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(salary)) !== null) {
+    let n = parseFloat(m[1].replace(/,/g, ""));
+    if (!Number.isFinite(n)) continue;
+    if (m[2]) n *= 1000;
+    nums.push(n);
+  }
+  if (nums.length === 0) return null;
+  const value = nums.length >= 2
+    ? { "@type": "QuantitativeValue", minValue: Math.min(...nums), maxValue: Math.max(...nums), unitText }
+    : { "@type": "QuantitativeValue", value: nums[0], unitText };
+  return { "@type": "MonetaryAmount", currency, value };
+}
+
+const GENERIC_REMOTE = /worldwide|remote|anywhere|global|distributed/i;
+function applicantLocation(location?: string) {
+  const loc = (location ?? "").trim();
+  return { "@type": "Country", name: !loc || GENERIC_REMOTE.test(loc) ? "Worldwide" : loc };
+}
+
 export default function PublicJobDetail() {
   const params = useParams<{ jobId: string }>();
   const jobId = params.jobId || "";
@@ -29,6 +60,9 @@ export default function PublicJobDetail() {
     const ld = document.createElement("script");
     ld.type = "application/ld+json";
     ld.id = "job-posting-ld";
+    const baseSalary = parseBaseSalary(job.salary);
+    const postedMs = job.postedAt ? new Date(job.postedAt).getTime() : Date.now();
+    const validThrough = new Date(postedMs + 60 * 24 * 60 * 60 * 1000);
     ld.text = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "JobPosting",
@@ -37,11 +71,13 @@ export default function PublicJobDetail() {
         ? job.description.replace(/<[^>]+>/g, " ").slice(0, 5000)
         : `${job.title} at ${job.company} — fully remote role via the S-PAY jobs board.`,
       datePosted: job.postedAt,
+      validThrough: validThrough.toISOString(),
       hiringOrganization: { "@type": "Organization", name: job.company },
       jobLocationType: "TELECOMMUTE",
-      applicantLocationRequirements: { "@type": "Country", name: job.location || "Worldwide" },
+      applicantLocationRequirements: applicantLocation(job.location),
       employmentType: "FULL_TIME",
       directApply: false,
+      ...(baseSalary ? { baseSalary } : {}),
     });
     document.getElementById("job-posting-ld")?.remove();
     document.head.appendChild(ld);
@@ -179,9 +215,9 @@ export default function PublicJobDetail() {
               <div className="w-12 h-12 rounded-2xl bg-[#4DC9EE]/20 flex items-center justify-center mx-auto mb-5">
                 <Lock size={22} className="text-[#4DC9EE]" />
               </div>
-              <h3 className="text-xl font-black text-white mb-2">Ready to apply for this role?</h3>
+              <h3 className="text-xl font-black text-white mb-2">Want to get paid and payout locally?</h3>
               <p className="text-blue-300 text-sm mb-6 max-w-md mx-auto leading-relaxed">
-                Create a free S-PAY account to access the apply link. You'll also get a real US bank account number and instant local payouts when you land the job.
+                Sign up for S-PAY to access the apply link. You'll get a real US bank account number and EU IBAN to share with employers — and cash out to M-Pesa, MoMo, GCash, PIX and 50+ local methods, usually within minutes.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link href={`/register?from=jobs&jobId=${jobId}`}>

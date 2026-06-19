@@ -23,6 +23,47 @@ function sanitizeHtml(html: string): string {
     .replace(/javascript\s*:/gi, "");
 }
 
+// Google for Jobs requires applicantLocationRequirements on remote (TELECOMMUTE)
+// postings. We always emit it: a named country when the role is geo-restricted,
+// otherwise "Worldwide" for roles open anywhere — which clears the critical
+// "Missing field applicantLocationRequirements" Search Console error.
+const GENERIC_REMOTE = /worldwide|remote|anywhere|global|distributed/i;
+function applicantLocationRequirements(location: string | undefined) {
+  const loc = (location ?? "").trim();
+  const name = !loc || GENERIC_REMOTE.test(loc) ? "Worldwide" : loc;
+  return { "@type": "Country", name };
+}
+
+// Best-effort parse of a free-text salary ("$50k–$70k", "$30/hour", "€45,000 per
+// year") into a schema.org MonetaryAmount for the optional baseSalary field.
+// Returns null for non-numeric salaries ("Competitive", "DOE") so we simply omit
+// the field — baseSalary is non-critical, so absence is valid.
+function parseBaseSalary(salary: string | undefined): object | null {
+  if (!salary || !/\d/.test(salary)) return null;
+  const s = salary;
+  const currency = /€|eur/i.test(s) ? "EUR" : /£|gbp/i.test(s) ? "GBP" : "USD";
+  const unitText = /hour|\/\s*hr|\bhr\b|per hour|hourly/i.test(s) ? "HOUR"
+    : /\/\s*wk|per week|weekly|\bweek\b/i.test(s) ? "WEEK"
+    : /\/\s*mo|per month|monthly|\bmonth\b/i.test(s) ? "MONTH"
+    : "YEAR";
+
+  const nums: number[] = [];
+  const re = /(\d[\d,.]*)\s*([kK])?/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(s)) !== null) {
+    let n = parseFloat(m[1].replace(/,/g, ""));
+    if (!Number.isFinite(n)) continue;
+    if (m[2]) n *= 1000; // "50k" → 50000
+    nums.push(n);
+  }
+  if (nums.length === 0) return null;
+
+  const value = nums.length >= 2
+    ? { "@type": "QuantitativeValue", minValue: Math.min(...nums), maxValue: Math.max(...nums), unitText }
+    : { "@type": "QuantitativeValue", value: nums[0], unitText };
+  return { "@type": "MonetaryAmount", currency, value };
+}
+
 function pageShell(opts: {
   title: string;
   description: string;
@@ -59,6 +100,9 @@ ${opts.jsonLd ? `<script type="application/ld+json">${JSON.stringify(opts.jsonLd
   .meta { color: #5b6b85; font-size: 14px; margin: 4px 0 0; }
   .badge { display: inline-block; background: #E8F7FC; color: #1A2B4A; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; margin-right: 6px; }
   .cta { display: inline-block; background: #4DC9EE; color: #fff !important; font-weight: 800; padding: 13px 26px; border-radius: 12px; margin-top: 18px; }
+  .spay-callout { background: linear-gradient(135deg, #1A2B4A, #0d1f38); border-radius: 14px; padding: 20px 22px; margin: 18px 0; color: #fff; }
+  .spay-callout p { margin: 0 0 14px; font-size: 16px; font-weight: 700; color: #fff; }
+  .spay-callout .cta { margin-top: 0; }
   .desc { line-height: 1.65; font-size: 15.5px; }
   .desc img { max-width: 100%; }
   h1 { font-size: 26px; line-height: 1.25; margin: 0 0 6px; }
@@ -143,7 +187,7 @@ router.get("/jobs/:jobId", async (req, res) => {
     const plainDesc = descriptionHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     const posted = new Date(job.postedAt);
     const validThrough = new Date(posted.getTime() + 60 * 24 * 60 * 60 * 1000);
-    const restricted = job.location && !/worldwide|remote|anywhere|global/i.test(job.location);
+    const baseSalary = parseBaseSalary(job.salary);
 
     const jsonLd: Record<string, unknown> = {
       "@context": "https://schema.org",
@@ -155,10 +199,10 @@ router.get("/jobs/:jobId", async (req, res) => {
       employmentType: "FULL_TIME",
       hiringOrganization: { "@type": "Organization", name: job.company },
       jobLocationType: "TELECOMMUTE",
+      // Required by Google for remote postings — always present now.
+      applicantLocationRequirements: applicantLocationRequirements(job.location),
       directApply: false,
-      ...(restricted
-        ? { applicantLocationRequirements: { "@type": "Country", name: job.location } }
-        : {}),
+      ...(baseSalary ? { baseSalary } : {}),
     };
 
     res.set("Content-Type", "text/html; charset=utf-8");
@@ -177,9 +221,16 @@ router.get("/jobs/:jobId", async (req, res) => {
           <span class="badge">Remote</span>
           ${job.isNew ? '<span class="badge">New</span>' : ""}
         </p>
+        <div class="spay-callout">
+          <p>Want to get paid and payout locally? Sign up for S-PAY.</p>
+          <a class="cta" href="${SITE()}/register?from=jobs&jobId=${encodeURIComponent(job.id)}">Sign up for S-PAY — it's free</a>
+        </div>
         <h2>About this role</h2>
         <div class="desc">${descriptionHtml}</div>
-        <a class="cta" href="${SITE()}/register?from=jobs&jobId=${encodeURIComponent(job.id)}">Sign up free to apply</a>
+        <div class="spay-callout">
+          <p>Want to get paid and payout locally? Sign up for S-PAY.</p>
+          <a class="cta" href="${SITE()}/register?from=jobs&jobId=${encodeURIComponent(job.id)}">Sign up for S-PAY — it's free</a>
+        </div>
         <h2>Get hired — and get paid — with S-PAY</h2>
         <ul>
           <li><strong>Apply free:</strong> the S-PAY jobs board lists thousands of remote ${esc(job.category.toLowerCase())} roles, refreshed hourly.</li>
