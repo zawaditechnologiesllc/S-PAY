@@ -21,6 +21,10 @@ import Jobs from "@/pages/jobs";
 import JobDetail from "@/pages/job-detail";
 import PublicJobs from "@/pages/public-jobs";
 import PublicJobDetail from "@/pages/public-job-detail";
+import PayrollOverview from "@/pages/payroll";
+import PayrollKeys from "@/pages/payroll/keys";
+import PayrollBatches from "@/pages/payroll/batches";
+import PayrollBatchDetail from "@/pages/payroll/batch-detail";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminUsers from "@/pages/admin/users";
 import AdminTransactions from "@/pages/admin/transactions";
@@ -143,6 +147,12 @@ function Router() {
       <Route path="/security"><ProtectedRoute component={Security} /></Route>
       <Route path="/wallet/exchange"><ProtectedRoute component={ExchangeWithdraw} /></Route>
       <Route path="/card"><ProtectedRoute component={CardPage} /></Route>
+
+      {/* ── Payroll / employer console (auth required) ── */}
+      <Route path="/payroll"><ProtectedRoute component={PayrollOverview} /></Route>
+      <Route path="/payroll/keys"><ProtectedRoute component={PayrollKeys} /></Route>
+      <Route path="/payroll/batches"><ProtectedRoute component={PayrollBatches} /></Route>
+      <Route path="/payroll/batches/:batchId"><ProtectedRoute component={PayrollBatchDetail} /></Route>
 
       {/* ── Admin panel (auth + server-enforced admin-email check) ── */}
       <Route path="/admin"><ProtectedRoute component={AdminDashboard} /></Route>

@@ -10,6 +10,7 @@ import webhooksRouter from "./webhooks";
 import kycRouter from "./kyc";
 import notificationsRouter from "./notifications";
 import enquiriesRouter from "./enquiries";
+import payrollRouter from "./payroll";
 import adminRouter from "./admin";
 
 const router: IRouter = Router();
@@ -24,6 +25,7 @@ router.use(jobsRouter);
 router.use(kycRouter);
 router.use(notificationsRouter);
 router.use(enquiriesRouter);
+router.use(payrollRouter);
 router.use(webhooksRouter);
 router.use(adminRouter);
 

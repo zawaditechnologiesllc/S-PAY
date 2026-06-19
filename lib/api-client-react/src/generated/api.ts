@@ -26,9 +26,15 @@ import type {
   AdminTeamResponse,
   AdminTransactionsResponse,
   AdminUsersResponse,
+  ApiKeyCreateRequest,
+  ApiKeyCreateResponse,
+  ApiKeyListResponse,
   AppleTokenRequest,
   AuthResponse,
   BankingAccountsResponse,
+  BatchCreateRequest,
+  BatchListResponse,
+  BatchResponse,
   CardDetailsResponse,
   CardTransactionListResponse,
   CreateEnquiryBody,
@@ -36,6 +42,10 @@ import type {
   CustomJobCreateRequest,
   CustomJobsResponse,
   DashboardSummary,
+  EmployerRegisterRequest,
+  EmployerRegisterResponse,
+  EmployerResponse,
+  EmployerUpdateRequest,
   EnquiriesResponse,
   ErrorResponse,
   ExchangeRateResponse,
@@ -43,6 +53,8 @@ import type {
   FeatureFlagsUpdateRequest,
   FeeSchedule,
   ForgotPasswordBody,
+  FundSandboxBalance200,
+  FundSandboxBalanceBody,
   GetAdminSettings200,
   GetAdminTransactionsParams,
   GetAdminUsersParams,
@@ -60,13 +72,18 @@ import type {
   InitiateDepositBody,
   Job,
   JobsResponse,
+  ListPayrollBatchPaymentsParams,
+  ListPayrollBatchesParams,
   LoginRequest,
   MessageResponse,
   NoahWebhookBody,
   NotificationsResponse,
+  PaymentListResponse,
+  PayrollSummary,
   PlatformStatus,
   RegisterRequest,
   ResetPasswordBody,
+  RevokeEmployerApiKey200,
   SendAdminNotificationBody,
   SendMoneyRequest,
   SetTransactionPinBody,
@@ -75,6 +92,8 @@ import type {
   SpendingSummaryResponse,
   StartKyc200,
   StripeWebhookBody,
+  TestPayrollWebhook200,
+  TestPayrollWebhookBody,
   Transaction,
   TransactionListResponse,
   UpdateEnquiryBody,
@@ -83,6 +102,7 @@ import type {
   WalletBalance,
   WalletProvidersResponse,
   WalletProvidersUpdateRequest,
+  WebhookDeliveryListResponse,
   WithdrawRequest,
   WithdrawResponse
 } from './api.schemas';
@@ -4427,4 +4447,1200 @@ export const useUpdateFeatureFlags = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getUpdateFeatureFlagsMutationOptions(options));
     }
+
+export const getRegisterEmployerUrl = () => {
+
+
+
+
+  return `/api/payroll/employers/register`
+}
+
+/**
+ * @summary Register the signed-in user's company as a payroll employer
+ */
+export const registerEmployer = async (employerRegisterRequest: EmployerRegisterRequest, options?: RequestInit): Promise<EmployerRegisterResponse> => {
+
+  return customFetch<EmployerRegisterResponse>(getRegisterEmployerUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      employerRegisterRequest,)
+  }
+);}
+
+
+
+
+export const getRegisterEmployerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerEmployer>>, TError,{data: BodyType<EmployerRegisterRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof registerEmployer>>, TError,{data: BodyType<EmployerRegisterRequest>}, TContext> => {
+
+const mutationKey = ['registerEmployer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerEmployer>>, {data: BodyType<EmployerRegisterRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  registerEmployer(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegisterEmployerMutationResult = NonNullable<Awaited<ReturnType<typeof registerEmployer>>>
+    export type RegisterEmployerMutationBody = BodyType<EmployerRegisterRequest>
+    export type RegisterEmployerMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Register the signed-in user's company as a payroll employer
+ */
+export const useRegisterEmployer = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerEmployer>>, TError,{data: BodyType<EmployerRegisterRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof registerEmployer>>,
+        TError,
+        {data: BodyType<EmployerRegisterRequest>},
+        TContext
+      > => {
+      return useMutation(getRegisterEmployerMutationOptions(options));
+    }
+
+export const getGetEmployerUrl = () => {
+
+
+
+
+  return `/api/payroll/employers/me`
+}
+
+/**
+ * @summary Get the signed-in owner's employer account
+ */
+export const getEmployer = async ( options?: RequestInit): Promise<EmployerResponse> => {
+
+  return customFetch<EmployerResponse>(getGetEmployerUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmployerQueryKey = () => {
+    return [
+    `/api/payroll/employers/me`
+    ] as const;
+    }
+
+
+export const getGetEmployerQueryOptions = <TData = Awaited<ReturnType<typeof getEmployer>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployer>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmployerQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmployer>>> = ({ signal }) => getEmployer({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmployer>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmployerQueryResult = NonNullable<Awaited<ReturnType<typeof getEmployer>>>
+export type GetEmployerQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the signed-in owner's employer account
+ */
+
+export function useGetEmployer<TData = Awaited<ReturnType<typeof getEmployer>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployer>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmployerQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateEmployerUrl = () => {
+
+
+
+
+  return `/api/payroll/employers/me`
+}
+
+/**
+ * @summary Update employer profile
+ */
+export const updateEmployer = async (employerUpdateRequest: EmployerUpdateRequest, options?: RequestInit): Promise<EmployerResponse> => {
+
+  return customFetch<EmployerResponse>(getUpdateEmployerUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      employerUpdateRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateEmployerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmployer>>, TError,{data: BodyType<EmployerUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateEmployer>>, TError,{data: BodyType<EmployerUpdateRequest>}, TContext> => {
+
+const mutationKey = ['updateEmployer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEmployer>>, {data: BodyType<EmployerUpdateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateEmployer(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateEmployerMutationResult = NonNullable<Awaited<ReturnType<typeof updateEmployer>>>
+    export type UpdateEmployerMutationBody = BodyType<EmployerUpdateRequest>
+    export type UpdateEmployerMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update employer profile
+ */
+export const useUpdateEmployer = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmployer>>, TError,{data: BodyType<EmployerUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateEmployer>>,
+        TError,
+        {data: BodyType<EmployerUpdateRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateEmployerMutationOptions(options));
+    }
+
+export const getListEmployerApiKeysUrl = () => {
+
+
+
+
+  return `/api/payroll/employers/me/api-keys`
+}
+
+/**
+ * @summary List the employer's API keys (masked)
+ */
+export const listEmployerApiKeys = async ( options?: RequestInit): Promise<ApiKeyListResponse> => {
+
+  return customFetch<ApiKeyListResponse>(getListEmployerApiKeysUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEmployerApiKeysQueryKey = () => {
+    return [
+    `/api/payroll/employers/me/api-keys`
+    ] as const;
+    }
+
+
+export const getListEmployerApiKeysQueryOptions = <TData = Awaited<ReturnType<typeof listEmployerApiKeys>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmployerApiKeys>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEmployerApiKeysQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEmployerApiKeys>>> = ({ signal }) => listEmployerApiKeys({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEmployerApiKeys>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEmployerApiKeysQueryResult = NonNullable<Awaited<ReturnType<typeof listEmployerApiKeys>>>
+export type ListEmployerApiKeysQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the employer's API keys (masked)
+ */
+
+export function useListEmployerApiKeys<TData = Awaited<ReturnType<typeof listEmployerApiKeys>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmployerApiKeys>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEmployerApiKeysQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateEmployerApiKeyUrl = () => {
+
+
+
+
+  return `/api/payroll/employers/me/api-keys`
+}
+
+/**
+ * @summary Mint an API key (plaintext returned once)
+ */
+export const createEmployerApiKey = async (apiKeyCreateRequest: ApiKeyCreateRequest, options?: RequestInit): Promise<ApiKeyCreateResponse> => {
+
+  return customFetch<ApiKeyCreateResponse>(getCreateEmployerApiKeyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      apiKeyCreateRequest,)
+  }
+);}
+
+
+
+
+export const getCreateEmployerApiKeyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmployerApiKey>>, TError,{data: BodyType<ApiKeyCreateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEmployerApiKey>>, TError,{data: BodyType<ApiKeyCreateRequest>}, TContext> => {
+
+const mutationKey = ['createEmployerApiKey'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEmployerApiKey>>, {data: BodyType<ApiKeyCreateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createEmployerApiKey(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEmployerApiKeyMutationResult = NonNullable<Awaited<ReturnType<typeof createEmployerApiKey>>>
+    export type CreateEmployerApiKeyMutationBody = BodyType<ApiKeyCreateRequest>
+    export type CreateEmployerApiKeyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Mint an API key (plaintext returned once)
+ */
+export const useCreateEmployerApiKey = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEmployerApiKey>>, TError,{data: BodyType<ApiKeyCreateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEmployerApiKey>>,
+        TError,
+        {data: BodyType<ApiKeyCreateRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateEmployerApiKeyMutationOptions(options));
+    }
+
+export const getRevokeEmployerApiKeyUrl = (keyId: string,) => {
+
+
+
+
+  return `/api/payroll/employers/me/api-keys/${keyId}`
+}
+
+/**
+ * @summary Revoke an API key
+ */
+export const revokeEmployerApiKey = async (keyId: string, options?: RequestInit): Promise<RevokeEmployerApiKey200> => {
+
+  return customFetch<RevokeEmployerApiKey200>(getRevokeEmployerApiKeyUrl(keyId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRevokeEmployerApiKeyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeEmployerApiKey>>, TError,{keyId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeEmployerApiKey>>, TError,{keyId: string}, TContext> => {
+
+const mutationKey = ['revokeEmployerApiKey'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeEmployerApiKey>>, {keyId: string}> = (props) => {
+          const {keyId} = props ?? {};
+
+          return  revokeEmployerApiKey(keyId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeEmployerApiKeyMutationResult = NonNullable<Awaited<ReturnType<typeof revokeEmployerApiKey>>>
+
+    export type RevokeEmployerApiKeyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Revoke an API key
+ */
+export const useRevokeEmployerApiKey = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeEmployerApiKey>>, TError,{keyId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeEmployerApiKey>>,
+        TError,
+        {keyId: string},
+        TContext
+      > => {
+      return useMutation(getRevokeEmployerApiKeyMutationOptions(options));
+    }
+
+export const getFundSandboxBalanceUrl = () => {
+
+
+
+
+  return `/api/payroll/sandbox/fund`
+}
+
+/**
+ * Authenticated with a sandbox API key as a Bearer token.
+ * @summary Credit test balance (sandbox API key only)
+ */
+export const fundSandboxBalance = async (fundSandboxBalanceBody: FundSandboxBalanceBody, options?: RequestInit): Promise<FundSandboxBalance200> => {
+
+  return customFetch<FundSandboxBalance200>(getFundSandboxBalanceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      fundSandboxBalanceBody,)
+  }
+);}
+
+
+
+
+export const getFundSandboxBalanceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof fundSandboxBalance>>, TError,{data: BodyType<FundSandboxBalanceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof fundSandboxBalance>>, TError,{data: BodyType<FundSandboxBalanceBody>}, TContext> => {
+
+const mutationKey = ['fundSandboxBalance'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof fundSandboxBalance>>, {data: BodyType<FundSandboxBalanceBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  fundSandboxBalance(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FundSandboxBalanceMutationResult = NonNullable<Awaited<ReturnType<typeof fundSandboxBalance>>>
+    export type FundSandboxBalanceMutationBody = BodyType<FundSandboxBalanceBody>
+    export type FundSandboxBalanceMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Credit test balance (sandbox API key only)
+ */
+export const useFundSandboxBalance = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof fundSandboxBalance>>, TError,{data: BodyType<FundSandboxBalanceBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof fundSandboxBalance>>,
+        TError,
+        {data: BodyType<FundSandboxBalanceBody>},
+        TContext
+      > => {
+      return useMutation(getFundSandboxBalanceMutationOptions(options));
+    }
+
+export const getCreatePayrollBatchUrl = () => {
+
+
+
+
+  return `/api/payroll/batches`
+}
+
+/**
+ * Authenticated with a payroll API key as a Bearer token.
+ * @summary Create a payroll batch (draft)
+ */
+export const createPayrollBatch = async (batchCreateRequest: BatchCreateRequest, options?: RequestInit): Promise<BatchResponse> => {
+
+  return customFetch<BatchResponse>(getCreatePayrollBatchUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      batchCreateRequest,)
+  }
+);}
+
+
+
+
+export const getCreatePayrollBatchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPayrollBatch>>, TError,{data: BodyType<BatchCreateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPayrollBatch>>, TError,{data: BodyType<BatchCreateRequest>}, TContext> => {
+
+const mutationKey = ['createPayrollBatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPayrollBatch>>, {data: BodyType<BatchCreateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPayrollBatch(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePayrollBatchMutationResult = NonNullable<Awaited<ReturnType<typeof createPayrollBatch>>>
+    export type CreatePayrollBatchMutationBody = BodyType<BatchCreateRequest>
+    export type CreatePayrollBatchMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a payroll batch (draft)
+ */
+export const useCreatePayrollBatch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPayrollBatch>>, TError,{data: BodyType<BatchCreateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPayrollBatch>>,
+        TError,
+        {data: BodyType<BatchCreateRequest>},
+        TContext
+      > => {
+      return useMutation(getCreatePayrollBatchMutationOptions(options));
+    }
+
+export const getListPayrollBatchesUrl = (params?: ListPayrollBatchesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/payroll/batches?${stringifiedParams}` : `/api/payroll/batches`
+}
+
+/**
+ * @summary List payroll batches
+ */
+export const listPayrollBatches = async (params?: ListPayrollBatchesParams, options?: RequestInit): Promise<BatchListResponse> => {
+
+  return customFetch<BatchListResponse>(getListPayrollBatchesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPayrollBatchesQueryKey = (params?: ListPayrollBatchesParams,) => {
+    return [
+    `/api/payroll/batches`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListPayrollBatchesQueryOptions = <TData = Awaited<ReturnType<typeof listPayrollBatches>>, TError = ErrorType<unknown>>(params?: ListPayrollBatchesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollBatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPayrollBatchesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPayrollBatches>>> = ({ signal }) => listPayrollBatches(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPayrollBatches>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPayrollBatchesQueryResult = NonNullable<Awaited<ReturnType<typeof listPayrollBatches>>>
+export type ListPayrollBatchesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List payroll batches
+ */
+
+export function useListPayrollBatches<TData = Awaited<ReturnType<typeof listPayrollBatches>>, TError = ErrorType<unknown>>(
+ params?: ListPayrollBatchesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollBatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPayrollBatchesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetPayrollBatchUrl = (batchId: string,) => {
+
+
+
+
+  return `/api/payroll/batches/${batchId}`
+}
+
+/**
+ * @summary Get a payroll batch
+ */
+export const getPayrollBatch = async (batchId: string, options?: RequestInit): Promise<BatchResponse> => {
+
+  return customFetch<BatchResponse>(getGetPayrollBatchUrl(batchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayrollBatchQueryKey = (batchId: string,) => {
+    return [
+    `/api/payroll/batches/${batchId}`
+    ] as const;
+    }
+
+
+export const getGetPayrollBatchQueryOptions = <TData = Awaited<ReturnType<typeof getPayrollBatch>>, TError = ErrorType<unknown>>(batchId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollBatch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayrollBatchQueryKey(batchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayrollBatch>>> = ({ signal }) => getPayrollBatch(batchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(batchId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayrollBatch>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPayrollBatchQueryResult = NonNullable<Awaited<ReturnType<typeof getPayrollBatch>>>
+export type GetPayrollBatchQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a payroll batch
+ */
+
+export function useGetPayrollBatch<TData = Awaited<ReturnType<typeof getPayrollBatch>>, TError = ErrorType<unknown>>(
+ batchId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollBatch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPayrollBatchQueryOptions(batchId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSubmitPayrollBatchUrl = (batchId: string,) => {
+
+
+
+
+  return `/api/payroll/batches/${batchId}/submit`
+}
+
+/**
+ * @summary Submit a batch — resolve workers and pay
+ */
+export const submitPayrollBatch = async (batchId: string, options?: RequestInit): Promise<BatchResponse> => {
+
+  return customFetch<BatchResponse>(getSubmitPayrollBatchUrl(batchId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSubmitPayrollBatchMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPayrollBatch>>, TError,{batchId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitPayrollBatch>>, TError,{batchId: string}, TContext> => {
+
+const mutationKey = ['submitPayrollBatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitPayrollBatch>>, {batchId: string}> = (props) => {
+          const {batchId} = props ?? {};
+
+          return  submitPayrollBatch(batchId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitPayrollBatchMutationResult = NonNullable<Awaited<ReturnType<typeof submitPayrollBatch>>>
+
+    export type SubmitPayrollBatchMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Submit a batch — resolve workers and pay
+ */
+export const useSubmitPayrollBatch = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPayrollBatch>>, TError,{batchId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitPayrollBatch>>,
+        TError,
+        {batchId: string},
+        TContext
+      > => {
+      return useMutation(getSubmitPayrollBatchMutationOptions(options));
+    }
+
+export const getCancelPayrollBatchUrl = (batchId: string,) => {
+
+
+
+
+  return `/api/payroll/batches/${batchId}/cancel`
+}
+
+/**
+ * @summary Cancel a still-draft batch
+ */
+export const cancelPayrollBatch = async (batchId: string, options?: RequestInit): Promise<BatchResponse> => {
+
+  return customFetch<BatchResponse>(getCancelPayrollBatchUrl(batchId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCancelPayrollBatchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelPayrollBatch>>, TError,{batchId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelPayrollBatch>>, TError,{batchId: string}, TContext> => {
+
+const mutationKey = ['cancelPayrollBatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelPayrollBatch>>, {batchId: string}> = (props) => {
+          const {batchId} = props ?? {};
+
+          return  cancelPayrollBatch(batchId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelPayrollBatchMutationResult = NonNullable<Awaited<ReturnType<typeof cancelPayrollBatch>>>
+
+    export type CancelPayrollBatchMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Cancel a still-draft batch
+ */
+export const useCancelPayrollBatch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelPayrollBatch>>, TError,{batchId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelPayrollBatch>>,
+        TError,
+        {batchId: string},
+        TContext
+      > => {
+      return useMutation(getCancelPayrollBatchMutationOptions(options));
+    }
+
+export const getListPayrollBatchPaymentsUrl = (batchId: string,
+    params?: ListPayrollBatchPaymentsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/payroll/batches/${batchId}/payments?${stringifiedParams}` : `/api/payroll/batches/${batchId}/payments`
+}
+
+/**
+ * @summary List the payments in a batch
+ */
+export const listPayrollBatchPayments = async (batchId: string,
+    params?: ListPayrollBatchPaymentsParams, options?: RequestInit): Promise<PaymentListResponse> => {
+
+  return customFetch<PaymentListResponse>(getListPayrollBatchPaymentsUrl(batchId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPayrollBatchPaymentsQueryKey = (batchId: string,
+    params?: ListPayrollBatchPaymentsParams,) => {
+    return [
+    `/api/payroll/batches/${batchId}/payments`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListPayrollBatchPaymentsQueryOptions = <TData = Awaited<ReturnType<typeof listPayrollBatchPayments>>, TError = ErrorType<unknown>>(batchId: string,
+    params?: ListPayrollBatchPaymentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollBatchPayments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPayrollBatchPaymentsQueryKey(batchId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPayrollBatchPayments>>> = ({ signal }) => listPayrollBatchPayments(batchId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(batchId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPayrollBatchPayments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPayrollBatchPaymentsQueryResult = NonNullable<Awaited<ReturnType<typeof listPayrollBatchPayments>>>
+export type ListPayrollBatchPaymentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the payments in a batch
+ */
+
+export function useListPayrollBatchPayments<TData = Awaited<ReturnType<typeof listPayrollBatchPayments>>, TError = ErrorType<unknown>>(
+ batchId: string,
+    params?: ListPayrollBatchPaymentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollBatchPayments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPayrollBatchPaymentsQueryOptions(batchId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetPayrollSummaryUrl = () => {
+
+
+
+
+  return `/api/payroll/summary`
+}
+
+/**
+ * @summary Employer payroll rollup (API key)
+ */
+export const getPayrollSummary = async ( options?: RequestInit): Promise<PayrollSummary> => {
+
+  return customFetch<PayrollSummary>(getGetPayrollSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayrollSummaryQueryKey = () => {
+    return [
+    `/api/payroll/summary`
+    ] as const;
+    }
+
+
+export const getGetPayrollSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getPayrollSummary>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayrollSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayrollSummary>>> = ({ signal }) => getPayrollSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayrollSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPayrollSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getPayrollSummary>>>
+export type GetPayrollSummaryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Employer payroll rollup (API key)
+ */
+
+export function useGetPayrollSummary<TData = Awaited<ReturnType<typeof getPayrollSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPayrollSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getTestPayrollWebhookUrl = () => {
+
+
+
+
+  return `/api/payroll/webhooks/test`
+}
+
+/**
+ * @summary Fire a test webhook
+ */
+export const testPayrollWebhook = async (testPayrollWebhookBody?: TestPayrollWebhookBody, options?: RequestInit): Promise<TestPayrollWebhook200> => {
+
+  return customFetch<TestPayrollWebhook200>(getTestPayrollWebhookUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      testPayrollWebhookBody,)
+  }
+);}
+
+
+
+
+export const getTestPayrollWebhookMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testPayrollWebhook>>, TError,{data?: BodyType<TestPayrollWebhookBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof testPayrollWebhook>>, TError,{data?: BodyType<TestPayrollWebhookBody>}, TContext> => {
+
+const mutationKey = ['testPayrollWebhook'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testPayrollWebhook>>, {data?: BodyType<TestPayrollWebhookBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  testPayrollWebhook(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestPayrollWebhookMutationResult = NonNullable<Awaited<ReturnType<typeof testPayrollWebhook>>>
+    export type TestPayrollWebhookMutationBody = BodyType<TestPayrollWebhookBody> | undefined
+    export type TestPayrollWebhookMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Fire a test webhook
+ */
+export const useTestPayrollWebhook = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testPayrollWebhook>>, TError,{data?: BodyType<TestPayrollWebhookBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof testPayrollWebhook>>,
+        TError,
+        {data?: BodyType<TestPayrollWebhookBody>},
+        TContext
+      > => {
+      return useMutation(getTestPayrollWebhookMutationOptions(options));
+    }
+
+export const getListPayrollWebhookDeliveriesUrl = () => {
+
+
+
+
+  return `/api/payroll/webhooks/deliveries`
+}
+
+/**
+ * @summary Webhook delivery audit log
+ */
+export const listPayrollWebhookDeliveries = async ( options?: RequestInit): Promise<WebhookDeliveryListResponse> => {
+
+  return customFetch<WebhookDeliveryListResponse>(getListPayrollWebhookDeliveriesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPayrollWebhookDeliveriesQueryKey = () => {
+    return [
+    `/api/payroll/webhooks/deliveries`
+    ] as const;
+    }
+
+
+export const getListPayrollWebhookDeliveriesQueryOptions = <TData = Awaited<ReturnType<typeof listPayrollWebhookDeliveries>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollWebhookDeliveries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPayrollWebhookDeliveriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPayrollWebhookDeliveries>>> = ({ signal }) => listPayrollWebhookDeliveries({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPayrollWebhookDeliveries>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPayrollWebhookDeliveriesQueryResult = NonNullable<Awaited<ReturnType<typeof listPayrollWebhookDeliveries>>>
+export type ListPayrollWebhookDeliveriesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Webhook delivery audit log
+ */
+
+export function useListPayrollWebhookDeliveries<TData = Awaited<ReturnType<typeof listPayrollWebhookDeliveries>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPayrollWebhookDeliveries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPayrollWebhookDeliveriesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

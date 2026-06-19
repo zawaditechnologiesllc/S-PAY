@@ -9,6 +9,226 @@ export interface HealthStatus {
   status: string;
 }
 
+export type EmployerStatus = typeof EmployerStatus[keyof typeof EmployerStatus];
+
+
+export const EmployerStatus = {
+  pending: 'pending',
+  verified: 'verified',
+  rejected: 'rejected',
+  suspended: 'suspended',
+} as const;
+
+export interface Employer {
+  id: string;
+  companyName: string;
+  email: string;
+  websiteUrl?: string | null;
+  country?: string | null;
+  status: EmployerStatus;
+  balanceUsdc: number;
+  fundingAddress?: string | null;
+  webhookUrl?: string | null;
+  autoCreateWorkers: boolean;
+  createdAt: string;
+}
+
+export interface EmployerRegisterRequest {
+  companyName: string;
+  email?: string;
+  websiteUrl?: string;
+  country?: string;
+  webhookUrl?: string;
+  autoCreateWorkers?: boolean;
+}
+
+export interface EmployerRegisterResponse {
+  employer: Employer;
+  webhookSecret?: string;
+  message?: string;
+}
+
+export interface EmployerResponse {
+  employer: Employer;
+}
+
+export interface EmployerUpdateRequest {
+  companyName?: string;
+  email?: string;
+  websiteUrl?: string;
+  country?: string;
+  webhookUrl?: string;
+  autoCreateWorkers?: boolean;
+}
+
+export interface ApiKey {
+  id: string;
+  name?: string | null;
+  prefix: string;
+  sandbox: boolean;
+  scopes: string[];
+  lastUsedAt?: string | null;
+  revokedAt?: string | null;
+  expiresAt?: string | null;
+  createdAt: string;
+}
+
+export interface ApiKeyListResponse {
+  apiKeys: ApiKey[];
+}
+
+export interface ApiKeyCreateRequest {
+  name?: string;
+  sandbox?: boolean;
+  scopes?: string[];
+  expiresInDays?: number;
+}
+
+export interface ApiKeyCreateResponse {
+  apiKey: string;
+  id: string;
+  name?: string;
+  prefix?: string;
+  sandbox?: boolean;
+  scopes?: string[];
+  expiresAt?: string | null;
+  message?: string;
+}
+
+export type BatchPaymentInputIdentifierType = typeof BatchPaymentInputIdentifierType[keyof typeof BatchPaymentInputIdentifierType];
+
+
+export const BatchPaymentInputIdentifierType = {
+  email: 'email',
+  phone: 'phone',
+  spay_id: 'spay_id',
+  celo_address: 'celo_address',
+} as const;
+
+export interface BatchPaymentInput {
+  workerIdentifier: string;
+  identifierType?: BatchPaymentInputIdentifierType;
+  amount: number;
+  currency?: string;
+  reason?: string;
+  externalId?: string;
+}
+
+export interface BatchCreateRequest {
+  reference?: string;
+  description?: string;
+  currency?: string;
+  idempotencyKey?: string;
+  webhookUrl?: string;
+  payments: BatchPaymentInput[];
+}
+
+export type BatchStatus = typeof BatchStatus[keyof typeof BatchStatus];
+
+
+export const BatchStatus = {
+  draft: 'draft',
+  processing: 'processing',
+  completed: 'completed',
+  partially_completed: 'partially_completed',
+  failed: 'failed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface Batch {
+  id: string;
+  reference?: string | null;
+  description?: string | null;
+  sandbox?: boolean;
+  currency: string;
+  status: BatchStatus;
+  totalAmount: number;
+  feeAmount: number;
+  totalCost?: number;
+  paymentCount: number;
+  completedCount?: number;
+  failedCount?: number;
+  webhookUrl?: string | null;
+  submittedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+}
+
+export interface BatchResponse {
+  batch: Batch;
+  idempotent?: boolean;
+  alreadySubmitted?: boolean;
+}
+
+export interface BatchListResponse {
+  batches: Batch[];
+  total: number;
+  limit?: number;
+  offset?: number;
+}
+
+export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
+
+
+export const PaymentStatus = {
+  pending: 'pending',
+  resolved: 'resolved',
+  completed: 'completed',
+  failed: 'failed',
+} as const;
+
+export interface Payment {
+  id: string;
+  workerIdentifier: string;
+  identifierType?: string;
+  amount: number;
+  currency?: string;
+  reason?: string | null;
+  status: PaymentStatus;
+  resolvedUserId?: string | null;
+  workerCreated?: boolean;
+  transactionId?: string | null;
+  errorMessage?: string | null;
+  externalId?: string | null;
+  paidAt?: string | null;
+  createdAt: string;
+}
+
+export interface PaymentListResponse {
+  payments: Payment[];
+  total: number;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PayrollSummary {
+  balanceUsdc?: number;
+  totalBatches?: number;
+  totalDisbursed?: number;
+  totalFees?: number;
+  totalPayments?: number;
+  completedPayments?: number;
+  failedPayments?: number;
+  workersOnboarded?: number;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  eventType: string;
+  url: string;
+  status: string;
+  responseStatus?: number | null;
+  attempts: number;
+  lastError?: string | null;
+  batchId?: string | null;
+  deliveredAt?: string | null;
+  createdAt: string;
+}
+
+export interface WebhookDeliveryListResponse {
+  deliveries: WebhookDelivery[];
+}
+
 export interface ErrorResponse {
   error: string;
   message: string;
@@ -1035,5 +1255,40 @@ export const GrantAdminRoleBodyRole = {
 export type GrantAdminRoleBody = {
   email: string;
   role: GrantAdminRoleBodyRole;
+};
+
+export type RevokeEmployerApiKey200 = {
+  revoked?: boolean;
+  id?: string;
+};
+
+export type FundSandboxBalanceBody = {
+  amount: number;
+};
+
+export type FundSandboxBalance200 = {
+  balanceUsdc?: number;
+  credited?: number;
+  sandbox?: boolean;
+};
+
+export type ListPayrollBatchesParams = {
+status?: string;
+limit?: number;
+offset?: number;
+};
+
+export type ListPayrollBatchPaymentsParams = {
+limit?: number;
+offset?: number;
+};
+
+export type TestPayrollWebhookBody = {
+  url?: string;
+};
+
+export type TestPayrollWebhook200 = {
+  queued?: boolean;
+  deliveryId?: string | null;
 };
 

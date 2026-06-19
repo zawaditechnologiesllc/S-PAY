@@ -1,7 +1,7 @@
 import { Link, useRoute, useLocation } from "wouter";
 import {
   Wallet, Landmark, CreditCard, Briefcase,
-  CircleUser, QrCode, HelpCircle, LogOut, LayoutDashboard, Lock,
+  CircleUser, QrCode, HelpCircle, LogOut, LayoutDashboard, Lock, Building2,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import { BackButton } from "@/components/back-button";
@@ -42,6 +42,7 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
           <NavLink href="/wallet" icon={<Wallet size={18} />} label="History" />
           <NavLink href="/banking" icon={<Landmark size={18} />} label="Banking" />
           <NavLink href="/card" icon={<CreditCard size={18} />} label="Card" />
+          <NavLink href="/payroll" icon={<Building2 size={18} />} label="Payroll" />
           <NavLink href="/jobs" icon={<Briefcase size={18} />} label="Remote Jobs" />
 
           <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-3 pb-2 pt-5">Account</p>
