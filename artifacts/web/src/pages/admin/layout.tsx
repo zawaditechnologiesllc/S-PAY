@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, ArrowLeftRight, LogOut,
-  Shield, Bell, ChevronRight, Settings, Menu, X, Briefcase, Inbox,
+  Shield, Bell, ChevronRight, Settings, Menu, X, Briefcase, Inbox, Banknote,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
   { href: "/admin/users", icon: <Users size={18} />, label: "Users & KYC" },
   { href: "/admin/transactions", icon: <ArrowLeftRight size={18} />, label: "Transactions" },
+  { href: "/admin/payroll", icon: <Banknote size={18} />, label: "Payroll" },
   { href: "/admin/jobs", icon: <Briefcase size={18} />, label: "Job Listings" },
   { href: "/admin/enquiries", icon: <Inbox size={18} />, label: "Enquiries" },
   { href: "/admin/settings", icon: <Settings size={18} />, label: "Settings" },
