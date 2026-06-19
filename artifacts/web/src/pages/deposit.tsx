@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import QRCode from "qrcode";
 import { Layout } from "@/components/layout";
 import { useAddFunds, useGetMe, getGetMeQueryKey, useInitiateDeposit } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,8 +10,8 @@ import {
   Smartphone, Landmark, Coins, ChevronRight, ArrowLeft, Copy, Download,
   Share2, ShieldCheck, CheckCircle2,
 } from "lucide-react";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 import { NetworkIcon } from "@/components/network-icon";
+import { brandedQRDataUrl } from "@/lib/branded-qr";
 
 /**
  * Deposit ("Add money") — MiniPay-style: three methods, each opening to its
@@ -263,8 +262,8 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
   const { toast } = useToast();
   const addFunds = useAddFunds();
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [address, setAddress] = useState<string | null>(null);
+  const [qrUrl, setQrUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [view, setView] = useState<null | "qr" | typeof RECEIVE_SOURCES[number]["id"]>(null);
@@ -286,32 +285,13 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // MiniPay-style QR (only rendered in the "My QR code" option):
-  // high error-correction + brand logo stamped in the middle
+  // MiniPay-style QR as image (only generated when needed for "My QR code" option)
   useEffect(() => {
-    if (view !== "qr" || !address || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    QRCode.toCanvas(canvas, address, { width: 560, margin: 2, errorCorrectionLevel: "H", color: { dark: "#1A2B4A" } }, () => {
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      const img = new Image();
-      img.onload = () => {
-        const size = canvas.width * 0.2;
-        const x = (canvas.width - size) / 2;
-        const pad = size * 0.12;
-        ctx.fillStyle = "#fff";
-        ctx.beginPath();
-        ctx.roundRect(x - pad, x - pad, size + pad * 2, size + pad * 2, size * 0.22);
-        ctx.fill();
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(x, x, size, size, size * 0.22);
-        ctx.clip();
-        ctx.drawImage(img, x, x, size, size);
-        ctx.restore();
-      };
-      img.src = spayLogo;
-    });
+    if (view !== "qr" || !address) {
+      setQrUrl("");
+      return;
+    }
+    brandedQRDataUrl(address, 240).then(setQrUrl).catch(() => setQrUrl(""));
   }, [view, address]);
 
   const copy = async () => {
@@ -406,8 +386,15 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
           <PanelHeader title="My QR code" onBack={() => setView(null)} />
           <div className="bg-gradient-to-b from-[#FCFF52]/40 to-white rounded-3xl border border-gray-100 dark:border-gray-800 p-4 sm:p-6 flex flex-col items-center gap-3 w-full">
             <p className="font-bold text-gray-900">{me?.fullName ?? "My S-PAY"}</p>
-            {/* Responsive QR: fills the available width on small screens, caps at 240px on larger — always square, never overflows */}
-            <canvas ref={canvasRef} className="w-full max-w-[240px] h-auto aspect-square rounded-xl bg-white" aria-label="Your S-PAY receive QR code" />
+            {/* Branded QR as image — renders at exact size with no stretching */}
+            {qrUrl && (
+              <img
+                src={qrUrl}
+                alt="Your S-PAY receive QR code"
+                className="w-60 h-60 rounded-xl bg-white"
+              />
+            )}
+            {!qrUrl && <div className="w-60 h-60 bg-gray-100 rounded-xl animate-pulse" />}
             <button onClick={copy} className="font-mono text-[11px] text-gray-600 break-all text-center hover:text-gray-900 transition-colors" title="Tap to copy">
               {address}
             </button>
