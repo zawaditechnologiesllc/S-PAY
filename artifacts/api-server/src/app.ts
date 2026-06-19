@@ -106,7 +106,7 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true }));
 
-app.use(["/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/resend-verification", "/api/auth/pin"], authLimiter);
+app.use(["/api/auth/login", "/api/auth/verify-login-code", "/api/auth/register", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/resend-verification", "/api/auth/pin"], authLimiter);
 app.use("/api", maintenanceGate, router);
 // Server-rendered job pages for crawlers (kept up during maintenance so
 // indexing never stalls) — Vercel routes bot traffic here, humans get the SPA.
