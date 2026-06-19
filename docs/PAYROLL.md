@@ -2,8 +2,9 @@
 
 > How marketplaces (Upwork, Fiverr, Studypool…) and any company pay their
 > workers through S-PAY. Companion to [`README.md`](../README.md),
-> [`docs/WALLET-PROVIDERS.md`](./WALLET-PROVIDERS.md) (how funds settle on Celo)
-> and [`docs/SOCIALCONNECT.md`](./SOCIALCONNECT.md).
+> [`docs/PAYROLL-MARKETPLACES.md`](./PAYROLL-MARKETPLACES.md) (who we can
+> integrate — go-to-market reference), [`docs/WALLET-PROVIDERS.md`](./WALLET-PROVIDERS.md)
+> (how funds settle on Celo) and [`docs/SOCIALCONNECT.md`](./SOCIALCONNECT.md).
 
 The payroll API turns S-PAY into a **payouts-as-a-service** layer. A company
 registers once, funds a prepaid USDC balance, then submits **batches** of worker
