@@ -4,7 +4,7 @@ import axios from "axios";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { signToken } from "../lib/auth";
 import { requireAuth } from "../middlewares/auth";
-import { generateToken, hashToken, sendVerificationEmail, sendPasswordResetEmail } from "../lib/email";
+import { generateToken, hashToken, sendVerificationEmail, sendPasswordResetEmail, generateLoginCode, sendLoginCodeEmail } from "../lib/email";
 import { isValidPinFormat, hashPin } from "../lib/pin";
 import { db, usersTable } from "@workspace/db";
 import { eq, and, gt } from "drizzle-orm";
@@ -136,13 +136,71 @@ router.post("/auth/login", async (req, res) => {
       return;
     }
 
-    // No wallet call on login either — wallets are provisioned (or backfilled)
-    // lazily by the first money action, so jobs-only traffic costs zero WaaS MAUs.
-    const token = signToken({ userId: user.id, email: user.email });
-    res.json({ token, user: userResponse(user) });
+    // Email MFA: a correct password is only the FIRST factor. Issue a 6-digit
+    // code, email it, and withhold the session token until the code is verified
+    // at /auth/verify-login-code. The login JWT is never returned here.
+    const code = generateLoginCode();
+    await db.update(usersTable)
+      .set({
+        loginVerificationCode: code,
+        loginVerificationExpires: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        updatedAt: new Date(),
+      })
+      .where(eq(usersTable.id, user.id));
+    void sendLoginCodeEmail(user.email, user.fullName, code);
+
+    res.json({ requiresVerification: true, email: user.email });
   } catch (err) {
     req.log.error({ err }, "Login error");
     res.status(500).json({ error: "internal_error", message: "Login failed" });
+  }
+});
+
+// ─── Email MFA: verify the 6-digit sign-in code (second factor) ───────────────
+
+router.post("/auth/verify-login-code", async (req, res) => {
+  try {
+    const { email, code } = req.body as { email?: string; code?: string };
+    if (!email || !code) {
+      res.status(400).json({ error: "validation_error", message: "email and code are required" });
+      return;
+    }
+    if (!/^[0-9]{6}$/.test(code)) {
+      res.status(400).json({ error: "validation_error", message: "Enter the 6-digit code from your email." });
+      return;
+    }
+
+    // Exact-match lookup, identical to /auth/login, so we always find the same
+    // row the code was stored on (emails are persisted as entered).
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.trim())).limit(1);
+    // Same generic answer whether the email is unknown or the code is wrong —
+    // never reveal which accounts exist.
+    const reject = () =>
+      res.status(401).json({ error: "invalid_code", message: "That code is incorrect or has expired. Try signing in again." });
+
+    if (!user || !user.loginVerificationCode || !user.loginVerificationExpires) {
+      reject();
+      return;
+    }
+    if (user.loginVerificationExpires < new Date()) {
+      reject();
+      return;
+    }
+    if (user.loginVerificationCode !== code) {
+      reject();
+      return;
+    }
+
+    // Single-use: clear the code so it can't be replayed.
+    await db.update(usersTable)
+      .set({ loginVerificationCode: null, loginVerificationExpires: null, updatedAt: new Date() })
+      .where(eq(usersTable.id, user.id));
+
+    const token = signToken({ userId: user.id, email: user.email });
+    res.json({ token, user: userResponse(user) });
+  } catch (err) {
+    req.log.error({ err }, "Verify login code error");
+    res.status(500).json({ error: "internal_error", message: "Could not verify the code" });
   }
 });
 

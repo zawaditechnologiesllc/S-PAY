@@ -83,7 +83,11 @@ paths:
     post:
       operationId: login
       tags: [auth]
-      summary: Login with email and password
+      summary: Login step 1 — verify password, email a 6-digit code
+      description: >
+        With a correct password, S-PAY emails a 6-digit verification code and
+        returns requiresVerification=true. No session token is issued here —
+        call /auth/verify-login-code with the code to complete sign-in.
       requestBody:
         required: true
         content:
@@ -92,13 +96,38 @@ paths:
               $ref: "#/components/schemas/LoginRequest"
       responses:
         "200":
-          description: Login successful
+          description: Password accepted — verification code emailed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginChallengeResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/verify-login-code:
+    post:
+      operationId: verifyLoginCode
+      tags: [auth]
+      summary: Login step 2 — verify the emailed 6-digit code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyLoginCodeRequest"
+      responses:
+        "200":
+          description: Code verified — session issued
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthResponse"
         "401":
-          description: Invalid credentials
+          description: Code incorrect or expired
           content:
             application/json:
               schema:
@@ -1952,6 +1981,37 @@ components:
         - token
         - user
 
+    LoginChallengeResponse:
+      type: object
+      description: Returned by /auth/login when the password is correct — a 6-digit code has been emailed.
+      properties:
+        requiresVerification:
+          type: boolean
+          description: Always true; the client must collect the emailed code and call /auth/verify-login-code.
+        email:
+          type: string
+          format: email
+          description: The address the verification code was sent to.
+      required:
+        - requiresVerification
+        - email
+
+    VerifyLoginCodeRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+          minLength: 6
+          maxLength: 6
+          description: The 6-digit code from the sign-in email.
+      required:
+        - email
+        - code
+
     UpdateProfileRequest:
       type: object
       description: All fields optional; only the ones provided are changed. Email is immutable here.
@@ -2156,6 +2216,9 @@ components:
           type: string
         recipientAddress:
           type: string
+        recipientSpayId:
+          type: string
+          description: S-PAY ID (spay_*) — alternative recipient identifier
         amount:
           type: number
         currency:

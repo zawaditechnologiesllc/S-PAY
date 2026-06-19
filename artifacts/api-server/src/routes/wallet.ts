@@ -82,16 +82,16 @@ router.get("/wallet/transactions", requireAuth, async (req, res) => {
 
 router.post("/wallet/send", requireAuth, async (req, res) => {
   try {
-    const { amount, currency, recipientPhone, recipientEmail, recipientAddress, note, pin } = req.body as {
+    const { amount, currency, recipientPhone, recipientEmail, recipientAddress, recipientSpayId, note, pin } = req.body as {
       amount?: number; currency?: string; recipientPhone?: string; recipientEmail?: string;
-      recipientAddress?: string; note?: string; pin?: string;
+      recipientAddress?: string; recipientSpayId?: string; note?: string; pin?: string;
     };
     if (!amount || amount <= 0) {
       res.status(400).json({ error: "validation_error", message: "Invalid amount" });
       return;
     }
-    if (!recipientPhone && !recipientEmail && !recipientAddress) {
-      res.status(400).json({ error: "validation_error", message: "Provide a recipient phone number, email, or wallet address" });
+    if (!recipientPhone && !recipientEmail && !recipientAddress && !recipientSpayId) {
+      res.status(400).json({ error: "validation_error", message: "Provide a recipient phone number, email, S-PAY ID, or wallet address" });
       return;
     }
     const token: CeloToken = currency?.toUpperCase() === "USDT" ? "USDT" : "USDC";
@@ -123,10 +123,27 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
       return;
     }
 
-    // Resolve recipient: S-PAY member by phone OR email (P2P), or a raw Celo address
+    // Resolve recipient: S-PAY member by S-PAY ID, phone OR email (P2P), or a raw Celo address
     let toAddress = recipientAddress?.trim() ?? "";
     let recipientUser: typeof sender | undefined;
-    if (recipientPhone || recipientEmail) {
+    if (recipientSpayId) {
+      // An S-PAY ID is our own identifier — it always maps to an S-PAY member.
+      [recipientUser] = await db.select().from(usersTable).where(eq(usersTable.spayId, recipientSpayId.trim())).limit(1);
+      if (!recipientUser) {
+        res.status(404).json({ error: "recipient_not_found", message: "No S-PAY member with that S-PAY ID. Double-check the spay_… id and try again." });
+        return;
+      }
+      if (recipientUser.id === sender.id) {
+        res.status(400).json({ error: "validation_error", message: "You can't send money to yourself." });
+        return;
+      }
+      const recipientWallet = await ensureUserWallet(recipientUser);
+      if (!recipientWallet) {
+        res.status(503).json({ error: "recipient_wallet_unavailable", message: "The recipient's wallet couldn't be prepared. Try again shortly." });
+        return;
+      }
+      toAddress = recipientWallet.address;
+    } else if (recipientPhone || recipientEmail) {
       if (recipientPhone) {
         [recipientUser] = await db.select().from(usersTable).where(eq(usersTable.phoneNumber, recipientPhone.trim())).limit(1);
       } else if (recipientEmail) {

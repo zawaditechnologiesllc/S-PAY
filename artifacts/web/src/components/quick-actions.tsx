@@ -71,7 +71,7 @@ function QuickAction({ icon, label, bgColor, onClick }: {
 
 // ─── Transfer ─────────────────────────────────────────────────────────────────
 
-type SendMode = "phone" | "email" | "address";
+type SendMode = "phone" | "email" | "spay-id" | "address";
 
 function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onClose: () => void; initialAddress?: string }) {
   const { toast } = useToast();
@@ -99,6 +99,7 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
   const recipientField =
     mode === "phone" ? { recipientPhone: recipient.trim() } :
     mode === "email" ? { recipientEmail: recipient.trim() } :
+    mode === "spay-id" ? { recipientSpayId: recipient.trim() } :
     { recipientAddress: recipient.trim() };
 
   const submit = () => {
@@ -132,6 +133,7 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
   const modes: { id: SendMode; icon: React.ReactNode; label: string; placeholder: string }[] = [
     { id: "phone", icon: <Smartphone size={13} />, label: "Phone", placeholder: "+254712345678" },
     { id: "email", icon: <Mail size={13} />, label: "Email", placeholder: "name@email.com" },
+    { id: "spay-id", icon: <Banknote size={13} />, label: "S-PAY ID", placeholder: "spay_…" },
     { id: "address", icon: <Wallet2 size={13} />, label: "Address", placeholder: "0x…" },
   ];
   const activeMode = modes.find((m) => m.id === mode)!;
@@ -168,9 +170,9 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
           <>
             <DialogHeader>
               <DialogTitle>Transfer</DialogTitle>
-              <DialogDescription>Send USDC by phone, email, or to any Celo wallet.</DialogDescription>
+              <DialogDescription>Send by phone, email, S-PAY ID, or to any Celo wallet.</DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-3 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+            <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
               {modes.map((m) => (
                 <button key={m.id}
                   onClick={() => { setMode(m.id); setRecipient(""); }}
@@ -182,7 +184,7 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="qa-recipient">
-                  {mode === "phone" ? "Recipient's phone number" : mode === "email" ? "Recipient's email" : "Recipient's Celo address"}
+                  {mode === "phone" ? "Recipient's phone number" : mode === "email" ? "Recipient's email" : mode === "spay-id" ? "Recipient's S-PAY ID" : "Recipient's Celo address"}
                 </Label>
                 <Input id="qa-recipient" placeholder={activeMode.placeholder} value={recipient} onChange={(e) => setRecipient(e.target.value)} />
               </div>

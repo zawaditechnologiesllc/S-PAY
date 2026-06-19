@@ -52,7 +52,9 @@ export const RegisterBody = zod.object({
 
 
 /**
- * @summary Login with email and password
+ * With a correct password, S-PAY emails a 6-digit verification code and returns requiresVerification=true. No session token is issued here — call /auth/verify-login-code with the code to complete sign-in.
+
+ * @summary Login step 1 — verify password, email a 6-digit code
  */
 export const LoginBody = zod.object({
   "email": zod.string().email(),
@@ -60,6 +62,27 @@ export const LoginBody = zod.object({
 })
 
 export const LoginResponse = zod.object({
+  "requiresVerification": zod.boolean().describe('Always true; the client must collect the emailed code and call \/auth\/verify-login-code.'),
+  "email": zod.string().email().describe('The address the verification code was sent to.')
+}).describe('Returned by \/auth\/login when the password is correct — a 6-digit code has been emailed.')
+
+
+/**
+ * @summary Login step 2 — verify the emailed 6-digit code
+ */
+export const verifyLoginCodeBodyCodeMin = 6;
+export const verifyLoginCodeBodyCodeMax = 6;
+
+
+export const verifyLoginCodeBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+
+
+export const VerifyLoginCodeBody = zod.object({
+  "email": zod.string().email(),
+  "code": zod.string().min(verifyLoginCodeBodyCodeMin).max(verifyLoginCodeBodyCodeMax).regex(verifyLoginCodeBodyCodeRegExp).describe('The 6-digit code from the sign-in email.')
+})
+
+export const VerifyLoginCodeResponse = zod.object({
   "token": zod.string(),
   "user": zod.object({
   "id": zod.string(),
@@ -360,6 +383,7 @@ export const SendMoneyBody = zod.object({
   "recipientPhone": zod.string().optional(),
   "recipientEmail": zod.string().optional(),
   "recipientAddress": zod.string().optional(),
+  "recipientSpayId": zod.string().optional().describe('S-PAY ID (spay_\*) — alternative recipient identifier'),
   "amount": zod.number(),
   "currency": zod.string().default(sendMoneyBodyCurrencyDefault),
   "note": zod.string().optional(),
