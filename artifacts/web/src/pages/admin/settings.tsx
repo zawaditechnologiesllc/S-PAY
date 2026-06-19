@@ -9,6 +9,8 @@ import {
   useSendAdminNotification,
   useGetAdminTeam, getGetAdminTeamQueryKey, useGrantAdminRole, useRevokeAdminRole,
   type WalletProvidersUpdateRequestActiveProvider,
+  useGetPayoutProviders, getGetPayoutProvidersQueryKey, useUpdatePayoutProviders,
+  type PayoutProvidersUpdateRequestPreferredProvider,
 } from "@workspace/api-client-react";
 import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone, UserPlus, Trash2, Link2, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -538,33 +540,7 @@ export default function AdminSettings() {
           </div>
         </Section>
 
-        <Section icon={<Banknote size={16} />} title="Payout Providers (Payroll & Withdrawals)">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
-            Multiple payout rails for batch payroll and withdrawals. Enable providers by setting their environment variables on Render.
-            The "preferred" provider handles new payouts; if unavailable for a corridor, the system routes to the next enabled provider.
-          </p>
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Active Providers</p>
-            {[
-              { name: "Noah", key: "noah", env: "NOAH_API_KEY", desc: "Global reach, 0.25–1% per corridor, KYC integrated" },
-              { name: "Bridge (Stripe)", key: "bridge", env: "BRIDGE_API_KEY", desc: "USD/EUR specialist, 0.5% fee, fast settlement" },
-              { name: "Conduit", key: "conduit", env: "CONDUIT_API_KEY", desc: "Emerging markets (LatAm, Africa, Asia), 0.8% fee" },
-              { name: "Yellow Card", key: "yellowcard", env: "YELLOWCARD_API_KEY", desc: "African mobile money (M-Pesa, MoMo), 0.9% fee" },
-              { name: "Thunes", key: "thunes", env: "THUNES_API_KEY", desc: "Global coverage, 140+ countries, 1.1% fee" },
-            ].map((p) => (
-              <div key={p.key} className="flex items-start gap-3 py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{p.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{p.desc}</p>
-                  <p className="text-xs text-gray-400 font-mono mt-0.5">Set {p.env} on Render to enable</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 leading-relaxed">
-            <strong>Payroll integration:</strong> Every payout (withdrawals and batch payroll) uses this pluggable layer. No onboarding fees for Bridge, Conduit, Yellow Card, or Thunes — costs are transactional only (shown in admin fee schedule).
-          </div>
-        </Section>
+        <PayoutProvidersSection />
 
         <Section icon={<Shield size={16} />} title="Admin Access">
           <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -585,6 +561,107 @@ export default function AdminSettings() {
   );
 }
 
+
+// ─── Payout providers: payroll + withdrawal rails — live switches, no deploy ──
+
+function PayoutProvidersSection() {
+  const { data, refetch } = useGetPayoutProviders({ query: { queryKey: getGetPayoutProvidersQueryKey() } });
+  const update = useUpdatePayoutProviders();
+  const { toast } = useToast();
+
+  const setPreferred = (key: string) => {
+    update.mutate(
+      { data: { preferredProvider: key as PayoutProvidersUpdateRequestPreferredProvider } },
+      {
+        onSuccess: () => {
+          toast({ title: `New payouts now prefer ${key}`, description: "Routing falls back to the next enabled provider if this one can't serve a corridor. Live within 15 seconds." });
+          refetch();
+        },
+        onError: () => toast({ title: "Could not switch provider", description: "Please try again.", variant: "destructive" }),
+      },
+    );
+  };
+
+  const toggle = (key: string, next: boolean) => {
+    update.mutate(
+      { data: { enabled: { [key]: next } } },
+      {
+        onSuccess: () => {
+          toast({
+            title: next ? `${key} switched ON` : `${key} switched OFF`,
+            description: next ? "This rail is back in payout routing." : "Kill switch: this rail is removed from payout routing until re-enabled. In-flight payouts are unaffected.",
+          });
+          refetch();
+        },
+        onError: () => toast({ title: "Could not update", description: "Please try again.", variant: "destructive" }),
+      },
+    );
+  };
+
+  return (
+    <Section icon={<Banknote size={16} />} title="Payout Providers (Payroll & Withdrawals)">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
+        The pluggable cash-out rails for batch payroll and withdrawals. Set a provider's env vars on Render to configure it,
+        then pick the <strong>preferred</strong> provider for new payouts — routing falls back to the next enabled + configured
+        provider when the preferred one can't serve a corridor.
+      </p>
+      {(data?.providers ?? []).map((p) => {
+        const isPreferred = data?.preferredProvider === p.key;
+        return (
+          <div key={p.key} className="py-3 border-b border-gray-50 dark:border-gray-800 last:border-0">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2 flex-wrap">
+                  {p.label}
+                  {isPreferred && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-[#4DC9EE] px-2 py-0.5 rounded-full">
+                      Preferred — new payouts
+                    </span>
+                  )}
+                  {p.configured ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                      <CheckCircle2 size={10} /> Configured
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                      <XCircle size={10} /> Not set
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">{p.envHint}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{p.pricingNote}</p>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {!isPreferred && (
+                  <button
+                    onClick={() => setPreferred(p.key)}
+                    disabled={update.isPending || !p.configured || !p.enabled}
+                    className="text-xs font-semibold text-[#4DC9EE] hover:underline disabled:opacity-40 disabled:no-underline"
+                    title={!p.configured ? "Set this provider's env vars on Render first" : !p.enabled ? "Switch this provider on first" : undefined}
+                  >
+                    Make preferred
+                  </button>
+                )}
+                <button
+                  onClick={() => toggle(p.key, !p.enabled)}
+                  disabled={update.isPending}
+                  aria-label={`Toggle ${p.label}`}
+                  className={`relative w-14 h-8 rounded-full transition-colors flex-shrink-0 disabled:opacity-60 ${p.enabled ? "bg-green-500" : "bg-gray-300"}`}
+                >
+                  <span className={`absolute top-1 w-6 h-6 bg-white dark:bg-gray-900 rounded-full shadow transition-all ${p.enabled ? "left-7" : "left-1"}`} />
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      <div className="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 leading-relaxed">
+        <strong>No onboarding fees</strong> for Bridge, Conduit, Yellow Card or Thunes — costs are transactional only.
+        Every withdrawal and batch-payroll payout routes through whichever provider is preferred + able to serve the corridor.
+      </div>
+    </Section>
+  );
+}
 
 // ─── Site content: hero, footer, colours — live edits, no deploy ─────────────
 

@@ -7,9 +7,12 @@ import {
   getFeeSchedule, setFeeSchedule, type FeeSchedule,
   getWalletProviderConfig, setWalletProviderConfig,
   WALLET_PROVIDER_KEYS, type WalletProviderKey,
+  getPayoutProviderConfig, setPayoutProviderConfig,
+  PAYOUT_PROVIDER_KEYS, type PayoutProviderKey,
   getSocialConnect, setSocialConnectEnabled,
 } from "../lib/settings";
 import { walletProviderCatalog } from "../lib/wallet-providers";
+import { payoutProviderCatalog } from "../lib/payout-providers";
 import { isSocialConnectConfigured } from "../lib/socialconnect";
 import {
   requireAnyAdmin, requireManager, requireSuperadmin,
@@ -300,6 +303,75 @@ router.put("/admin/wallet-providers", requireAuth, requireSuperadmin, async (req
   } catch (err) {
     req.log.error({ err }, "Wallet providers update error");
     res.status(500).json({ error: "internal_error", message: "Failed to update wallet provider settings" });
+  }
+});
+
+// ── Payout providers (payroll + withdrawal rails) ─────────────────────────────
+// The pluggable cash-out layer (Noah, Bridge, Conduit, Yellow Card, Thunes).
+// Mirrors the wallet-providers switches: a preferred provider for new payouts
+// plus a per-provider on/off kill switch, both live from /admin/settings.
+async function payoutProvidersPayload() {
+  const config = await getPayoutProviderConfig();
+  return {
+    preferredProvider: config.preferredProvider,
+    providers: payoutProviderCatalog().map((p) => ({
+      key: p.key,
+      label: p.label,
+      configured: p.configured,
+      enabled: config.enabled[p.key],
+      envHint: p.envHint,
+      pricingNote: p.pricingNote,
+    })),
+  };
+}
+
+router.get("/admin/payout-providers", requireAuth, requireAnyAdmin, async (req, res) => {
+  try {
+    res.json(await payoutProvidersPayload());
+  } catch (err) {
+    req.log.error({ err }, "Payout providers read error");
+    res.status(500).json({ error: "internal_error", message: "Failed to read payout provider settings" });
+  }
+});
+
+router.put("/admin/payout-providers", requireAuth, requireSuperadmin, async (req, res) => {
+  try {
+    const { preferredProvider, enabled } = req.body as { preferredProvider?: unknown; enabled?: unknown };
+    if (preferredProvider === undefined && enabled === undefined) {
+      res.status(400).json({ error: "validation_error", message: "Provide preferredProvider and/or enabled to update" });
+      return;
+    }
+    if (preferredProvider !== undefined && !PAYOUT_PROVIDER_KEYS.includes(preferredProvider as PayoutProviderKey)) {
+      res.status(400).json({ error: "validation_error", message: `preferredProvider must be one of: ${PAYOUT_PROVIDER_KEYS.join(", ")}` });
+      return;
+    }
+    const enabledUpdate: Partial<Record<PayoutProviderKey, boolean>> = {};
+    if (enabled !== undefined) {
+      if (typeof enabled !== "object" || enabled === null) {
+        res.status(400).json({ error: "validation_error", message: "enabled must be an object of provider→boolean" });
+        return;
+      }
+      for (const [key, value] of Object.entries(enabled as Record<string, unknown>)) {
+        if (!PAYOUT_PROVIDER_KEYS.includes(key as PayoutProviderKey)) {
+          res.status(400).json({ error: "validation_error", message: `Unknown provider "${key}"` });
+          return;
+        }
+        if (typeof value !== "boolean") {
+          res.status(400).json({ error: "validation_error", message: `enabled.${key} must be a boolean` });
+          return;
+        }
+        enabledUpdate[key as PayoutProviderKey] = value;
+      }
+    }
+    await setPayoutProviderConfig({
+      ...(preferredProvider !== undefined ? { preferredProvider: preferredProvider as PayoutProviderKey } : {}),
+      ...(enabled !== undefined ? { enabled: enabledUpdate } : {}),
+    });
+    req.log.warn({ preferredProvider, enabled: enabledUpdate, admin: req.user!.email }, "Payout provider switches changed");
+    res.json(await payoutProvidersPayload());
+  } catch (err) {
+    req.log.error({ err }, "Payout providers update error");
+    res.status(500).json({ error: "internal_error", message: "Failed to update payout provider settings" });
   }
 });
 

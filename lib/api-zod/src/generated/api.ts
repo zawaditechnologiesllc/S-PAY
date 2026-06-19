@@ -1134,6 +1134,49 @@ export const UpdateWalletProvidersResponse = zod.object({
 
 
 /**
+ * @summary Read the payout (cash-out) provider switches — preferred provider, per-provider on/off, configuration status
+ */
+export const GetPayoutProvidersResponse = zod.object({
+  "preferredProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).describe('Provider tried first for a corridor; routing falls back to the next enabled+configured one'),
+  "providers": zod.array(zod.object({
+  "key": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']),
+  "label": zod.string().describe('Human-readable provider name'),
+  "configured": zod.boolean().describe('Whether the provider\'s API credentials are set in the environment'),
+  "enabled": zod.boolean().describe('Admin on\/off switch — OFF removes this rail from payout routing'),
+  "envHint": zod.string().describe('The environment variables that activate this provider'),
+  "pricingNote": zod.string().describe('One-line note on commercial terms (onboarding-fee posture especially)')
+}))
+})
+
+
+/**
+ * @summary Switch the preferred payout provider and/or toggle providers on/off (live, no deploy)
+ */
+export const UpdatePayoutProvidersBody = zod.object({
+  "preferredProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional(),
+  "enabled": zod.object({
+  "noah": zod.boolean().optional(),
+  "bridge": zod.boolean().optional(),
+  "conduit": zod.boolean().optional(),
+  "yellowcard": zod.boolean().optional(),
+  "thunes": zod.boolean().optional()
+}).optional().describe('Per-provider on\/off, e.g. {\"noah\": false, \"yellowcard\": true}')
+}).describe('Partial update — switch the preferred provider and\/or toggle providers on\/off')
+
+export const UpdatePayoutProvidersResponse = zod.object({
+  "preferredProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).describe('Provider tried first for a corridor; routing falls back to the next enabled+configured one'),
+  "providers": zod.array(zod.object({
+  "key": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']),
+  "label": zod.string().describe('Human-readable provider name'),
+  "configured": zod.boolean().describe('Whether the provider\'s API credentials are set in the environment'),
+  "enabled": zod.boolean().describe('Admin on\/off switch — OFF removes this rail from payout routing'),
+  "envHint": zod.string().describe('The environment variables that activate this provider'),
+  "pricingNote": zod.string().describe('One-line note on commercial terms (onboarding-fee posture especially)')
+}))
+})
+
+
+/**
  * @summary Read runtime feature flags (card program switch, readiness, waitlist demand)
  */
 export const GetFeatureFlagsResponse = zod.object({

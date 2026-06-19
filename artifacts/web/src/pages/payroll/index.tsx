@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,15 +19,18 @@ import {
 export default function PayrollOverview() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: me, isLoading: meLoading } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
+  const isBusiness = me?.accountType === "business";
   const { data, isLoading, error } = useQuery({
     queryKey: ["payroll", "employer"],
     queryFn: payrollApi.getEmployer,
     retry: false,
+    enabled: isBusiness, // don't hit the employer endpoint for personal accounts
   });
 
   const notRegistered = error instanceof PayrollApiError && error.status === 404;
 
-  if (isLoading) {
+  if (meLoading || (isBusiness && isLoading)) {
     return (
       <Layout back title="Payroll">
         <div className="space-y-4 mt-4">
@@ -36,6 +40,9 @@ export default function PayrollOverview() {
       </Layout>
     );
   }
+
+  // Payroll is business-only — personal accounts see an upgrade prompt.
+  if (!isBusiness) return <BusinessOnly />;
 
   if (notRegistered) return <RegisterEmployer onDone={() => queryClient.invalidateQueries({ queryKey: ["payroll"] })} />;
 
@@ -137,6 +144,39 @@ function StatusBadge({ status }: { status: string }) {
     <span className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase px-2.5 py-1 rounded-full ${map[status] ?? map.pending}`}>
       {status === "verified" && <BadgeCheck size={12} />} {status}
     </span>
+  );
+}
+
+// Shown to personal accounts — payroll requires a business account.
+function BusinessOnly() {
+  return (
+    <Layout back title="Payroll">
+      <div className="max-w-lg mx-auto mt-6">
+        <Card className="border-0 shadow-md rounded-2xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Building2 size={20} className="text-[#4DC9EE]" /> Payroll is for business accounts</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Paying a team is a business function — live payroll requires business verification (KYB). Upgrade to a
+              business account to register as an employer, mint API keys, and pay workers across 100+ countries.
+            </p>
+            <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+              {[
+                "Business virtual accounts (US ACH + EU IBAN) in your company name",
+                "Batch payroll API with worker auto-onboarding",
+                "Global payouts — M-Pesa, PIX, SEPA, ACH and 50+ local methods",
+              ].map((t) => (
+                <li key={t} className="flex items-start gap-2"><CheckCircle2 size={16} className="text-[#22C55E] mt-0.5 flex-shrink-0" />{t}</li>
+              ))}
+            </ul>
+            <Link href="/register?type=business">
+              <Button className="w-full rounded-full">Open a business account <ArrowRight size={15} className="ml-1.5" /></Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
   );
 }
 

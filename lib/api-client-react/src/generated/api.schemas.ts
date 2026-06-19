@@ -1059,6 +1059,82 @@ export interface WalletProvidersUpdateRequest {
   enabled?: WalletProvidersUpdateRequestEnabled;
 }
 
+export type PayoutProviderInfoKey = typeof PayoutProviderInfoKey[keyof typeof PayoutProviderInfoKey];
+
+
+export const PayoutProviderInfoKey = {
+  noah: 'noah',
+  bridge: 'bridge',
+  conduit: 'conduit',
+  yellowcard: 'yellowcard',
+  thunes: 'thunes',
+} as const;
+
+export interface PayoutProviderInfo {
+  key: PayoutProviderInfoKey;
+  /** Human-readable provider name */
+  label: string;
+  /** Whether the provider's API credentials are set in the environment */
+  configured: boolean;
+  /** Admin on/off switch — OFF removes this rail from payout routing */
+  enabled: boolean;
+  /** The environment variables that activate this provider */
+  envHint: string;
+  /** One-line note on commercial terms (onboarding-fee posture especially) */
+  pricingNote: string;
+}
+
+/**
+ * Provider tried first for a corridor; routing falls back to the next enabled+configured one
+ */
+export type PayoutProvidersResponsePreferredProvider = typeof PayoutProvidersResponsePreferredProvider[keyof typeof PayoutProvidersResponsePreferredProvider];
+
+
+export const PayoutProvidersResponsePreferredProvider = {
+  noah: 'noah',
+  bridge: 'bridge',
+  conduit: 'conduit',
+  yellowcard: 'yellowcard',
+  thunes: 'thunes',
+} as const;
+
+export interface PayoutProvidersResponse {
+  /** Provider tried first for a corridor; routing falls back to the next enabled+configured one */
+  preferredProvider: PayoutProvidersResponsePreferredProvider;
+  providers: PayoutProviderInfo[];
+}
+
+export type PayoutProvidersUpdateRequestPreferredProvider = typeof PayoutProvidersUpdateRequestPreferredProvider[keyof typeof PayoutProvidersUpdateRequestPreferredProvider];
+
+
+export const PayoutProvidersUpdateRequestPreferredProvider = {
+  noah: 'noah',
+  bridge: 'bridge',
+  conduit: 'conduit',
+  yellowcard: 'yellowcard',
+  thunes: 'thunes',
+} as const;
+
+/**
+ * Per-provider on/off, e.g. {"noah": false, "yellowcard": true}
+ */
+export type PayoutProvidersUpdateRequestEnabled = {
+  noah?: boolean;
+  bridge?: boolean;
+  conduit?: boolean;
+  yellowcard?: boolean;
+  thunes?: boolean;
+};
+
+/**
+ * Partial update — switch the preferred provider and/or toggle providers on/off
+ */
+export interface PayoutProvidersUpdateRequest {
+  preferredProvider?: PayoutProvidersUpdateRequestPreferredProvider;
+  /** Per-provider on/off, e.g. {"noah": false, "yellowcard": true} */
+  enabled?: PayoutProvidersUpdateRequestEnabled;
+}
+
 export interface PlatformStatus {
   status: string;
   maintenance: boolean;

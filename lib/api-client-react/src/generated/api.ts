@@ -79,6 +79,8 @@ import type {
   NoahWebhookBody,
   NotificationsResponse,
   PaymentListResponse,
+  PayoutProvidersResponse,
+  PayoutProvidersUpdateRequest,
   PayrollSummary,
   PlatformStatus,
   RegisterRequest,
@@ -4298,6 +4300,154 @@ export const useUpdateWalletProviders = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateWalletProvidersMutationOptions(options));
+    }
+
+export const getGetPayoutProvidersUrl = () => {
+
+
+
+
+  return `/api/admin/payout-providers`
+}
+
+/**
+ * @summary Read the payout (cash-out) provider switches — preferred provider, per-provider on/off, configuration status
+ */
+export const getPayoutProviders = async ( options?: RequestInit): Promise<PayoutProvidersResponse> => {
+
+  return customFetch<PayoutProvidersResponse>(getGetPayoutProvidersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayoutProvidersQueryKey = () => {
+    return [
+    `/api/admin/payout-providers`
+    ] as const;
+    }
+
+
+export const getGetPayoutProvidersQueryOptions = <TData = Awaited<ReturnType<typeof getPayoutProviders>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayoutProviders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayoutProvidersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayoutProviders>>> = ({ signal }) => getPayoutProviders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayoutProviders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPayoutProvidersQueryResult = NonNullable<Awaited<ReturnType<typeof getPayoutProviders>>>
+export type GetPayoutProvidersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read the payout (cash-out) provider switches — preferred provider, per-provider on/off, configuration status
+ */
+
+export function useGetPayoutProviders<TData = Awaited<ReturnType<typeof getPayoutProviders>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayoutProviders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPayoutProvidersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdatePayoutProvidersUrl = () => {
+
+
+
+
+  return `/api/admin/payout-providers`
+}
+
+/**
+ * @summary Switch the preferred payout provider and/or toggle providers on/off (live, no deploy)
+ */
+export const updatePayoutProviders = async (payoutProvidersUpdateRequest: PayoutProvidersUpdateRequest, options?: RequestInit): Promise<PayoutProvidersResponse> => {
+
+  return customFetch<PayoutProvidersResponse>(getUpdatePayoutProvidersUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      payoutProvidersUpdateRequest,)
+  }
+);}
+
+
+
+
+export const getUpdatePayoutProvidersMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePayoutProviders>>, TError,{data: BodyType<PayoutProvidersUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePayoutProviders>>, TError,{data: BodyType<PayoutProvidersUpdateRequest>}, TContext> => {
+
+const mutationKey = ['updatePayoutProviders'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePayoutProviders>>, {data: BodyType<PayoutProvidersUpdateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updatePayoutProviders(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePayoutProvidersMutationResult = NonNullable<Awaited<ReturnType<typeof updatePayoutProviders>>>
+    export type UpdatePayoutProvidersMutationBody = BodyType<PayoutProvidersUpdateRequest>
+    export type UpdatePayoutProvidersMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Switch the preferred payout provider and/or toggle providers on/off (live, no deploy)
+ */
+export const useUpdatePayoutProviders = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePayoutProviders>>, TError,{data: BodyType<PayoutProvidersUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePayoutProviders>>,
+        TError,
+        {data: BodyType<PayoutProvidersUpdateRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdatePayoutProvidersMutationOptions(options));
     }
 
 export const getGetFeatureFlagsUrl = () => {

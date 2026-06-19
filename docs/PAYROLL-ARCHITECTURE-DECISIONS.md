@@ -1,10 +1,22 @@
 # Payroll Architecture Decisions
 
+> **Status (decided & shipped):**
+> - **Payroll is business-account-only.** Enforced server-side (`POST
+>   /payroll/employers/register` → `403 business_account_required` for personal
+>   accounts) and in the UI (the `/payroll` nav link is hidden for personal
+>   accounts, and the page itself shows a "business account required" upgrade
+>   prompt).
+> - **Every user has an S-PAY ID** (`spay_…`), generated on signup and
+>   backfilled for all existing users by migration `0015_spay_id`. It is exposed
+>   via `/auth/me` and shown as a scannable QR (header, profile, and the P2P
+>   transfer dialog).
+> - **Payout providers are fully wired to the admin panel** (`GET`/`PUT
+>   /admin/payout-providers`): preferred-provider switch + per-provider on/off,
+>   live with no deploy.
+
 ## Account Type: Personal vs. Business
 
-**Current Implementation:** Both personal and business accounts can create payroll employers.
-
-**Recommendation:** Restrict payroll to **business accounts only** for the following reasons:
+**Decision:** Payroll is **business accounts only** — implemented.
 
 ### Why Business-Only?
 
@@ -67,14 +79,25 @@ if (user.accountType !== 'business') {
 
 ---
 
-## Profile Update Issue (Cannot Save)
+## Profile Update Issue (Cannot Save) — RESOLVED
 
-**Suspected Cause:** Frontend form may not be sending updates correctly, or API response parsing is failing.
+**Root cause (found & fixed):** The first `spayId` change added the column to
+the Drizzle schema but shipped two hand-written SQL files (`0015`, `0016`) that
+were **never registered in `migrations/meta/_journal.json`**. The boot-time
+migrator (`drizzle-orm/.../migrator`) only applies journaled migrations, so it
+skipped them — yet the TypeScript schema now selected a `spay_id` column the
+database didn't have. Every users-table query (`SELECT …, spay_id FROM users`)
+then failed with "column does not exist", which broke **login and profile-save
+and anything else touching the users table** — not just profile editing.
 
-### Debug Steps
-1. Check browser console for error messages when "Save" is clicked
-2. Verify API endpoint is `/auth/me` with `PATCH` method
-3. Check if `updatedAt` field is being returned by backend (it should auto-update)
+**Fix:** Regenerated `0015` via `drizzle-kit generate` (so it's journaled +
+snapshotted) and rewrote it with the safe pattern for a populated table — add
+nullable → backfill every existing user with a unique id → `SET NOT NULL` →
+unique + index. Verified end-to-end against a real Postgres (27/27 payroll E2E
+checks pass; all users backfilled, zero nulls, all unique).
+
+**Lesson:** Never hand-write migration SQL for this repo. Always use
+`drizzle-kit generate` so the journal + snapshot stay in sync with the migrator.
 
 ### Endpoint Details
 ```

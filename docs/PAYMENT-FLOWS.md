@@ -2,11 +2,38 @@
 
 This document explains the three main payment flows through the S-PAY system.
 
+> **The one thing to remember:** S-PAY always holds value as **USDC on Celo** —
+> that is the ledger. The three flows below only differ in *how money enters*
+> the wallet. Once it's USDC in a wallet, cashing out to M-Pesa / PIX / SEPA /
+> ACH is the same path every time (via the pluggable payout-providers layer).
+
+## Plain-English summary (the three flows)
+
+**1. Payroll → workers.** A company funds its S-PAY balance with USDC, then
+submits a batch. We atomically debit the company and credit each worker's wallet
+(auto-creating workers by email/phone), and a payout provider converts USDC to
+local currency and pushes it to M-Pesa / PIX / GCash in seconds–minutes.
+Idempotent and all-or-nothing, so a retry never double-pays.
+*Payroll is a **business-account-only** feature (KYB-gated).*
+
+**2. Worker gives a Celo address → withdraws to M-Pesa.** Anyone (a client, a
+peer, an employer) sends USDC straight to the worker's Celo address. In the app
+the worker hits Withdraw → we quote live rates from every enabled provider for
+that corridor → on confirm we debit the wallet only if a payout is guaranteed →
+the provider settles to M-Pesa. No employer or bank involved.
+
+**3. Worker gives a USD/EUR account → receives → withdraws to M-Pesa.** The
+worker shares their **virtual US ACH number / EU IBAN**. A US/EU client pays it
+like a normal domestic transfer — they never see "crypto." Noah credits the
+worker's S-PAY wallet as USDC instantly. From there it is identical to flow 2:
+withdraw → provider → M-Pesa.
+
 ---
 
 ## Flow 1: Payroll (Employer → Workers)
 
 **Use case:** Companies, marketplaces, and platforms paying workers globally.
+**Account requirement:** Business account only (live payroll is KYB-gated; personal accounts are pointed to the business-account upgrade).
 
 ```
 Employer registers on S-PAY
