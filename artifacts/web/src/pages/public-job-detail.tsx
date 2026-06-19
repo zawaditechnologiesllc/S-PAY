@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, useParams } from "wouter";
 import { useGetJobById, getGetJobByIdQueryKey } from "@workspace/api-client-react";
 import { PublicLayout } from "@/components/public-layout";
+import { parseBaseSalary } from "@/lib/salary-parser";
 import {
   ArrowLeft, MapPin, DollarSign, Building, Clock, Briefcase,
   Lock, ArrowRight, ChevronRight,
@@ -26,10 +27,16 @@ export default function PublicJobDetail() {
   useEffect(() => {
     if (!job) return;
     document.title = `${job.title} at ${job.company} — Remote Job | S-PAY`;
-    const ld = document.createElement("script");
-    ld.type = "application/ld+json";
-    ld.id = "job-posting-ld";
-    ld.text = JSON.stringify({
+
+    // Parse salary for structured data
+    const salaryData = job.salary ? parseBaseSalary(job.salary) : null;
+
+    // Valid through: 30 days from post date (or now + 30 days if no post date)
+    const postDate = job.postedAt ? new Date(job.postedAt) : new Date();
+    const validThrough = new Date(postDate);
+    validThrough.setDate(validThrough.getDate() + 30);
+
+    const jobPostingLD: any = {
       "@context": "https://schema.org",
       "@type": "JobPosting",
       title: job.title,
@@ -37,12 +44,29 @@ export default function PublicJobDetail() {
         ? job.description.replace(/<[^>]+>/g, " ").slice(0, 5000)
         : `${job.title} at ${job.company} — fully remote role via the S-PAY jobs board.`,
       datePosted: job.postedAt,
+      validThrough: validThrough.toISOString(),
       hiringOrganization: { "@type": "Organization", name: job.company },
       jobLocationType: "TELECOMMUTE",
       applicantLocationRequirements: { "@type": "Country", name: job.location || "Worldwide" },
       employmentType: "FULL_TIME",
       directApply: false,
-    });
+    };
+
+    // Add baseSalary if available
+    if (salaryData?.value) {
+      jobPostingLD.baseSalary = {
+        "@type": "PriceSpecification",
+        priceCurrency: salaryData.currency,
+        ...(salaryData.value.minValue && { minValue: salaryData.value.minValue }),
+        ...(salaryData.value.maxValue && { maxValue: salaryData.value.maxValue }),
+        ...(salaryData.value.unitText && { unitText: salaryData.value.unitText }),
+      };
+    }
+
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = "job-posting-ld";
+    ld.text = JSON.stringify(jobPostingLD);
     document.getElementById("job-posting-ld")?.remove();
     document.head.appendChild(ld);
     return () => {
