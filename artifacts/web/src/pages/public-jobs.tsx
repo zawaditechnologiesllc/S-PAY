@@ -111,6 +111,21 @@ export default function PublicJobs() {
     setLimit(PAGE_SIZE);
   }, [debouncedKeyword, selectedCategory]);
 
+  // SEO: Dynamic page title based on search/category
+  useEffect(() => {
+    let title = "Remote Jobs | S-PAY";
+    if (selectedCategory !== "All") {
+      title = `${selectedCategory} Remote Jobs | S-PAY`;
+    }
+    if (debouncedKeyword) {
+      title = `${debouncedKeyword} Remote Jobs | S-PAY`;
+    }
+    document.title = title;
+    return () => {
+      document.title = "Remote Jobs | S-PAY";
+    };
+  }, [debouncedKeyword, selectedCategory]);
+
   const queryParams = {
     keyword: debouncedKeyword || undefined,
     category: selectedCategory !== "All" ? CATEGORY_MAP[selectedCategory] : undefined,
