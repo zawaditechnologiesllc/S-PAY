@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Copy, Check } from "lucide-react";
-import QRCode from "qrcode";
+import { brandedQRDataUrl } from "@/lib/branded-qr";
 
 interface QRModalProps {
   open: boolean;
@@ -15,7 +15,7 @@ export function QRModal({ open, onClose, spayId, userName }: QRModalProps) {
 
   useEffect(() => {
     if (open && spayId) {
-      QRCode.toDataURL(spayId, { width: 300 }).then(setQrUrl);
+      brandedQRDataUrl(spayId, 320).then(setQrUrl).catch(() => setQrUrl(""));
     }
   }, [open, spayId]);
 

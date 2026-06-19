@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
-import QRCode from "qrcode";
+import { drawBrandedQR } from "@/lib/branded-qr";
 import { Layout } from "@/components/layout";
 import { useAddFunds, useGetMe, getGetMeQueryKey, useInitiateDeposit } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,6 @@ import {
   Smartphone, Landmark, Coins, ChevronRight, ArrowLeft, Copy, Download,
   Share2, ShieldCheck, CheckCircle2,
 } from "lucide-react";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 import { NetworkIcon } from "@/components/network-icon";
 
 /**
@@ -286,32 +285,12 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // MiniPay-style QR (only rendered in the "My QR code" option):
-  // high error-correction + brand logo stamped in the middle
+  // MiniPay-style branded QR (only in the "My QR code" option): brand-navy
+  // modules + the S-PAY logo stamped in the middle. Shared with the S-PAY ID
+  // modal via lib/branded-qr so every QR the app produces looks identical.
   useEffect(() => {
     if (view !== "qr" || !address || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    QRCode.toCanvas(canvas, address, { width: 560, margin: 2, errorCorrectionLevel: "H", color: { dark: "#1A2B4A" } }, () => {
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      const img = new Image();
-      img.onload = () => {
-        const size = canvas.width * 0.2;
-        const x = (canvas.width - size) / 2;
-        const pad = size * 0.12;
-        ctx.fillStyle = "#fff";
-        ctx.beginPath();
-        ctx.roundRect(x - pad, x - pad, size + pad * 2, size + pad * 2, size * 0.22);
-        ctx.fill();
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(x, x, size, size, size * 0.22);
-        ctx.clip();
-        ctx.drawImage(img, x, x, size, size);
-        ctx.restore();
-      };
-      img.src = spayLogo;
-    });
+    void drawBrandedQR(canvasRef.current, address, 560);
   }, [view, address]);
 
   const copy = async () => {

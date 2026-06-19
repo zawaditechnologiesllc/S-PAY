@@ -26,7 +26,7 @@ const FAQ = [
   },
   {
     q: "Is S-PAY safe and regulated?",
-    a: "Yes. S-PAY operates as a Money Services Business (MSB) under US federal law. We use bank-grade AES-256 encryption, require identity verification for all users, and screen transactions for compliance with AML/sanctions regulations.",
+    a: "We protect your account with bank-grade AES-256 encryption at rest, TLS 1.2+ in transit, and a separate transaction PIN that authorizes every payment. Identity verification (KYC) unlocks full features, and cross-border payouts are processed through licensed payment partners that perform AML and sanctions screening.",
   },
 ];
 

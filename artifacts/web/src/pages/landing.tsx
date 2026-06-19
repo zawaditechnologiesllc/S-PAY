@@ -764,7 +764,7 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-white">
             {[
-              { icon: <Shield size={26} />, title: "Bank-grade security", desc: "AES-256 encryption at rest, TLS 1.2+ in transit, and multi-factor authentication protect every account." },
+              { icon: <Shield size={26} />, title: "Bank-grade security", desc: "AES-256 encryption at rest, TLS 1.2+ in transit, and a separate transaction PIN that authorizes every payment." },
               { icon: <Zap size={26} />, title: "Instant transfers, 24/7", desc: "Send and receive money in seconds, not days — available around the clock, every day of the year." },
               { icon: <CheckCircle size={26} />, title: "KYC verified", desc: "Full identity verification protects you and keeps the platform safe for every member on it." },
             ].map((t) => (
