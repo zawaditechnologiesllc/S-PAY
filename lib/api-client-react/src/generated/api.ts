@@ -74,6 +74,7 @@ import type {
   JobsResponse,
   ListPayrollBatchPaymentsParams,
   ListPayrollBatchesParams,
+  LoginChallengeResponse,
   LoginRequest,
   MessageResponse,
   NoahWebhookBody,
@@ -101,6 +102,7 @@ import type {
   UpdateEnquiryBody,
   UpdateProfileRequest,
   User,
+  VerifyLoginCodeRequest,
   WalletBalance,
   WalletProvidersResponse,
   WalletProvidersUpdateRequest,
@@ -355,11 +357,13 @@ export const getLoginUrl = () => {
 }
 
 /**
- * @summary Login with email and password
- */
-export const login = async (loginRequest: LoginRequest, options?: RequestInit): Promise<AuthResponse> => {
+ * With a correct password, S-PAY emails a 6-digit verification code and returns requiresVerification=true. No session token is issued here — call /auth/verify-login-code with the code to complete sign-in.
 
-  return customFetch<AuthResponse>(getLoginUrl(),
+ * @summary Login step 1 — verify password, email a 6-digit code
+ */
+export const login = async (loginRequest: LoginRequest, options?: RequestInit): Promise<LoginChallengeResponse> => {
+
+  return customFetch<LoginChallengeResponse>(getLoginUrl(),
   {
     ...options,
     method: 'POST',
@@ -404,7 +408,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type LoginMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Login with email and password
+ * @summary Login step 1 — verify password, email a 6-digit code
  */
 export const useLogin = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof login>>, TError,{data: BodyType<LoginRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -415,6 +419,77 @@ export const useLogin = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getLoginMutationOptions(options));
+    }
+
+export const getVerifyLoginCodeUrl = () => {
+
+
+
+
+  return `/api/auth/verify-login-code`
+}
+
+/**
+ * @summary Login step 2 — verify the emailed 6-digit code
+ */
+export const verifyLoginCode = async (verifyLoginCodeRequest: VerifyLoginCodeRequest, options?: RequestInit): Promise<AuthResponse> => {
+
+  return customFetch<AuthResponse>(getVerifyLoginCodeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      verifyLoginCodeRequest,)
+  }
+);}
+
+
+
+
+export const getVerifyLoginCodeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyLoginCode>>, TError,{data: BodyType<VerifyLoginCodeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyLoginCode>>, TError,{data: BodyType<VerifyLoginCodeRequest>}, TContext> => {
+
+const mutationKey = ['verifyLoginCode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyLoginCode>>, {data: BodyType<VerifyLoginCodeRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  verifyLoginCode(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyLoginCodeMutationResult = NonNullable<Awaited<ReturnType<typeof verifyLoginCode>>>
+    export type VerifyLoginCodeMutationBody = BodyType<VerifyLoginCodeRequest>
+    export type VerifyLoginCodeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Login step 2 — verify the emailed 6-digit code
+ */
+export const useVerifyLoginCode = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyLoginCode>>, TError,{data: BodyType<VerifyLoginCodeRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyLoginCode>>,
+        TError,
+        {data: BodyType<VerifyLoginCodeRequest>},
+        TContext
+      > => {
+      return useMutation(getVerifyLoginCodeMutationOptions(options));
     }
 
 export const getGetMeUrl = () => {

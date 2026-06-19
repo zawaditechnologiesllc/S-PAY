@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useLogin } from "@workspace/api-client-react";
+import { useLogin, useVerifyLoginCode } from "@workspace/api-client-react";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { SocialAuthButtons } from "@/components/SocialAuthButtons";
@@ -20,10 +20,24 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  // Two-step email MFA: enter password → enter the 6-digit code we email.
+  const [step, setStep] = useState<"password" | "verify">("password");
+  const [code, setCode] = useState("");
   const login = useLogin();
+  const verifyCode = useVerifyLoginCode();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+
+  const networkAlert = (e: any, fallbackTitle: string) => {
+    const isNetwork = !e?.status && /failed to fetch|networkerror|load failed|network request failed|fetch/i.test(e?.message ?? "");
+    Alert.alert(
+      isNetwork ? "Can't reach the server" : fallbackTitle,
+      isNetwork
+        ? "Check your internet connection and try again. If the app was idle, the server may be waking up — wait a few seconds and retry."
+        : (e?.response?.data?.message ?? e?.data?.message ?? "Something went wrong. Please try again."),
+    );
+  };
 
   const handleLogin = () => {
     if (!email || !password) {
@@ -33,19 +47,36 @@ export default function LoginScreen() {
     login.mutate(
       { data: { email, password } },
       {
+        // Password accepted → a 6-digit code is emailed; move to the code step.
+        onSuccess: () => { setStep("verify"); setCode(""); },
+        onError: (e: any) => networkAlert(e, "Login failed"),
+      }
+    );
+  };
+
+  const handleVerify = () => {
+    if (!/^\d{6}$/.test(code)) {
+      Alert.alert("Enter the 6-digit code", "Check the email we just sent you.");
+      return;
+    }
+    verifyCode.mutate(
+      { data: { email, code } },
+      {
         onSuccess: async (data: any) => {
           await signIn(data.token);
           router.replace("/(tabs)");
         },
-        onError: (e: any) => {
-          const isNetwork = !e?.status && /failed to fetch|networkerror|load failed|network request failed|fetch/i.test(e?.message ?? "");
-          Alert.alert(
-            isNetwork ? "Can't reach the server" : "Login failed",
-            isNetwork
-              ? "Check your internet connection and try again. If the app was idle, the server may be waking up — wait a few seconds and retry."
-              : (e?.response?.data?.message ?? e?.data?.message ?? "Invalid email or password."),
-          );
-        },
+        onError: (e: any) => networkAlert(e, "That code didn't work"),
+      }
+    );
+  };
+
+  const resendCode = () => {
+    login.mutate(
+      { data: { email, password } },
+      {
+        onSuccess: () => Alert.alert("New code sent", `Check ${email} again.`),
+        onError: (e: any) => networkAlert(e, "Couldn't resend the code"),
       }
     );
   };
@@ -79,58 +110,108 @@ export default function LoginScreen() {
       </LinearGradient>
 
       <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Welcome back</Text>
-        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Sign in to your account</Text>
+        {step === "verify" ? (
+          <>
+            <Text style={[styles.title, { color: colors.foreground }]}>Enter your code</Text>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+              We emailed a 6-digit code to {email}. It expires in 10 minutes.
+            </Text>
 
-        {/* Platform-native sign-in: Google on Android, Apple on iOS */}
-        <SocialAuthButtons signupSource="mobile" />
+            <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.background }]}>
+              <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>6-digit code</Text>
+              <TextInput
+                style={[styles.input, styles.codeInput, { color: colors.foreground }]}
+                placeholder="000000"
+                placeholderTextColor={colors.mutedForeground}
+                value={code}
+                onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 6))}
+                keyboardType="number-pad"
+                maxLength={6}
+                autoFocus
+                testID="input-code"
+              />
+            </View>
 
-        <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.background }]}>
-          <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Email</Text>
-          <TextInput
-            style={[styles.input, { color: colors.foreground }]}
-            placeholder="you@example.com"
-            placeholderTextColor={colors.mutedForeground}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            testID="input-email"
-          />
-        </View>
-
-        <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.background }]}>
-          <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Password</Text>
-          <View style={styles.pwRow}>
-            <TextInput
-              style={[styles.input, { flex: 1, color: colors.foreground }]}
-              placeholder="••••••••"
-              placeholderTextColor={colors.mutedForeground}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPw}
-              testID="input-password"
-            />
-            <TouchableOpacity onPress={() => setShowPw((p) => !p)} style={{ padding: 4 }}>
-              <Text style={{ color: colors.primary, fontSize: 13, fontFamily: "Inter_500Medium" }}>
-                {showPw ? "Hide" : "Show"}
-              </Text>
+            <TouchableOpacity
+              style={[styles.btn, { backgroundColor: colors.primary }]}
+              onPress={handleVerify}
+              disabled={verifyCode.isPending}
+              testID="button-verify"
+            >
+              {verifyCode.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.btnText}>Verify & sign in</Text>
+              )}
             </TouchableOpacity>
-          </View>
-        </View>
 
-        <TouchableOpacity
-          style={[styles.btn, { backgroundColor: colors.primary }]}
-          onPress={handleLogin}
-          disabled={login.isPending}
-          testID="button-login"
-        >
-          {login.isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.btnText}>Sign In</Text>
-          )}
-        </TouchableOpacity>
+            <View style={styles.verifyActions}>
+              <TouchableOpacity onPress={() => { setStep("password"); setCode(""); }}>
+                <Text style={[styles.link, { color: colors.mutedForeground }]}>Back to sign in</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={resendCode} disabled={login.isPending}>
+                <Text style={[styles.link, { color: colors.primary }]}>
+                  {login.isPending ? "Sending…" : "Resend code"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.title, { color: colors.foreground }]}>Welcome back</Text>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Sign in to your account</Text>
+
+            {/* Platform-native sign-in: Google on Android, Apple on iOS */}
+            <SocialAuthButtons signupSource="mobile" />
+
+            <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.background }]}>
+              <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Email</Text>
+              <TextInput
+                style={[styles.input, { color: colors.foreground }]}
+                placeholder="you@example.com"
+                placeholderTextColor={colors.mutedForeground}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                testID="input-email"
+              />
+            </View>
+
+            <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.background }]}>
+              <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Password</Text>
+              <View style={styles.pwRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1, color: colors.foreground }]}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.mutedForeground}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPw}
+                  testID="input-password"
+                />
+                <TouchableOpacity onPress={() => setShowPw((p) => !p)} style={{ padding: 4 }}>
+                  <Text style={{ color: colors.primary, fontSize: 13, fontFamily: "Inter_500Medium" }}>
+                    {showPw ? "Hide" : "Show"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.btn, { backgroundColor: colors.primary }]}
+              onPress={handleLogin}
+              disabled={login.isPending}
+              testID="button-login"
+            >
+              {login.isPending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.btnText}>Sign In</Text>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       <TouchableOpacity onPress={() => router.push("/register")} style={styles.linkRow} testID="link-register">
@@ -160,6 +241,8 @@ const styles = StyleSheet.create({
   inputGroup: { borderWidth: 1, borderRadius: 12, padding: 14, gap: 4 },
   inputLabel: { fontSize: 11, fontFamily: "Inter_500Medium", textTransform: "uppercase", letterSpacing: 0.5 },
   input: { fontSize: 16, fontFamily: "Inter_400Regular", padding: 0 },
+  codeInput: { fontSize: 28, letterSpacing: 8, textAlign: "center", fontFamily: "Inter_700Bold" },
+  verifyActions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   pwRow: { flexDirection: "row", alignItems: "center" },
   btn: { borderRadius: 14, paddingVertical: 16, alignItems: "center" },
   btnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },

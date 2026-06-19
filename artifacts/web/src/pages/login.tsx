@@ -1,22 +1,28 @@
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
-import { useLogin } from "@workspace/api-client-react";
+import { useLogin, useVerifyLoginCode } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { setToken } from "@/lib/auth";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, MailCheck } from "lucide-react";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
 
 export default function Login() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const loginMutation = useLogin();
+  const verifyCodeMutation = useVerifyLoginCode();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // Two-step email MFA: "password" collects the credentials, "verify" collects
+  // the 6-digit code we email after the password checks out.
+  const [step, setStep] = useState<"password" | "verify">("password");
+  const [code, setCode] = useState("");
 
   // Redirect to ?next= param after login, or dashboard by default.
   const nextUrl = (() => {
@@ -29,28 +35,57 @@ export default function Login() {
     }
   })();
 
+  const networkError = (error: any, fallbackTitle: string) => {
+    const isNetwork = !error?.status && /failed to fetch|networkerror|load failed|fetch/i.test(error?.message ?? "");
+    toast({
+      title: isNetwork ? "Can't reach the server" : fallbackTitle,
+      description: isNetwork
+        ? "Check your internet connection and try again. If you just opened the app, the server may be waking up — wait a few seconds and retry."
+        : (error?.data?.message ?? error?.message ?? "Something went wrong. Please try again."),
+      variant: "destructive",
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     loginMutation.mutate(
       { data: { email, password } },
       {
+        onSuccess: () => {
+          // Password accepted — a 6-digit code is now on its way by email.
+          setStep("verify");
+          setCode("");
+          toast({ title: "Check your email", description: `We sent a 6-digit code to ${email}.` });
+        },
+        onError: (error: any) => networkError(error, "Login failed"),
+      }
+    );
+  };
+
+  const handleVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(code)) {
+      toast({ title: "Enter the 6-digit code", description: "Check the email we just sent you.", variant: "destructive" });
+      return;
+    }
+    verifyCodeMutation.mutate(
+      { data: { email, code } },
+      {
         onSuccess: (data) => {
           setToken(data.token);
           setLocation(nextUrl);
         },
-        onError: (error: any) => {
-          // A network/CORS failure throws a bare TypeError ("Failed to fetch")
-          // with no HTTP status — turn that into something a user can act on,
-          // instead of the cryptic browser message.
-          const isNetwork = !error?.status && /failed to fetch|networkerror|load failed|fetch/i.test(error?.message ?? "");
-          toast({
-            title: isNetwork ? "Can't reach the server" : "Login failed",
-            description: isNetwork
-              ? "Check your internet connection and try again. If you just opened the app, the server may be waking up — wait a few seconds and retry."
-              : (error?.data?.message ?? error?.message ?? "Invalid email or password."),
-            variant: "destructive",
-          });
-        },
+        onError: (error: any) => networkError(error, "That code didn't work"),
+      }
+    );
+  };
+
+  const resendCode = () => {
+    loginMutation.mutate(
+      { data: { email, password } },
+      {
+        onSuccess: () => toast({ title: "New code sent", description: `Check ${email} again.` }),
+        onError: (error: any) => networkError(error, "Couldn't resend the code"),
       }
     );
   };
@@ -69,7 +104,62 @@ export default function Login() {
         {/* Card */}
         <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
 
-          {/* Google button */}
+          {step === "verify" ? (
+            /* ── Step 2: email MFA code ── */
+            <div className="px-8 pt-8 pb-6">
+              <div className="flex flex-col items-center text-center mb-6">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-[#2E8FD6] mb-4">
+                  <MailCheck size={26} />
+                </div>
+                <h2 className="text-lg font-bold text-[#1A2B4A] dark:text-gray-100">Enter your sign-in code</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  We emailed a 6-digit code to <span className="font-medium text-gray-700 dark:text-gray-300">{email}</span>.
+                  It expires in 10 minutes.
+                </p>
+              </div>
+              <form onSubmit={handleVerify} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="code" className="text-sm font-medium text-gray-700 dark:text-gray-300">6-digit code</Label>
+                  <Input
+                    id="code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    maxLength={6}
+                    placeholder="000000"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    className="rounded-xl border-gray-200 dark:border-gray-700 focus:border-[#4DC9EE] focus:ring-[#4DC9EE]/20 h-12 text-center text-2xl font-bold tracking-[0.5em]"
+                  />
+                </div>
+                <Button
+                  className="w-full h-11 rounded-xl bg-[#4DC9EE] hover:bg-[#1A2B4A] text-white font-semibold transition-colors"
+                  type="submit"
+                  disabled={verifyCodeMutation.isPending}
+                >
+                  {verifyCodeMutation.isPending ? "Verifying..." : "Verify & sign in"}
+                </Button>
+              </form>
+              <div className="flex items-center justify-between mt-4 text-sm">
+                <button
+                  type="button"
+                  onClick={() => { setStep("password"); setCode(""); }}
+                  className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-[#2E8FD6] transition-colors font-medium"
+                >
+                  <ArrowLeft size={15} /> Back to sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={resendCode}
+                  disabled={loginMutation.isPending}
+                  className="text-[#4DC9EE] hover:underline font-semibold disabled:opacity-50"
+                >
+                  {loginMutation.isPending ? "Sending…" : "Resend code"}
+                </button>
+              </div>
+            </div>
+          ) : (
+          /* ── Step 1: Google + email/password ── */
           <div className="px-8 pt-8 pb-6">
             <button
               type="button"
@@ -143,6 +233,7 @@ export default function Login() {
               </Button>
             </form>
           </div>
+          )}
 
           {/* Footer */}
           <div className="bg-gray-50 dark:bg-gray-800/60 px-8 py-4 border-t border-gray-100 dark:border-gray-800 text-center">

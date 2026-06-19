@@ -352,6 +352,27 @@ export interface AuthResponse {
 }
 
 /**
+ * Returned by /auth/login when the password is correct — a 6-digit code has been emailed.
+ */
+export interface LoginChallengeResponse {
+  /** Always true; the client must collect the emailed code and call /auth/verify-login-code. */
+  requiresVerification: boolean;
+  /** The address the verification code was sent to. */
+  email: string;
+}
+
+export interface VerifyLoginCodeRequest {
+  email: string;
+  /**
+     * The 6-digit code from the sign-in email.
+     * @minLength 6
+     * @maxLength 6
+     * @pattern ^[0-9]{6}$
+     */
+  code: string;
+}
+
+/**
  * All fields optional; only the ones provided are changed. Email is immutable here.
  */
 export interface UpdateProfileRequest {
@@ -440,6 +461,8 @@ export interface SendMoneyRequest {
   recipientPhone?: string;
   recipientEmail?: string;
   recipientAddress?: string;
+  /** S-PAY ID (spay_*) — alternative recipient identifier */
+  recipientSpayId?: string;
   amount: number;
   currency: string;
   note?: string;

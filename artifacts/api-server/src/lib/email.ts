@@ -142,6 +142,74 @@ export async function sendVerificationEmail(to: string, fullName: string, verify
   );
 }
 
+/** A 6-digit numeric login code (email MFA second factor). */
+export function generateLoginCode(): string {
+  return crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
+}
+
+/**
+ * Email MFA: send the 6-digit sign-in code. Code-focused layout (big spaced
+ * digits) rather than a click-through CTA, since there's nothing to click.
+ * Falls back to a logged no-op (code visible in Render logs) when email is
+ * unconfigured, exactly like the other transactional emails.
+ */
+export async function sendLoginCodeEmail(to: string, fullName: string, code: string): Promise<void> {
+  const firstName = fullName.split(" ")[0] || "there";
+  const spaced = code.split("").join(" ");
+  const year = new Date().getFullYear();
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="x-apple-disable-message-reformatting">
+<title>Your S-PAY sign-in code</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;height:0;width:0;">Your S-PAY sign-in code is ${code} (valid 10 minutes).</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+      <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:100%;max-width:520px;background-color:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;">
+        <tr>
+          <td style="background-color:#1A2B4A;padding:26px 32px;">
+            <div style="font-family:${FONT};font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;line-height:1;">S-PAY</div>
+            <div style="font-family:${FONT};font-size:12px;font-weight:600;color:#4DC9EE;margin-top:4px;">Digital Wallet</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px;font-family:${FONT};color:#1A2B4A;">
+            <h1 style="font-size:20px;font-weight:700;margin:0 0 16px;color:#1A2B4A;">Your sign-in code, ${firstName}</h1>
+            <p style="font-size:15px;line-height:1.6;margin:0 0 20px;color:#334155;">Enter this code to finish signing in to S-PAY. It's valid for <strong>10 minutes</strong>.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+              <tr>
+                <td align="center" style="background-color:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:18px 28px;">
+                  <span style="font-family:${FONT};font-size:34px;font-weight:800;letter-spacing:8px;color:#1A2B4A;">${spaced}</span>
+                </td>
+              </tr>
+            </table>
+            <p style="font-size:13px;color:#64748b;line-height:1.5;margin:0;">If you didn't try to sign in, you can safely ignore this email — your account stays secure and no one can sign in without this code.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:22px 32px;border-top:1px solid #e2e8f0;background-color:#f8fafc;">
+            <p style="font-family:${FONT};font-size:12px;color:#94a3b8;line-height:1.6;margin:0;">
+              © ${year} S-PAY · Zawadi Technologies LLC · Built on Celo
+            </p>
+          </td>
+        </tr>
+      </table>
+      <p style="font-family:${FONT};font-size:11px;color:#94a3b8;margin:16px 0 0;">Digital money for the world's remote workers.</p>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+  const text = `S-PAY — Digital Wallet\n\nYour sign-in code is: ${code}\n\nEnter it to finish signing in. It's valid for 10 minutes.\n\nIf you didn't try to sign in, you can safely ignore this email.\n© ${year} S-PAY · Zawadi Technologies LLC`;
+  // actionUrl arg is only used for the unconfigured-log fallback; pass the code there.
+  await sendEmail(to, "Your S-PAY sign-in code", html, text, `code:${code}`);
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   await sendEmail(
     to,

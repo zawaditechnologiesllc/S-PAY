@@ -176,6 +176,7 @@ Ordered by launch impact. Each is small and isolated; the file tells you exactly
 | **D8** | Exchange-withdraw screen on **mobile** (web is done) | New `artifacts/mobile/app/exchange.tsx` mirroring `web/src/pages/exchange-withdraw.tsx` | Same guided steps/safety gates; reuse `useSendMoney`. |
 | **D9** | Jobs "Load more" on mobile (fetches first 30 only) | `artifacts/mobile/app/(tabs)/jobs.tsx` | Raise `limit` and/or add FlatList `onEndReached` paging like the web pages. |
 | **D10** | ✅ **Done** — transfer commission swept to `TREASURY_CELO_ADDRESS` in the send flow (flat + % , server-computed, charged on top). Set the env to start collecting. | `routes/wallet.ts`, `lib/settings.ts` | — |
+| **D11** | ✅ **Done** — **email sign-in code (MFA)**: email+password login now emails a 6-digit code (10-min expiry, single-use) and only issues the session token after `POST /auth/verify-login-code`. Web + mobile both do the two-step flow. ⚠️ **`RESEND_API_KEY` is now login-critical** — without it the code only prints to Render logs, so real users can't finish signing in. (Google/Apple sign-in is unaffected — those skip the code.) | `routes/auth.ts` (`/auth/login`, `/auth/verify-login-code`), `lib/email.ts` (`sendLoginCodeEmail`), `web/src/pages/login.tsx`, `mobile/app/login.tsx`, migration `0016_login_mfa` | Make sure `RESEND_API_KEY` + `EMAIL_FROM` are set before launch, or every password login dead-ends at the code screen. |
 
 ---
 

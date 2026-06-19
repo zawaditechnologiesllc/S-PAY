@@ -29,7 +29,7 @@ S-PAY was born in 2016 by a team of full-stack fintech and crypto engineers frus
 
 S-PAY's onboarding follows the [MiniPay](https://www.opera.com/products/minipay) playbook: a wallet in seconds, no seed phrase, no crypto knowledge required.
 
-1. **Sign up in under 2 minutes** — email + password, or one tap with Google. Phone number optional (used for P2P transfers, M-Pesa/MoMo payouts). Signup and login run **entirely on S-PAY's own database + JWT** — no third-party wallet service is contacted. Users can edit their profile (name, phone, country, business name) anytime from the **Profile** screen — changes persist to their account record.
+1. **Sign up in under 2 minutes** — email + password, or one tap with Google. Phone number optional (used for P2P transfers, M-Pesa/MoMo payouts). Signup and login run **entirely on S-PAY's own database + JWT** — no third-party wallet service is contacted. Password sign-in adds **email two-step verification**: after the password, S-PAY emails a 6-digit code that must be entered to finish signing in (Google/Apple sign-in is one-tap and skips the code). Users can edit their profile (name, phone, country, business name) anytime from the **Profile** screen — changes persist to their account record.
 2. **Celo wallet created invisibly at the first money action** — the first time a user asks for a deposit address, sends money, or withdraws, S-PAY provisions an EVM wallet on the **Celo network** through the admin-selected wallet provider (**Privy**, **Coinbase CDP**, **Turnkey**, **Openfort**, **thirdweb**, or **Dynamic** — switchable live in `/admin/settings`). No seed phrase to write down; private keys live in the provider's TEE infrastructure and **never touch S-PAY servers or the database** — we store only the public address (`celoWalletAddress`).
    *Why lazy? Wallet providers bill for active wallet users. The jobs board brings thousands of signups who may never move money — they cost zero this way, and only paying users ever appear on the WaaS bill. Full rationale: [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md).*
 3. **Receiving is one tap away** — tap "Add funds" and the wallet (created on the spot if needed) holds **USDC on Celo** (stablecoin-first, like MiniPay's cUSD/USDC). Friends and clients can pay you by phone number or wallet address; P2P recipients get their wallet auto-created the moment someone first pays them.
@@ -64,7 +64,7 @@ The user chooses a payout method and enters the recipient details:
 All payouts are processed by **Noah Global Payouts** — no third-party wallet required. The user just enters a phone number (M-Pesa/MTN) or IBAN (SEPA) and hits confirm.
 
 ### Internal transfers
-Users send USDC/USDT peer-to-peer within S-PAY by entering a recipient **phone number, email address, or wallet address** — settled on-chain on Celo in ~5 seconds. A flat transfer fee and/or a P2P percentage (both admin-tunable) can be charged on top and swept to the business treasury wallet (`TREASURY_CELO_ADDRESS`); with no treasury configured, transfers are free. Every send is authorized by the user's transaction PIN.
+Users send USDC/USDT peer-to-peer within S-PAY by entering a recipient **phone number, email address, S-PAY ID (`spay_…`), or wallet address** — settled on-chain on Celo in ~5 seconds. A flat transfer fee and/or a P2P percentage (both admin-tunable) can be charged on top and swept to the business treasury wallet (`TREASURY_CELO_ADDRESS`); with no treasury configured, transfers are free. Every send is authorized by the user's transaction PIN.
 
 ---
 
@@ -112,6 +112,7 @@ S-PAY/
 | Layer | How it's protected |
 |---|---|
 | **Passwords** | bcrypt (cost factor 12) — never stored in plain text |
+| **Email two-step sign-in (MFA)** | Password login emails a 6-digit code (10-minute expiry, single-use) that must be entered before any session token is issued — a stolen password alone can't sign in. Requires `RESEND_API_KEY` to deliver; Google/Apple sign-in is exempt |
 | **Transaction PIN** | Separate bcrypt-hashed 4–6 digit PIN required for **every money-out action** — P2P send, exchange/crypto cash-out, and bank/mobile-money withdrawal — the login session alone never moves money; 5 wrong tries locks it for 15 min. Set/changed from the Security screen; changing it requires the current PIN |
 | **Auth tokens** | Stateless JWT, signed with `JWT_SECRET` (HS256), 30-day expiry |
 | **Transport** | TLS enforced by Render (API) and Vercel (web) — HTTP redirects to HTTPS |
