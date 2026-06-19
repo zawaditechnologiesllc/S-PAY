@@ -18,7 +18,7 @@ export const usersTable = pgTable("users", {
   accountType: accountTypeEnum("account_type").default("personal").notNull(), // personal → Noah KYC · business → Noah KYB
   businessName: text("business_name"),           // required for business accounts; goes on business virtual accounts
   kycStatus: kycStatusEnum("kyc_status").default("pending").notNull(),
-  spayId: text("spay_id").unique().notNull().$defaultFn(() => `spay_${crypto.randomUUID().slice(0, 12)}`), // Public user identifier for payroll/marketplaces
+  spayId: text("spay_id").unique().notNull().$defaultFn(() => `spay_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`), // Public user identifier for payroll/marketplaces
   emailVerified: boolean("email_verified").default(false).notNull(), // soft verification — never blocks login, shown as a banner until confirmed
   emailVerifyToken: text("email_verify_token"),          // sha256 of the emailed token
   emailVerifyExpires: timestamp("email_verify_expires"),
