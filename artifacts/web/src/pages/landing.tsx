@@ -484,22 +484,21 @@ export default function Landing() {
             {/* Text */}
             <div>
               <div className="inline-flex items-center gap-2 bg-[#1A2B4A]/5 text-[#1A2B4A] text-xs font-bold px-3 py-1.5 rounded-full mb-5 border border-[#1A2B4A]/10">
-                <Building2 size={13} /> S-PAY for Business
+                <Building2 size={13} /> Payroll & Batch Payments
               </div>
               <h2 className="text-2xl md:text-4xl font-black text-[#1A2B4A] leading-tight mb-4">
-                Built for companies<br className="hidden md:block" /> and partnerships too.
+                Payroll at global scale.<br className="hidden md:block" /> No setup fees.
               </h2>
               <p className="text-gray-500 leading-relaxed mb-7 text-base md:text-lg">
-                Open a business account, verify your company and its representative with automated KYB,
-                and get virtual US &amp; EU bank accounts in your business name.
+                Pay your distributed team in 180+ countries — freelancers, contractors, or full-time workers. Batch payouts with instant local cash-outs. No onboarding fees. No minimums.
               </p>
               <ul className="space-y-3.5 mb-8">
                 {[
-                  "Business verification (KYB) — company + representative, fully automated via Noah",
-                  "Business virtual accounts: US ACH + EU IBAN in your company's name",
-                  "Hold and pay in USDC & USDT on Celo — same instant rails as personal accounts",
-                  "Pay contractors and teams in 180+ countries, cash-outs to 50+ local methods",
-                  "Post roles to 500K+ remote workers on the S-PAY jobs board",
+                  "Batch payroll API — integrate in minutes, same format for every marketplace",
+                  "Worker auto-onboarding — email or phone, we handle KYC, they get paid instantly",
+                  "Fee-free provider switching — Noah, Conduit, Yellow Card, Bridge, Thunes — all live rates",
+                  "Smart routing — automatic best-rate selection for every payout corridor",
+                  "Webhook webhooks for compliance — real-time status on every payment, every worker",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
                     <CheckCircle size={17} className="text-[#1A2B4A] flex-shrink-0 mt-0.5" />
@@ -508,14 +507,14 @@ export default function Landing() {
                 ))}
               </ul>
               <div className="flex flex-col sm:flex-row gap-3">
-                <Link href="/register?type=business">
+                <Link href="/payroll">
                   <button className="flex items-center justify-center gap-2 bg-[#1A2B4A] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#0d1f38] transition-colors text-sm shadow-md w-full sm:w-auto">
-                    Open a Business Account <ArrowRight size={15} />
+                    Start Paying Your Team <ArrowRight size={15} />
                   </button>
                 </Link>
                 <a href="mailto:partnerships@spayewallet.com">
                   <button className="flex items-center justify-center gap-2 bg-white text-[#1A2B4A] font-semibold px-6 py-3 rounded-xl border border-gray-200 hover:border-[#1A2B4A]/30 transition-colors text-sm w-full sm:w-auto">
-                    <Handshake size={15} /> Partner with us
+                    <Handshake size={15} /> Talk to Sales
                   </button>
                 </a>
               </div>
@@ -543,14 +542,17 @@ export default function Landing() {
                   </div>
                 </div>
                 <div className="bg-white rounded-2xl p-5 shadow-md border border-gray-100">
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">Latest payroll</p>
+                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">Batch Payroll Status</p>
                   {[
-                    { who: "James O. — Nairobi", amount: "1,200 USDC", flag: "🇰🇪" },
-                    { who: "Maria F. — São Paulo", amount: "950 USDT", flag: "🇧🇷" },
-                    { who: "Priya S. — Manila", amount: "800 USDC", flag: "🇵🇭" },
+                    { who: "James O. — Nairobi", amount: "1,200 USDC", flag: "🇰🇪", status: "✓ M-Pesa" },
+                    { who: "Maria F. — São Paulo", amount: "950 USDT", flag: "🇧🇷", status: "✓ PIX" },
+                    { who: "Priya S. — Manila", amount: "800 USDC", flag: "🇵🇭", status: "✓ GCash" },
                   ].map((row) => (
                     <div key={row.who} className="flex items-center justify-between py-2 border-t border-gray-50 first:border-0">
-                      <span className="text-xs text-gray-600 flex items-center gap-2"><span>{row.flag}</span>{row.who}</span>
+                      <div>
+                        <span className="text-xs text-gray-600 flex items-center gap-2"><span>{row.flag}</span>{row.who}</span>
+                        <span className="text-[10px] text-gray-400">{row.status}</span>
+                      </div>
                       <span className="text-xs font-bold text-[#1A2B4A]">{row.amount}</span>
                     </div>
                   ))}

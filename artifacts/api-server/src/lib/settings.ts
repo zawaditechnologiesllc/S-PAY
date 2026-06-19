@@ -122,6 +122,54 @@ export async function setWalletProviderConfig(update: {
   return next;
 }
 
+// ── Payout provider switches ──────────────────────────────────────────────────
+// Which payout rail settles worker cash-outs / withdrawals, plus per-provider
+// kill switches — toggled live from /admin/settings, same shape as the wallet
+// providers. Lets S-PAY run several rails side-by-side and route by corridor,
+// so it's never locked to a single partner (e.g. one charging onboarding fees).
+
+export type PayoutProviderKey = "noah" | "bridge" | "conduit" | "yellowcard" | "thunes";
+export const PAYOUT_PROVIDER_KEYS: readonly PayoutProviderKey[] =
+  ["noah", "bridge", "conduit", "yellowcard", "thunes"] as const;
+
+export interface PayoutProviderConfig {
+  /** Preferred provider when more than one can serve a corridor. */
+  preferredProvider: PayoutProviderKey;
+  /** Per-provider on/off. OFF = never selected for a payout. */
+  enabled: Record<PayoutProviderKey, boolean>;
+}
+
+const DEFAULT_PAYOUT_PROVIDERS: PayoutProviderConfig = {
+  preferredProvider: "noah",
+  enabled: { noah: true, bridge: true, conduit: true, yellowcard: true, thunes: true },
+};
+
+const PAYOUT_PROVIDERS_KEY = "payout_providers";
+
+export async function getPayoutProviderConfig(): Promise<PayoutProviderConfig> {
+  const stored = await getSetting<Partial<PayoutProviderConfig>>(PAYOUT_PROVIDERS_KEY, {});
+  const preferred = PAYOUT_PROVIDER_KEYS.includes(stored.preferredProvider as PayoutProviderKey)
+    ? (stored.preferredProvider as PayoutProviderKey)
+    : DEFAULT_PAYOUT_PROVIDERS.preferredProvider;
+  return {
+    preferredProvider: preferred,
+    enabled: { ...DEFAULT_PAYOUT_PROVIDERS.enabled, ...(stored.enabled ?? {}) },
+  };
+}
+
+export async function setPayoutProviderConfig(update: {
+  preferredProvider?: PayoutProviderKey;
+  enabled?: Partial<Record<PayoutProviderKey, boolean>>;
+}): Promise<PayoutProviderConfig> {
+  const current = await getPayoutProviderConfig();
+  const next: PayoutProviderConfig = {
+    preferredProvider: update.preferredProvider ?? current.preferredProvider,
+    enabled: { ...current.enabled, ...(update.enabled ?? {}) },
+  };
+  await setSetting(PAYOUT_PROVIDERS_KEY, next);
+  return next;
+}
+
 // ── SocialConnect master switch ───────────────────────────────────────────────
 // Celo SocialConnect maps off-chain identifiers (phone/email) → on-chain
 // addresses via a decentralized registry, so a send can reach someone who

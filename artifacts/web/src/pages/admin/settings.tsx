@@ -10,7 +10,8 @@ import {
   useGetAdminTeam, getGetAdminTeamQueryKey, useGrantAdminRole, useRevokeAdminRole,
   type WalletProvidersUpdateRequestActiveProvider,
 } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone, UserPlus, Trash2, Link2 } from "lucide-react";
+import { useGetPayoutProviders, useUpdatePayoutProviders } from "@workspace/api-client-react";
+import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone, UserPlus, Trash2, Link2, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatusRow({ label, ok, note }: { label: string; ok: boolean; note?: string }) {
@@ -535,6 +536,34 @@ export default function AdminSettings() {
             <p>• <strong>KYC</strong> — automated identity verification. Noah triggers <code className="bg-blue-100 px-1 rounded">customer.kyc_approved</code> or <code className="bg-blue-100 px-1 rounded">customer.kyc_rejected</code> webhooks automatically. No manual review needed.</p>
             <p>• <strong>Global Payouts</strong> — send money via M-Pesa, MTN Mobile Money, PIX (Brazil), SEPA (Europe), and local bank transfers across 100+ countries.</p>
             <p><strong>To enable:</strong> Apply at noah.com for a partner account → get API key → set NOAH_API_KEY on Render. Register your webhook URL (<code className="bg-blue-100 px-1 rounded">/webhooks/noah</code>) in the Noah dashboard and set NOAH_WEBHOOK_SECRET on Render.</p>
+          </div>
+        </Section>
+
+        <Section icon={<Banknote size={16} />} title="Payout Providers (Payroll & Withdrawals)">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
+            Multiple payout rails for batch payroll and withdrawals. Enable providers by setting their environment variables on Render.
+            The "preferred" provider handles new payouts; if unavailable for a corridor, the system routes to the next enabled provider.
+          </p>
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Active Providers</p>
+            {[
+              { name: "Noah", key: "noah", env: "NOAH_API_KEY", desc: "Global reach, 0.25–1% per corridor, KYC integrated" },
+              { name: "Bridge (Stripe)", key: "bridge", env: "BRIDGE_API_KEY", desc: "USD/EUR specialist, 0.5% fee, fast settlement" },
+              { name: "Conduit", key: "conduit", env: "CONDUIT_API_KEY", desc: "Emerging markets (LatAm, Africa, Asia), 0.8% fee" },
+              { name: "Yellow Card", key: "yellowcard", env: "YELLOWCARD_API_KEY", desc: "African mobile money (M-Pesa, MoMo), 0.9% fee" },
+              { name: "Thunes", key: "thunes", env: "THUNES_API_KEY", desc: "Global coverage, 140+ countries, 1.1% fee" },
+            ].map((p) => (
+              <div key={p.key} className="flex items-start gap-3 py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-gray-100 dark:border-gray-700">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{p.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{p.desc}</p>
+                  <p className="text-xs text-gray-400 font-mono mt-0.5">Set {p.env} on Render to enable</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 leading-relaxed">
+            <strong>Payroll integration:</strong> Every payout (withdrawals and batch payroll) uses this pluggable layer. No onboarding fees for Bridge, Conduit, Yellow Card, or Thunes — costs are transactional only (shown in admin fee schedule).
           </div>
         </Section>
 

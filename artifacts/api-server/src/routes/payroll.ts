@@ -9,6 +9,7 @@ import {
 import { processBatch } from "../lib/payroll-processor";
 import { enqueueWebhook } from "../lib/payroll-webhooks";
 import { ensureUserWallet } from "../lib/wallet-providers";
+import { payoutProviderCatalog, quotesForCorridor } from "../lib/payout-providers";
 import {
   db, employersTable, employerApiKeysTable, payrollBatchesTable, payrollPaymentsTable,
   payrollWebhookDeliveriesTable, usersTable, type Employer,
@@ -571,6 +572,23 @@ router.get("/payroll/webhooks/deliveries", requireEmployer("payroll:read"), asyn
       createdAt: d.createdAt.toISOString(),
     })),
   });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Payout rails — which providers settle worker cash-outs, and a corridor quote
+// comparison. Backed by the pluggable payout-providers layer (admin-switchable).
+// ═══════════════════════════════════════════════════════════════════════════════
+
+router.get("/payroll/payout-providers", requireAuth, async (_req, res) => {
+  res.json({ providers: payoutProviderCatalog() });
+});
+
+router.get("/payroll/payout-quote", requireAuth, async (req, res) => {
+  const targetCurrency = String(req.query.targetCurrency ?? "USD");
+  const method = String(req.query.method ?? "bank_transfer");
+  const amount = Number(req.query.amount) || 0;
+  const quotes = await quotesForCorridor(targetCurrency, method, amount);
+  res.json({ targetCurrency, method, amount, quotes });
 });
 
 // ── serializers ────────────────────────────────────────────────────────────────

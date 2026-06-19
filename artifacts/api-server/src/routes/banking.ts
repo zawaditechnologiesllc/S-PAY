@@ -2,13 +2,12 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { getFeeSchedule, withdrawalFee } from "../lib/settings";
 import { ensureUserWallet } from "../lib/wallet-providers";
+import { selectPayoutProvider } from "../lib/payout-providers";
 import { verifyTransactionPin } from "../lib/pin";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router = Router();
-
-const noahConfigured = () => Boolean(process.env.NOAH_API_KEY);
 
 // Indicative FX rates for every advertised payout corridor (stablecoin base).
 // Replaced by live Noah quotes once NOAH_API_KEY is configured.
@@ -90,8 +89,10 @@ router.post("/banking/withdraw", requireAuth, async (req, res) => {
     res.status(400).json({ error: "validation_error", message: "Withdrawal method is required" });
     return;
   }
-  // Real payouts execute through Noah — never simulate a withdrawal in production
-  if (!noahConfigured()) {
+  // Route to the best-configured payout rail for this corridor (Noah, Bridge,
+  // Conduit, Yellow Card, Thunes…). None available → honest 503, funds untouched.
+  const payoutProvider = await selectPayoutProvider(String(targetCurrency ?? "USD"), String(method));
+  if (!payoutProvider) {
     res.status(503).json({
       error: "not_configured",
       message: "Local cash-outs are activating soon. Your balance stays safe in your wallet until then.",
@@ -130,6 +131,7 @@ router.post("/banking/withdraw", requireAuth, async (req, res) => {
   res.json({
     withdrawalId: `wdw-${crypto.randomUUID()}`,
     status: "pending",
+    provider: payoutProvider.key,
     estimatedArrival: METHOD_ARRIVAL[String(method)] ?? "1–2 business days",
     localAmount: Math.max(amount - fee, 0) * rate,
     localCurrency: targetCurrency ?? "USD",
@@ -146,7 +148,7 @@ router.post("/banking/deposit", requireAuth, async (req, res) => {
       res.status(400).json({ error: "validation_error", message: "amount and method are required" });
       return;
     }
-    if (!noahConfigured()) {
+    if (!process.env.NOAH_API_KEY) {
       res.status(503).json({
         error: "not_configured",
         message: "Mobile money top-ups are being switched on. Use Exchange or wallet deposit meanwhile — it's instant.",

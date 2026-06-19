@@ -18,6 +18,7 @@ export const usersTable = pgTable("users", {
   accountType: accountTypeEnum("account_type").default("personal").notNull(), // personal → Noah KYC · business → Noah KYB
   businessName: text("business_name"),           // required for business accounts; goes on business virtual accounts
   kycStatus: kycStatusEnum("kyc_status").default("pending").notNull(),
+  spayId: text("spay_id").unique().notNull().$defaultFn(() => `spay_${crypto.randomUUID().slice(0, 12)}`), // Public user identifier for payroll/marketplaces
   emailVerified: boolean("email_verified").default(false).notNull(), // soft verification — never blocks login, shown as a banner until confirmed
   emailVerifyToken: text("email_verify_token"),          // sha256 of the emailed token
   emailVerifyExpires: timestamp("email_verify_expires"),
@@ -46,6 +47,7 @@ export const usersTable = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [
   index("idx_users_phone").on(t.phoneNumber),          // P2P recipient lookup on every send
+  index("idx_users_spay_id").on(t.spayId),             // payroll worker resolution by S-PAY ID
   index("idx_users_noah_customer").on(t.noahCustomerId), // every Noah KYC/deposit webhook
   index("idx_users_created").on(t.createdAt.desc()),   // admin list + 30-day actives
   index("idx_users_kyc_status").on(t.kycStatus),       // admin KYC filter/counts
