@@ -1,0 +1,33 @@
+# S-PAY
+
+> S-PAY (by Zawadi Technologies LLC) is a money super app for remote workers and global businesses. Users get a digital US-dollar wallet, a real US bank account number and EU IBAN, instant peer-to-peer transfers, and local cash-outs to M-Pesa, mobile money, PIX, SEPA and bank accounts. It also runs a free remote jobs board. Built on the Celo network.
+
+## Product
+
+- [Home](https://spayewallet.com/): Overview of the S-PAY wallet, virtual bank accounts, and local cash-outs.
+- [How it works](https://spayewallet.com/how-it-works): Step-by-step guide to receiving, holding, and cashing out money with S-PAY.
+- [For Business](https://spayewallet.com/#business): Business accounts, KYB verification, and batch payroll for companies and marketplaces.
+- [Remote Jobs](https://spayewallet.com/jobs): Free board of fully remote jobs, updated daily across engineering, design, marketing, finance and more.
+
+## Company
+
+- [About](https://spayewallet.com/about): The S-PAY mission, story, and team at Zawadi Technologies LLC.
+- [Contact](https://spayewallet.com/contact): Support contact and frequently asked questions.
+- [Careers](https://spayewallet.com/careers): Open roles at S-PAY.
+- [Blog](https://spayewallet.com/blog): Product updates and guides for remote workers.
+
+## Account
+
+- [Create a free account](https://spayewallet.com/register): Sign up with email or Google in under two minutes.
+- [Sign in](https://spayewallet.com/login): Log in to your S-PAY account.
+
+## Legal
+
+- [Privacy Policy](https://spayewallet.com/privacy): How S-PAY collects, uses, and protects personal data.
+- [Terms of Service](https://spayewallet.com/terms): The terms governing use of S-PAY.
+- [Cookie Policy](https://spayewallet.com/cookies): How S-PAY uses cookies.
+
+## Notes
+
+- Banking and payout services are provided through licensed partners; S-PAY screens transactions for AML and sanctions compliance and requires identity verification (KYC/KYB).
+- Areas behind sign-in (dashboard, wallet, banking, card, profile, admin) are not crawlable and require authentication.

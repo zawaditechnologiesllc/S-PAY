@@ -39,6 +39,9 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Ship source maps: frontend code is already public, and they let
+    // production error tooling (and Lighthouse) map minified stacks to source.
+    sourcemap: true,
   },
   server: {
     port,

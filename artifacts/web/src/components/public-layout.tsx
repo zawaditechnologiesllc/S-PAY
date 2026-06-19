@@ -157,7 +157,7 @@ export function PublicFooter() {
 
           {/* Product col */}
           <div>
-            <h5 className="text-white font-bold mb-5 text-sm uppercase tracking-wider">Product</h5>
+            <h2 className="text-white font-bold mb-5 text-sm uppercase tracking-wider">Product</h2>
             <ul className="space-y-3.5">
               <li><a href="/#wallet" className="text-blue-300 text-sm hover:text-white transition-colors">Digital Wallet</a></li>
               <li><a href="/#banking" className="text-blue-300 text-sm hover:text-white transition-colors">Virtual Banking</a></li>
@@ -170,7 +170,7 @@ export function PublicFooter() {
 
           {/* Company col */}
           <div>
-            <h5 className="text-white font-bold mb-5 text-sm uppercase tracking-wider">Company</h5>
+            <h2 className="text-white font-bold mb-5 text-sm uppercase tracking-wider">Company</h2>
             <ul className="space-y-3.5">
               <li><Link href="/about"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">About Us</span></Link></li>
               <li><Link href="/how-it-works"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">How It Works</span></Link></li>
@@ -182,7 +182,7 @@ export function PublicFooter() {
 
           {/* Legal col */}
           <div>
-            <h5 className="text-white font-bold mb-5 text-sm uppercase tracking-wider">Legal</h5>
+            <h2 className="text-white font-bold mb-5 text-sm uppercase tracking-wider">Legal</h2>
             <ul className="space-y-3.5">
               <li><Link href="/privacy"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">Privacy Policy</span></Link></li>
               <li><Link href="/terms"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">Terms of Service</span></Link></li>
@@ -217,7 +217,7 @@ export function PublicLayout({
   return (
     <div className="min-h-screen bg-white font-sans overflow-x-hidden">
       <PublicNav active={active} />
-      {children}
+      <main>{children}</main>
       <PublicFooter />
       <EnquiryChat />
     </div>

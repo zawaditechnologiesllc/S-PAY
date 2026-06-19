@@ -773,7 +773,7 @@ export default function Landing() {
                   {t.icon}
                 </div>
                 <div>
-                  <h4 className="font-bold mb-2 text-lg">{t.title}</h4>
+                  <h3 className="font-bold mb-2 text-lg">{t.title}</h3>
                   <p className="text-blue-200 text-sm leading-relaxed">{t.desc}</p>
                 </div>
               </div>
