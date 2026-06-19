@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { drawBrandedQR } from "@/lib/branded-qr";
+import { brandedQRDataUrl } from "@/lib/branded-qr";
 import { Layout } from "@/components/layout";
 import { useAddFunds, useGetMe, getGetMeQueryKey, useInitiateDeposit } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -262,7 +262,7 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
   const { toast } = useToast();
   const addFunds = useAddFunds();
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [qrUrl, setQrUrl] = useState("");
   const [address, setAddress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -288,9 +288,11 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
   // MiniPay-style branded QR (only in the "My QR code" option): brand-navy
   // modules + the S-PAY logo stamped in the middle. Shared with the S-PAY ID
   // modal via lib/branded-qr so every QR the app produces looks identical.
+  // Render the branded QR as a square PNG and show it via <img> at a fixed
+  // aspect — never CSS-scale a canvas, which is what made it look stretched.
   useEffect(() => {
-    if (view !== "qr" || !address || !canvasRef.current) return;
-    void drawBrandedQR(canvasRef.current, address, 560);
+    if (view !== "qr" || !address) { setQrUrl(""); return; }
+    brandedQRDataUrl(address, 480).then(setQrUrl).catch(() => setQrUrl(""));
   }, [view, address]);
 
   const copy = async () => {
@@ -301,10 +303,9 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
   };
 
   const download = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!qrUrl) return;
     const a = document.createElement("a");
-    a.href = canvas.toDataURL("image/png");
+    a.href = qrUrl;
     a.download = "spay-receive-qr.png";
     a.click();
     toast({ title: "QR code saved", description: "Share the image — anyone can scan it to pay you." });
@@ -385,8 +386,10 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
           <PanelHeader title="My QR code" onBack={() => setView(null)} />
           <div className="bg-gradient-to-b from-[#FCFF52]/40 to-white rounded-3xl border border-gray-100 dark:border-gray-800 p-4 sm:p-6 flex flex-col items-center gap-3 w-full">
             <p className="font-bold text-gray-900">{me?.fullName ?? "My S-PAY"}</p>
-            {/* Responsive QR: fills the available width on small screens, caps at 240px on larger — always square, never overflows */}
-            <canvas ref={canvasRef} className="w-full max-w-[240px] h-auto aspect-square rounded-xl bg-white" aria-label="Your S-PAY receive QR code" />
+            {/* Square PNG via <img>: caps at 240px, aspect-square + object-contain guarantee it never stretches */}
+            {qrUrl
+              ? <img src={qrUrl} alt="Your S-PAY receive QR code" className="w-full max-w-[240px] aspect-square object-contain rounded-xl bg-white" />
+              : <div className="w-full max-w-[240px] aspect-square rounded-xl bg-gray-100 animate-pulse" />}
             <button onClick={copy} className="font-mono text-[11px] text-gray-600 break-all text-center hover:text-gray-900 transition-colors" title="Tap to copy">
               {address}
             </button>
