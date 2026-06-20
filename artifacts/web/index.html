@@ -41,8 +41,9 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
 
-    <!-- Warm up the API origin early (status + site-content load on first paint) -->
-    <link rel="preconnect" href="https://s-pay.onrender.com">
+    <!-- Warm up the API origin early (status + site-content load on first paint).
+         crossorigin matches the anonymous CORS connection the fetches use. -->
+    <link rel="preconnect" href="https://s-pay.onrender.com" crossorigin>
 
     <!-- Self-hosted Inter: preload the primary (latin) weight so the swap
          happens fast. @font-face lives in the app CSS, so there is no

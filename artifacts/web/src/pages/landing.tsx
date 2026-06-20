@@ -195,15 +195,11 @@ export default function Landing() {
                 {site?.heroSubtitle ?? "Virtual USD & EUR bank accounts, a digital wallet, and instant local cash-outs — one app for remote workers in 180+ countries."}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mb-10">
-                <Link href="/register">
-                  <button style={site?.primaryColor ? { backgroundColor: site.primaryColor } : undefined} className="flex items-center justify-center gap-2 bg-[#4DC9EE] text-[#0d1f38] font-bold px-7 py-3.5 rounded-2xl hover:opacity-90 transition-all text-sm md:text-base shadow-lg shadow-[#4DC9EE]/30 w-full sm:w-auto">
-                    {site?.heroCta ?? "Open Free Account"} <ArrowRight size={16} />
-                  </button>
+                <Link href="/register" style={site?.primaryColor ? { backgroundColor: site.primaryColor } : undefined} className="inline-flex items-center justify-center gap-2 bg-[#4DC9EE] text-[#0d1f38] font-bold px-7 py-3.5 rounded-2xl hover:opacity-90 transition-all text-sm md:text-base shadow-lg shadow-[#4DC9EE]/30 w-full sm:w-auto cursor-pointer">
+                  {site?.heroCta ?? "Open Free Account"} <ArrowRight size={16} />
                 </Link>
-                <a href="#how">
-                  <button className="flex items-center justify-center gap-2 bg-white/10 text-white font-semibold px-7 py-3.5 rounded-2xl hover:bg-white/20 transition-all text-sm md:text-base border border-white/20 w-full sm:w-auto">
-                    See How It Works
-                  </button>
+                <a href="#how" className="inline-flex items-center justify-center gap-2 bg-white/10 text-white font-semibold px-7 py-3.5 rounded-2xl hover:bg-white/20 transition-all text-sm md:text-base border border-white/20 w-full sm:w-auto cursor-pointer">
+                  See How It Works
                 </a>
               </div>
               {/* Stats row */}
@@ -352,10 +348,8 @@ export default function Landing() {
                   </li>
                 ))}
               </ul>
-              <Link href="/register">
-                <button className="flex items-center gap-2 bg-[#4DC9EE] text-[#0d1f38] font-bold px-6 py-3 rounded-xl hover:bg-[#2E8FD6] hover:text-white transition-colors text-sm shadow-md shadow-[#4DC9EE]/20">
-                  Open Free Wallet <ArrowRight size={15} />
-                </button>
+              <Link href="/register" className="inline-flex items-center gap-2 bg-[#4DC9EE] text-[#0d1f38] font-bold px-6 py-3 rounded-xl hover:bg-[#2E8FD6] hover:text-white transition-colors text-sm shadow-md shadow-[#4DC9EE]/20 cursor-pointer">
+                Open Free Wallet <ArrowRight size={15} />
               </Link>
             </div>
 
@@ -468,10 +462,8 @@ export default function Landing() {
                   </li>
                 ))}
               </ul>
-              <Link href="/register">
-                <button className="flex items-center gap-2 bg-[#1A2B4A] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#0d1f38] transition-colors text-sm shadow-md">
-                  Get Your Account Number <ArrowRight size={15} />
-                </button>
+              <Link href="/register" className="inline-flex items-center gap-2 bg-[#1A2B4A] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#0d1f38] transition-colors text-sm shadow-md cursor-pointer">
+                Get Your Account Number <ArrowRight size={15} />
               </Link>
             </div>
           </div>
@@ -508,10 +500,8 @@ export default function Landing() {
                 ))}
               </ul>
               <div className="flex flex-col sm:flex-row gap-3">
-                <Link href="/payroll">
-                  <button className="flex items-center justify-center gap-2 bg-[#1A2B4A] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#0d1f38] transition-colors text-sm shadow-md w-full sm:w-auto">
-                    Start Paying Your Team <ArrowRight size={15} />
-                  </button>
+                <Link href="/payroll" className="inline-flex items-center justify-center gap-2 bg-[#1A2B4A] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#0d1f38] transition-colors text-sm shadow-md w-full sm:w-auto cursor-pointer">
+                  Start Paying Your Team <ArrowRight size={15} />
                 </Link>
                 <button
                   onClick={(e) => {
@@ -603,10 +593,8 @@ export default function Landing() {
                   </li>
                 ))}
               </ul>
-              <Link href="/register">
-                <button className="flex items-center gap-2 bg-[#4DC9EE] text-[#0d1f38] font-bold px-6 py-3 rounded-xl hover:bg-[#2E8FD6] hover:text-white transition-colors text-sm shadow-md shadow-[#4DC9EE]/20">
-                  Join the Waitlist <ArrowRight size={15} />
-                </button>
+              <Link href="/register" className="inline-flex items-center gap-2 bg-[#4DC9EE] text-[#0d1f38] font-bold px-6 py-3 rounded-xl hover:bg-[#2E8FD6] hover:text-white transition-colors text-sm shadow-md shadow-[#4DC9EE]/20 cursor-pointer">
+                Join the Waitlist <ArrowRight size={15} />
               </Link>
             </div>
 
@@ -709,10 +697,8 @@ export default function Landing() {
                   </li>
                 ))}
               </ul>
-              <Link href="/register">
-                <button className="flex items-center gap-2 bg-[#F59E0B] text-[#0d1f38] font-bold px-7 py-3.5 rounded-2xl hover:bg-[#d97706] hover:text-white transition-colors text-sm shadow-lg">
-                  Browse Jobs <ArrowRight size={16} />
-                </button>
+              <Link href="/register" className="inline-flex items-center gap-2 bg-[#F59E0B] text-[#0d1f38] font-bold px-7 py-3.5 rounded-2xl hover:bg-[#d97706] hover:text-white transition-colors text-sm shadow-lg cursor-pointer">
+                Browse Jobs <ArrowRight size={16} />
               </Link>
             </div>
             <div className="space-y-3">
@@ -794,10 +780,8 @@ export default function Landing() {
           <p className="text-[#0d1f38]/90 text-base md:text-xl mb-10 max-w-xl mx-auto leading-relaxed">
             Join 500,000+ remote workers who use S-PAY to get paid globally and spend locally — in 180+ countries.
           </p>
-          <Link href="/register">
-            <button className="inline-flex items-center gap-2 bg-[#1A2B4A] text-white font-bold px-8 py-4 md:px-12 md:py-5 rounded-2xl hover:bg-[#0d1f38] transition-colors text-base md:text-lg shadow-xl w-full sm:w-auto justify-center">
-              Open Free Account <ArrowRight size={18} />
-            </button>
+          <Link href="/register" className="inline-flex items-center gap-2 bg-[#1A2B4A] text-white font-bold px-8 py-4 md:px-12 md:py-5 rounded-2xl hover:bg-[#0d1f38] transition-colors text-base md:text-lg shadow-xl w-full sm:w-auto justify-center cursor-pointer">
+            Open Free Account <ArrowRight size={18} />
           </Link>
           <p className="text-[#0d1f38]/90 text-sm mt-5">No credit card · No monthly fee · Cancel anytime</p>
         </div>
