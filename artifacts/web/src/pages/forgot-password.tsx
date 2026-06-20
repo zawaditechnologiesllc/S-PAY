@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Mail, CheckCircle } from "lucide-react";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");

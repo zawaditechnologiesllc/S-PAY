@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { setToken } from "@/lib/auth";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 export default function AuthCallback() {
   const [, setLocation] = useLocation();

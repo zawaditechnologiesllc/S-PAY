@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { setToken } from "@/lib/auth";
 import { CheckCircle, Eye, EyeOff, User, Building2 } from "lucide-react";
 import { POPULAR_COUNTRIES, ALL_COUNTRIES } from "@/lib/countries";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 const BENEFITS = [
   "Virtual USD & EUR bank account",

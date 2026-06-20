@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 /** Landing page for the emailed reset link: /reset-password?token=… */
 export default function ResetPassword() {

@@ -5,7 +5,7 @@ import {
   Shield, Bell, ChevronRight, Settings, Menu, X, Briefcase, Inbox, Banknote,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 const NAV = [
   { href: "/admin", icon: <LayoutDashboard size={18} />, label: "Dashboard" },

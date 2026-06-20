@@ -10,7 +10,7 @@ import { BackButton } from "@/components/back-button";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { ThemeToggle } from "@/components/theme";
 import { QRModal } from "@/components/qr-modal";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 export function Layout({ children, title, back }: { children: React.ReactNode; title?: string; back?: boolean }) {
   const [, setLocation] = useLocation();
