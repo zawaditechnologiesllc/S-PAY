@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { CheckCircle2, MailX } from "lucide-react";
 import { getToken } from "@/lib/auth";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 /** Landing page for the email confirmation link: /auth/verified?status=ok|invalid|error */
 export default function EmailVerified() {

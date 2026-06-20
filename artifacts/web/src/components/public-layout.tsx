@@ -3,7 +3,7 @@ import { useGetSiteContent, getGetSiteContentQueryKey } from "@workspace/api-cli
 import { Link } from "wouter";
 import { Globe, Mail, Menu, X, ArrowRight } from "lucide-react";
 import { EnquiryChat } from "@/components/enquiry-chat";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 interface PublicNavProps {
   active?: string;
@@ -26,7 +26,7 @@ export function PublicNav({ active }: PublicNavProps) {
         {/* Logo + wordmark — always visible */}
         <Link href="/">
           <div className="flex items-center gap-2.5 cursor-pointer select-none">
-            <img src={spayLogo} alt="S-PAY" className="w-8 h-8 rounded-[22%] flex-shrink-0 shadow-sm" />
+            <img src={spayLogo} alt="" width={32} height={32} className="w-8 h-8 rounded-[22%] flex-shrink-0 shadow-sm" />
             <span className="font-black text-[#1A2B4A] text-lg tracking-tight">S-PAY</span>
           </div>
         </Link>
@@ -135,7 +135,7 @@ export function PublicFooter() {
           {/* Brand col — spans 2 columns on md */}
           <div className="col-span-2 md:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <img src={spayLogo} alt="S-PAY" className="w-9 h-9 rounded-[22%] flex-shrink-0" />
+              <img src={spayLogo} alt="" width={36} height={36} className="w-9 h-9 rounded-[22%] flex-shrink-0" />
               <span className="font-black text-white text-lg tracking-tight">S-PAY</span>
             </div>
             <p className="text-blue-300 text-sm leading-relaxed mb-2 max-w-xs">

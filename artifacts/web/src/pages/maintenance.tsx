@@ -1,5 +1,5 @@
 import { Wrench, RefreshCw } from "lucide-react";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 export default function Maintenance({ message }: { message?: string }) {
   return (

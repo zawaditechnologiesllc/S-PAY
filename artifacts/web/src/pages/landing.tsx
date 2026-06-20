@@ -548,7 +548,7 @@ export default function Landing() {
                   </div>
                 </div>
                 <div className="bg-white rounded-2xl p-5 shadow-md border border-gray-100">
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">Batch Payroll Status</p>
+                  <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">Batch Payroll Status</p>
                   {[
                     { who: "James O. — Nairobi", amount: "1,200 USDC", flag: "🇰🇪", status: "✓ M-Pesa" },
                     { who: "Maria F. — São Paulo", amount: "950 USDT", flag: "🇧🇷", status: "✓ PIX" },
@@ -557,7 +557,7 @@ export default function Landing() {
                     <div key={row.who} className="flex items-center justify-between py-2 border-t border-gray-50 first:border-0">
                       <div>
                         <span className="text-xs text-gray-600 flex items-center gap-2"><span>{row.flag}</span>{row.who}</span>
-                        <span className="text-[10px] text-gray-400">{row.status}</span>
+                        <span className="text-[10px] text-gray-500">{row.status}</span>
                       </div>
                       <span className="text-xs font-bold text-[#1A2B4A]">{row.amount}</span>
                     </div>
@@ -791,7 +791,7 @@ export default function Landing() {
             <br />
             <span className="text-[#0d1f38]">It's free, forever.</span>
           </h2>
-          <p className="text-[#0d1f38]/80 text-base md:text-xl mb-10 max-w-xl mx-auto leading-relaxed">
+          <p className="text-[#0d1f38]/90 text-base md:text-xl mb-10 max-w-xl mx-auto leading-relaxed">
             Join 500,000+ remote workers who use S-PAY to get paid globally and spend locally — in 180+ countries.
           </p>
           <Link href="/register">
@@ -799,7 +799,7 @@ export default function Landing() {
               Open Free Account <ArrowRight size={18} />
             </button>
           </Link>
-          <p className="text-[#0d1f38]/70 text-sm mt-5">No credit card · No monthly fee · Cancel anytime</p>
+          <p className="text-[#0d1f38]/90 text-sm mt-5">No credit card · No monthly fee · Cancel anytime</p>
         </div>
       </section>
 
@@ -837,7 +837,7 @@ function TestimonialCard({ t }: { t: typeof TESTIMONIALS[number] }) {
         </div>
         <div>
           <p className="font-bold text-[#1A2B4A] text-sm">{t.name}</p>
-          <p className="text-gray-400 text-xs">{t.role}</p>
+          <p className="text-gray-500 text-xs">{t.role}</p>
         </div>
         <div className="ml-auto flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1">
           <span className="text-sm">{t.flag}</span>

@@ -1,5 +1,5 @@
 import QRCode from "qrcode";
-import spayLogo from "@assets/S-PAY_LOGO_1779718036468.jpg";
+import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 // One source of truth for S-PAY-branded QR codes: brand-navy modules + the
 // S-PAY logo stamped in the centre on a white rounded badge. High error
