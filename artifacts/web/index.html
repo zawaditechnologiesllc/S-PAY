@@ -41,10 +41,13 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Warm up the API origin early (status + site-content load on first paint) -->
+    <link rel="preconnect" href="https://s-pay.onrender.com">
+
+    <!-- Self-hosted Inter: preload the primary (latin) weight so the swap
+         happens fast. @font-face lives in the app CSS, so there is no
+         render-blocking request to Google Fonts. -->
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/inter-latin.woff2" crossorigin>
 
     <!-- Structured data: Organization -->
     <script type="application/ld+json">
