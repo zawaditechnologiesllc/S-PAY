@@ -109,7 +109,7 @@ const TESTIMONIALS = [
     location: "Manila, Philippines",
     flag: "🇵🇭",
     initials: "PS",
-    color: "#8B5CF6",
+    color: "#7C3AED",
     earning: "Earns $1,800/mo remotely",
   },
   {
@@ -149,7 +149,7 @@ const TESTIMONIALS = [
     location: "Cape Town, South Africa",
     flag: "🇿🇦",
     initials: "TA",
-    color: "#EF4444",
+    color: "#DC2626",
     earning: "Earns $4,500/mo remotely",
   },
 ];
