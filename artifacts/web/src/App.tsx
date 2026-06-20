@@ -1,52 +1,65 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getToken } from "@/lib/auth";
-import Maintenance from "@/pages/maintenance";
 
+// Eager: the landing page (home / LCP), the maintenance gate (rendered before
+// the router), and the tiny 404 fallback. Everything else is code-split so the
+// marketing entry doesn't ship the wallet/payroll/admin bundles.
+import Maintenance from "@/pages/maintenance";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
-import Dashboard from "@/pages/dashboard";
-import Login from "@/pages/login";
-import Register from "@/pages/register";
-import Profile from "@/pages/profile";
-import Wallet from "@/pages/wallet";
-import Banking from "@/pages/banking";
-import Withdraw from "@/pages/withdraw";
-import ExchangeWithdraw from "@/pages/exchange-withdraw";
-import CardPage from "@/pages/card";
-import Jobs from "@/pages/jobs";
-import JobDetail from "@/pages/job-detail";
-import PublicJobs from "@/pages/public-jobs";
-import PublicJobDetail from "@/pages/public-job-detail";
-import PayrollOverview from "@/pages/payroll";
-import PayrollKeys from "@/pages/payroll/keys";
-import PayrollBatches from "@/pages/payroll/batches";
-import PayrollBatchDetail from "@/pages/payroll/batch-detail";
-import AdminDashboard from "@/pages/admin/dashboard";
-import AdminUsers from "@/pages/admin/users";
-import AdminTransactions from "@/pages/admin/transactions";
-import AdminSettings from "@/pages/admin/settings";
-import AdminPayroll from "@/pages/admin/payroll";
-import AdminJobs from "@/pages/admin/jobs";
-import AdminEnquiries from "@/pages/admin/enquiries";
-import About from "@/pages/about";
-import HowItWorks from "@/pages/how-it-works";
-import ResetPassword from "@/pages/reset-password";
-import Deposit from "@/pages/deposit";
-import Support from "@/pages/support";
-import Security from "@/pages/security";
-import EmailVerified from "@/pages/email-verified";
-import Privacy from "@/pages/privacy";
-import Terms from "@/pages/terms";
-import Contact from "@/pages/contact";
-import Careers from "@/pages/careers";
-import Blog from "@/pages/blog";
-import Cookies from "@/pages/cookies";
-import ForgotPassword from "@/pages/forgot-password";
-import AuthCallback from "@/pages/auth-callback";
+
+const Dashboard = lazy(() => import("@/pages/dashboard"));
+const Login = lazy(() => import("@/pages/login"));
+const Register = lazy(() => import("@/pages/register"));
+const Profile = lazy(() => import("@/pages/profile"));
+const Wallet = lazy(() => import("@/pages/wallet"));
+const Banking = lazy(() => import("@/pages/banking"));
+const Withdraw = lazy(() => import("@/pages/withdraw"));
+const ExchangeWithdraw = lazy(() => import("@/pages/exchange-withdraw"));
+const CardPage = lazy(() => import("@/pages/card"));
+const Jobs = lazy(() => import("@/pages/jobs"));
+const JobDetail = lazy(() => import("@/pages/job-detail"));
+const PublicJobs = lazy(() => import("@/pages/public-jobs"));
+const PublicJobDetail = lazy(() => import("@/pages/public-job-detail"));
+const PayrollOverview = lazy(() => import("@/pages/payroll"));
+const PayrollKeys = lazy(() => import("@/pages/payroll/keys"));
+const PayrollBatches = lazy(() => import("@/pages/payroll/batches"));
+const PayrollBatchDetail = lazy(() => import("@/pages/payroll/batch-detail"));
+const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
+const AdminUsers = lazy(() => import("@/pages/admin/users"));
+const AdminTransactions = lazy(() => import("@/pages/admin/transactions"));
+const AdminSettings = lazy(() => import("@/pages/admin/settings"));
+const AdminPayroll = lazy(() => import("@/pages/admin/payroll"));
+const AdminJobs = lazy(() => import("@/pages/admin/jobs"));
+const AdminEnquiries = lazy(() => import("@/pages/admin/enquiries"));
+const About = lazy(() => import("@/pages/about"));
+const HowItWorks = lazy(() => import("@/pages/how-it-works"));
+const ResetPassword = lazy(() => import("@/pages/reset-password"));
+const Deposit = lazy(() => import("@/pages/deposit"));
+const Support = lazy(() => import("@/pages/support"));
+const Security = lazy(() => import("@/pages/security"));
+const EmailVerified = lazy(() => import("@/pages/email-verified"));
+const Privacy = lazy(() => import("@/pages/privacy"));
+const Terms = lazy(() => import("@/pages/terms"));
+const Contact = lazy(() => import("@/pages/contact"));
+const Careers = lazy(() => import("@/pages/careers"));
+const Blog = lazy(() => import("@/pages/blog"));
+const Cookies = lazy(() => import("@/pages/cookies"));
+const ForgotPassword = lazy(() => import("@/pages/forgot-password"));
+const AuthCallback = lazy(() => import("@/pages/auth-callback"));
+
+// Lightweight fallback shown while a route chunk loads.
+function PageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-[#4DC9EE] animate-spin" />
+    </div>
+  );
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,6 +126,7 @@ function Router() {
   }
 
   return (
+    <Suspense fallback={<PageFallback />}>
     <Switch>
       {/* ── Public marketing pages ── */}
       <Route path="/" component={Landing} />
@@ -166,6 +180,7 @@ function Router() {
 
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
   );
 }
 
