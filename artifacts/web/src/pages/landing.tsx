@@ -7,6 +7,7 @@ import {
   Star, Quote, Building2, Handshake,
 } from "lucide-react";
 import { PublicLayout } from "@/components/public-layout";
+import { textOn } from "@/lib/utils";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -717,7 +718,7 @@ export default function Landing() {
             <div className="space-y-3">
               {MOCK_JOBS.map((job) => (
                 <div key={job.title} className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/15 transition-colors">
-                  <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-black text-sm" style={{ backgroundColor: job.color }}>
+                  <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center font-black text-sm" style={{ backgroundColor: job.color, color: textOn(job.color) }}>
                     {job.title[0]}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -750,7 +751,7 @@ export default function Landing() {
               <div key={m.country} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-4 text-center shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all">
                 <div className="text-2xl md:text-3xl mb-2">{m.flag}</div>
                 <div className="font-semibold text-[#1A2B4A] text-[10px] md:text-xs leading-tight">{m.country}</div>
-                <div className="text-[9px] md:text-[10px] font-bold mt-1.5 px-1.5 py-0.5 rounded-full inline-block text-white" style={{ backgroundColor: m.color }}>
+                <div className="text-[9px] md:text-[10px] font-bold mt-1.5 px-1.5 py-0.5 rounded-full inline-block" style={{ backgroundColor: m.color, color: textOn(m.color) }}>
                   {m.method}
                 </div>
               </div>
@@ -831,7 +832,7 @@ function TestimonialCard({ t }: { t: typeof TESTIMONIALS[number] }) {
 
       {/* Person */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm" style={{ backgroundColor: t.color }}>
+        <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm" style={{ backgroundColor: t.color, color: textOn(t.color) }}>
           {t.initials}
         </div>
         <div>
