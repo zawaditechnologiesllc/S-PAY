@@ -49,7 +49,7 @@ export function PublicNav({ active }: PublicNavProps) {
             </button>
           </Link>
           <Link href="/register">
-            <button className="text-sm font-semibold bg-[#4DC9EE] text-white px-5 py-2.5 rounded-full hover:bg-[#2E8FD6] transition-colors shadow-sm flex items-center gap-1.5">
+            <button className="text-sm font-semibold bg-[#4DC9EE] text-[#0d1f38] px-5 py-2.5 rounded-full hover:bg-[#2E8FD6] transition-colors shadow-sm flex items-center gap-1.5">
               Get Started <ArrowRight size={14} />
             </button>
           </Link>
@@ -110,7 +110,7 @@ export function PublicNav({ active }: PublicNavProps) {
               </Link>
               <Link href="/register">
                 <button
-                  className="w-full py-3 rounded-xl bg-[#4DC9EE] text-white text-[15px] font-bold hover:bg-[#2E8FD6] transition-colors flex items-center justify-center gap-2 shadow-sm"
+                  className="w-full py-3 rounded-xl bg-[#4DC9EE] text-[#0d1f38] text-[15px] font-bold hover:bg-[#2E8FD6] transition-colors flex items-center justify-center gap-2 shadow-sm"
                   onClick={() => setMobileOpen(false)}
                 >
                   Get Started — it's free <ArrowRight size={15} />
