@@ -7,7 +7,7 @@
 ## The loop
 
 ```
-GSC Search Analytics ─▶ opportunity ranker ─▶ Claude Haiku draft (grounded)
+GSC Search Analytics ─▶ opportunity ranker ─▶ Gemini 2.5 Flash draft (grounded)
         ▲                                              │
         │                                              ▼
    feedback (impressions) ◀── published /blog ◀── admin review + approve
@@ -17,9 +17,9 @@ GSC Search Analytics ─▶ opportunity ranker ─▶ Claude Haiku draft (ground
 2. **Rank** "striking-distance" opportunities — queries where we already rank
    ~#5–20 and a content push can win page 1 (`rankOpportunities`, a pure,
    testable function) — plus topic ideas mined from Reddit.
-3. **Draft** a post with **Claude Haiku** (`claude-haiku-4-5`), strictly
-   **grounded in true product facts** so it can't invent features, rates, or
-   earnings claims.
+3. **Draft** a post with **Gemini 2.5 Flash** (`gemini-2.5-flash`, free tier),
+   strictly **grounded in true product facts** so it can't invent features,
+   rates, or earnings claims.
 
 > **Research chooses the keyword AND the audience — the admin never types
 > either.** Each opportunity/topic has a one-click **Draft**, plus an
@@ -47,13 +47,13 @@ GSC Search Analytics ─▶ opportunity ranker ─▶ Claude Haiku draft (ground
 - **Schema:** `blog_posts` (draft → approved → published → archived; stores the
   GSC snapshot it was generated from).
 - **Library** (`lib/seo.ts`): GSC ingest (honest-gated), the opportunity ranker
-  (pure), Claude Haiku draft generation (grounded, honest-gated), `slugify`,
+  (pure), Gemini 2.5 Flash draft generation (grounded, honest-gated), `slugify`,
   `articleJsonLd`.
 - **Admin API** (`routes/seo.ts`, admin-gated):
   - `GET /admin/seo/status` — integration status.
   - `GET /admin/seo/opportunities` — ranked keywords (honest empty until GSC set).
   - `GET /admin/seo/reddit-topics` — topic ideas from old.reddit public JSON.
-  - `POST /admin/seo/drafts` — generate a Haiku draft for a keyword.
+  - `POST /admin/seo/drafts` — generate a Gemini draft for a keyword.
   - `GET/PATCH /admin/seo/posts[/:id]` — review queue + edit.
   - `POST /admin/seo/posts/:id/publish` `/unpublish` — the human approval gate.
 - **Admin UI:** `/admin/seo` ("SEO & Blog", manager+) — status, opportunities,
@@ -76,7 +76,7 @@ Titles are *idea seeds* for drafts, never published verbatim.
 | Integration | Off (default) | On |
 |---|---|---|
 | **Search Console** | `opportunities` returns `configured:false` + empty | set `GSC_SERVICE_ACCOUNT_JSON` + `GSC_SITE_URL` |
-| **AI drafting** | `POST /admin/seo/drafts` → honest `503` | set `ANTHROPIC_API_KEY` |
+| **AI drafting** | `POST /admin/seo/drafts` → honest `503` | set `GEMINI_API_KEY` |
 
 It never invents query data or articles; until configured it says so.
 
@@ -88,20 +88,25 @@ It never invents query data or articles; until configured it says so.
 | `GSC_SITE_URL` | The verified GSC property (e.g. `https://spayewallet.com/`) |
 | `GA4_PROPERTY_ID` | Google Analytics 4 property id (feedback: which content performs) |
 | `GA4_SERVICE_ACCOUNT_JSON` | Service account for the GA4 Data API (falls back to `GSC_SERVICE_ACCOUNT_JSON`) |
-| `ANTHROPIC_API_KEY` | Claude Haiku drafting |
-| `SEO_DRAFT_MODEL` | Optional model override (default `claude-haiku-4-5-20251001`) |
+| `GEMINI_API_KEY` | Google Gemini API key (AI Studio) — Gemini 2.5 Flash drafting |
+| `SEO_DRAFT_MODEL` | Optional model override (default `gemini-2.5-flash`) |
 | `SEO_REDDIT_ENABLED` | Set `false` to disable Reddit mining (default on) |
 | `SEO_REDDIT_SUBREDDITS` | Optional comma-separated override of the ~50 subreddits |
 | `SEO_REDDIT_USER_AGENT` | Optional custom User-Agent for old.reddit requests |
 | `SITE_URL` | Base URL for canonical/JSON-LD (already used elsewhere) |
 
-## Why Claude Haiku (not Gemini Flash)
+## Why Gemini 2.5 Flash
 
-Comparable cost and latency, strong instruction-following for the strict-JSON
-grounded prompt, and it keeps drafting on one stack we control and can ground
-tightly. The model is not the bottleneck — the **GSC feedback loop + the human
-review gate + factual grounding** are what actually move rankings and protect
-the brand. `SEO_DRAFT_MODEL` lets you swap if you ever want to.
+It has a **generous free tier** (the deciding factor), is fast, and follows the
+strict-JSON grounded prompt well. We call the Generative Language API's
+`:generateContent` with `responseMimeType: "application/json"`, so Gemini returns
+clean JSON we parse directly. The model isn't the bottleneck anyway — the **GSC
+feedback loop + the human review gate + factual grounding** are what move
+rankings and protect the brand. `SEO_DRAFT_MODEL` lets you swap models (any
+Gemini model id) without code changes.
+
+**Setup:** create a key at [Google AI Studio](https://aistudio.google.com/apikey),
+set `GEMINI_API_KEY` on the API server, and drafting switches on immediately.
 
 ## Remaining (Phase 2 — labelled honestly, not built)
 

@@ -6,14 +6,14 @@ import { logger } from "./logger";
  *
  * The loop: ingest Google Search Console performance → rank the opportunities
  * (queries where we already rank #5–20 and can realistically win page 1) → draft
- * a post with Claude Haiku, GROUNDED in true product facts (so the engine can't
+ * a post with Gemini 2.5 Flash, GROUNDED in true product facts (so the engine can't
  * invent features) → an admin reviews/approves/publishes → published posts feed
  * impressions back into the next ranking pass.
  *
  * Honest by construction:
  *  - GSC ingest returns null until GSC credentials are configured (never fake
  *    query data).
- *  - Draft generation throws DraftNotConfiguredError until ANTHROPIC_API_KEY is
+ *  - Draft generation throws DraftNotConfiguredError until GEMINI_API_KEY is
  *    set (never a faked article).
  *  - Nothing auto-publishes — a human approves every post.
  *
@@ -218,17 +218,19 @@ export async function fetchRedditTopics(opts?: { perSub?: number; timeframe?: "d
   return out.sort((a, b) => b.score - a.score);
 }
 
-// ─── Claude Haiku draft generation (grounded) ───────────────────────────────────
+// ─── Gemini draft generation (grounded) ─────────────────────────────────────────
 
 export class DraftNotConfiguredError extends Error {
-  constructor() { super("Draft generation is not configured (set ANTHROPIC_API_KEY)"); }
+  constructor() { super("Draft generation is not configured (set GEMINI_API_KEY)"); }
 }
 
-const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
-const DRAFT_MODEL = process.env.SEO_DRAFT_MODEL ?? "claude-haiku-4-5-20251001";
+// Google Gemini (AI Studio / Generative Language API). Gemini 2.5 Flash has a
+// generous free tier, which is why it's the default drafting model.
+const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta";
+const DRAFT_MODEL = process.env.SEO_DRAFT_MODEL ?? "gemini-2.5-flash";
 
 export function isDraftConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return Boolean(process.env.GEMINI_API_KEY);
 }
 
 // The ground truth the model must write within — keeps generated posts honest
@@ -322,8 +324,8 @@ export function deriveAudience(opts: { keyword: string; source?: string; subredd
 
 /**
  * Draft an SEO blog post for a target keyword, grounded in PRODUCT_FACTS and the
- * Google 2026 SEO rules. Throws DraftNotConfiguredError until ANTHROPIC_API_KEY
- * is set — never a faked article.
+ * Google 2026 SEO rules, using Gemini. Throws DraftNotConfiguredError until
+ * GEMINI_API_KEY is set — never a faked article.
  */
 export async function generateBlogDraft(keyword: string, audienceHint?: string): Promise<BlogDraft> {
   if (!isDraftConfigured()) throw new DraftNotConfiguredError();
@@ -347,16 +349,28 @@ export async function generateBlogDraft(keyword: string, audienceHint?: string):
     `a single soft CTA to open a free S-PAY account; no fabricated claims, ` +
     `YMYL-accurate). JSON only, no prose around it.`;
 
+  // Gemini generateContent. responseMimeType: application/json makes Gemini
+  // return clean JSON (no code fences), so parsing is reliable.
   let res;
   try {
     res = await axios.post(
-      ANTHROPIC_API,
-      { model: DRAFT_MODEL, max_tokens: 3000, system, messages: [{ role: "user", content: user }] },
+      `${GEMINI_API}/models/${DRAFT_MODEL}:generateContent`,
+      {
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: "user", parts: [{ text: user }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 8192,
+          responseMimeType: "application/json",
+          // Disable 2.5-Flash "thinking" so the whole token budget goes to the
+          // article (thinking can otherwise eat the budget and truncate output).
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      },
       {
         timeout: 60000,
         headers: {
-          "x-api-key": process.env.ANTHROPIC_API_KEY as string,
-          "anthropic-version": "2023-06-01",
+          "x-goog-api-key": process.env.GEMINI_API_KEY as string,
           "content-type": "application/json",
         },
       },
@@ -366,11 +380,13 @@ export async function generateBlogDraft(keyword: string, audienceHint?: string):
     throw new Error("Draft generation failed");
   }
 
-  const text: string = res.data?.content?.[0]?.text ?? "";
+  // Gemini returns the text in candidates[0].content.parts[].text.
+  const parts: Array<{ text?: string }> = res.data?.candidates?.[0]?.content?.parts ?? [];
+  const text: string = parts.map((p) => p.text ?? "").join("").trim();
   let parsed: Partial<BlogDraft>;
   try {
-    // The model is told to return strict JSON; tolerate code-fence wrapping.
-    const json = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    // Already JSON via responseMimeType; tolerate any stray code-fence wrapping.
+    const json = text.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
     parsed = JSON.parse(json);
   } catch {
     logger.warn({ keyword }, "Draft was not valid JSON — returning raw body");

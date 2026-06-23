@@ -126,7 +126,7 @@ router.get("/admin/seo/reddit-topics", requireAuth, requireAnyAdmin, async (req,
 // Generate an AI draft from a RESEARCHED keyword (a GSC opportunity or a Reddit
 // topic the admin clicked). The keyword comes from research and the audience is
 // derived from its context — the admin never types either. Honest 503 until
-// ANTHROPIC_API_KEY is set.
+// GEMINI_API_KEY is set.
 router.post("/admin/seo/drafts", requireAuth, requireManager, async (req, res) => {
   try {
     const { keyword, source, subreddit } = req.body as { keyword?: string; source?: string; subreddit?: string };
@@ -139,7 +139,7 @@ router.post("/admin/seo/drafts", requireAuth, requireManager, async (req, res) =
     res.status(201).json({ post: serializePost(post) });
   } catch (err) {
     if (err instanceof DraftNotConfiguredError) {
-      res.status(503).json({ error: "not_configured", message: "AI drafting is activating soon (set ANTHROPIC_API_KEY)." });
+      res.status(503).json({ error: "not_configured", message: "AI drafting is activating soon (set GEMINI_API_KEY)." });
       return;
     }
     req.log.error({ err }, "SEO draft generation error");
@@ -163,7 +163,7 @@ router.post("/admin/seo/auto-draft", requireAuth, requireManager, async (req, re
     res.status(201).json({ post: serializePost(post), pickedKeyword: pick.keyword, source: pick.source });
   } catch (err) {
     if (err instanceof DraftNotConfiguredError) {
-      res.status(503).json({ error: "not_configured", message: "AI drafting is activating soon (set ANTHROPIC_API_KEY)." });
+      res.status(503).json({ error: "not_configured", message: "AI drafting is activating soon (set GEMINI_API_KEY)." });
       return;
     }
     req.log.error({ err }, "SEO auto-draft error");

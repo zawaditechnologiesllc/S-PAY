@@ -57,8 +57,12 @@ of `{ query, impressions, clicks, position, score, reason }`.
 
 ## 5. AI draft generation — grounded + Google-2026 rules
 
-Generate drafts with a fast model (e.g. Claude Haiku). The system prompt MUST
-include both:
+Generate drafts with a fast model — **Gemini 2.5 Flash** (`gemini-2.5-flash`) is
+the default because it has a free tier. Call the Generative Language API
+`POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`
+with header `x-goog-api-key: {GEMINI_API_KEY}`, a `systemInstruction.parts[].text`,
+a user `contents[].parts[].text`, and `generationConfig.responseMimeType:
+"application/json"` so it returns clean JSON. The system prompt MUST include both:
 
 **(a) PRODUCT FACTS** — the only things the model may assert. `[[PRODUCT FACTS]]`:
 a short, true list of what the product is/does, its audience, and explicit
@@ -128,9 +132,9 @@ the sitemap and internal-link them from relevant pages.
 ## 11. Environment variables
 
 `GSC_SERVICE_ACCOUNT_JSON`, `GSC_SITE_URL`, `GA4_PROPERTY_ID`,
-`GA4_SERVICE_ACCOUNT_JSON` (may reuse the GSC one), `ANTHROPIC_API_KEY`,
-optional `SEO_DRAFT_MODEL`, `SEO_REDDIT_ENABLED|SUBREDDITS|USER_AGENT`,
-`SITE_URL`.
+`GA4_SERVICE_ACCOUNT_JSON` (may reuse the GSC one), `GEMINI_API_KEY`,
+optional `SEO_DRAFT_MODEL` (default `gemini-2.5-flash`),
+`SEO_REDDIT_ENABLED|SUBREDDITS|USER_AGENT`, `SITE_URL`.
 
 ## 12. Non-negotiables
 
