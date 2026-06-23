@@ -3,8 +3,12 @@ import App from "./App";
 import "./index.css";
 import { setBaseUrl } from "@workspace/api-client-react";
 import { applyStoredTheme } from "@/components/theme";
+import { installPersistence } from "@/lib/query-client";
 
 applyStoredTheme();
+// Rehydrate the last session's data before first render so the app paints with
+// real content immediately on slow connections instead of empty skeletons.
+installPersistence();
 
 const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
 if (apiUrl) {

@@ -23,6 +23,14 @@ GSC Search Analytics ─▶ opportunity ranker ─▶ Claude Haiku draft (ground
 4. **Review + approve** in admin — a human edits and publishes. **Nothing
    auto-publishes** (Google demotes unreviewed AI content; grounding + a human
    gate keep posts truthful and on-message).
+
+> **Google 2026 SEO rules are baked into generation.** Every draft is written
+> against a `SEO_RULES_2026` ruleset in `lib/seo.ts` (people-first / helpful
+> content, E-E-A-T, search-intent structure with one H1 + H2/H3, ≤60-char
+> titles, ≤155-char meta, natural keywords + semantic coverage, an FAQ for rich
+> results, YMYL accuracy with no invented stats/rates/fees, descriptive internal
+> links + a single soft CTA, mobile-first/accessible, and no manipulation). Tune
+> the rules in that one constant as Google's guidance evolves.
 5. **Publish** to `/blog` with **Article JSON-LD** for rich results; published
    impressions feed the next ranking pass.
 

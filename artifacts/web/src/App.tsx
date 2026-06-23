@@ -1,9 +1,11 @@
 import { useEffect, useState, lazy, Suspense, type ComponentType } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { OfflineBanner } from "@/components/offline-banner";
+import { queryClient } from "@/lib/query-client";
 import { getToken } from "@/lib/auth";
 
 // Eager: the landing page (home / LCP), the maintenance gate (rendered before
@@ -84,19 +86,6 @@ function PageFallback() {
     </div>
   );
 }
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-      refetchOnWindowFocus: false,
-      // Instant tab switching: serve cached data immediately and refresh in
-      // the background only after it's 30s old.
-      staleTime: 30 * 1000,
-      gcTime: 10 * 60 * 1000,
-    },
-  },
-});
 
 // Redirects to /login, storing the intended destination so we can return after auth.
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -216,6 +205,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <OfflineBanner />
           <Router />
         </WouterRouter>
         <Toaster />

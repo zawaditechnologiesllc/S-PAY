@@ -220,27 +220,53 @@ export interface BlogDraft {
   model: string;
 }
 
+// Google's 2026 search guidance, distilled into hard rules every generated post
+// must follow. Centered on the "people-first / helpful content" system and
+// E-E-A-T (Experience, Expertise, Authoritativeness, Trust). Updated as Google's
+// guidance evolves — this is the single place to tune editorial quality.
+const SEO_RULES_2026 = `
+GOOGLE 2026 SEO RULES (follow ALL):
+1. People-first, helpful content: answer the searcher's actual intent fully and satisfyingly; someone should leave feeling their question was resolved. Write for humans, not crawlers.
+2. E-E-A-T: demonstrate first-hand Experience and Expertise; be Authoritative and Trustworthy. Be accurate, cite concrete specifics, and never overstate. No "AI slop" — no generic, padded, or repetitive filler.
+3. Original value: add insight, examples, and practical steps a reader can't get from a thin rehash. No keyword stuffing, no auto-spun text, no content written mainly to rank.
+4. Search intent & structure: one clear H1 (the title). Logical H2/H3 sections. Front-load the answer (inverted pyramid). Short paragraphs (2–4 sentences), bullet lists, and a step-by-step where useful.
+5. Title: <=60 chars, specific and compelling, includes the primary keyword naturally (no clickbait, no ALL CAPS).
+6. Meta description: <=155 chars, accurately summarizes the page and earns the click.
+7. Natural language & entities: use the keyword and related terms/synonyms naturally; cover the topic's sub-questions (semantic completeness) rather than repeating the exact phrase.
+8. Helpful extras: include a concise FAQ (2–4 real questions people ask) — these map to FAQ rich results — and, where relevant, a short key-takeaways list near the top.
+9. Trust & accuracy (YMYL — this is finance): be precise and conservative. Never invent statistics, FX rates, fees, timelines, or guarantees. Note that availability/limits vary by country. Encourage readers to verify specifics in-app.
+10. Freshness & clarity: write in clear, plain English at roughly an 8th-grade reading level; define jargon on first use; prefer the present tense and active voice.
+11. Internal linking & CTA: include a single soft, honest call-to-action to open a free S-PAY account; suggest 1–2 relevant internal link anchors in Markdown (e.g. to the jobs board or how-it-works) using descriptive anchor text.
+12. Accessibility & mobile-first: descriptive subheadings, meaningful link text (never "click here"), and image alt text if images are referenced. Assume most readers are on a phone on a slow connection.
+13. No manipulation: no cloaking, doorway pages, hidden text, fake authorship, or scaled content abuse. Disclose nothing false. Everything must be verifiable and within the PRODUCT FACTS.
+`.trim();
+
 /**
- * Draft an SEO blog post for a target keyword, grounded in PRODUCT_FACTS. Throws
- * DraftNotConfiguredError until ANTHROPIC_API_KEY is set — never a faked article.
+ * Draft an SEO blog post for a target keyword, grounded in PRODUCT_FACTS and the
+ * Google 2026 SEO rules. Throws DraftNotConfiguredError until ANTHROPIC_API_KEY
+ * is set — never a faked article.
  */
 export async function generateBlogDraft(keyword: string, audienceHint?: string): Promise<BlogDraft> {
   if (!isDraftConfigured()) throw new DraftNotConfiguredError();
 
   const system =
-    "You are an expert SEO content writer for S-PAY. Write genuinely helpful, " +
-    "accurate, E-E-A-T-aligned articles for remote workers and the businesses " +
-    "that pay them. Only state things supported by the PRODUCT FACTS. Never " +
-    "fabricate features, statistics, FX rates, or earnings claims. Output STRICT " +
-    "JSON only.\n\nPRODUCT FACTS:\n" + PRODUCT_FACTS;
+    "You are an expert SEO content writer for S-PAY, a stablecoin money app for " +
+    "global/remote workers. Write genuinely helpful, accurate, people-first " +
+    "articles that satisfy search intent and align with Google's 2026 guidance " +
+    "and E-E-A-T. Only state things supported by the PRODUCT FACTS — never " +
+    "fabricate features, statistics, FX rates, fees, or earnings claims. Follow " +
+    "every one of the GOOGLE 2026 SEO RULES. Output STRICT JSON only.\n\n" +
+    SEO_RULES_2026 + "\n\nPRODUCT FACTS:\n" + PRODUCT_FACTS;
 
   const user =
     `Write a blog post targeting the search query: "${keyword}".` +
     (audienceHint ? ` Audience: ${audienceHint}.` : "") +
-    ` Return JSON with keys: title (<=60 chars, compelling), metaDescription ` +
-    `(<=155 chars), excerpt (<=200 chars), bodyMarkdown (800–1200 words, H2/H3 ` +
-    `headings, a short FAQ, a soft CTA to open a free S-PAY account; no fabricated ` +
-    `claims). JSON only, no prose around it.`;
+    ` Apply every GOOGLE 2026 SEO RULE. Return JSON with keys: title (<=60 chars), ` +
+    `metaDescription (<=155 chars), excerpt (<=200 chars), bodyMarkdown ` +
+    `(900–1400 words: one H1, logical H2/H3 sections, a short key-takeaways list ` +
+    `near the top, a 2–4 question FAQ, 1–2 descriptive internal-link anchors, and ` +
+    `a single soft CTA to open a free S-PAY account; no fabricated claims, ` +
+    `YMYL-accurate). JSON only, no prose around it.`;
 
   let res;
   try {
