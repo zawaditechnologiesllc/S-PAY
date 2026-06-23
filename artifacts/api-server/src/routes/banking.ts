@@ -100,10 +100,13 @@ router.get("/banking/accounts", requireAuth, async (req, res) => {
 router.post("/banking/accounts", requireAuth, async (req, res) => {
   try {
     const currency = String((req.body as { currency?: string }).currency ?? "USD").toUpperCase();
-    if (!["USD", "EUR"].includes(currency)) {
-      res.status(400).json({ error: "validation_error", message: "currency must be USD or EUR" });
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      res.status(400).json({ error: "validation_error", message: "currency must be a 3-letter code (e.g. USD, EUR, KES)" });
       return;
     }
+    // Which issuers can serve this currency is decided by selectVirtualAccountIssuer
+    // below (USD/EUR via Bridge/Noah; local accounts via Conduit/Yellow Card) — an
+    // unsupported currency falls through to an honest 503.
 
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
     if (!user) {

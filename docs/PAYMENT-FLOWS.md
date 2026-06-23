@@ -161,9 +161,12 @@ The virtual account is an **entry point, not a balance**. `GET /banking/accounts
 lists account details to receive into; it never reports a separate balance.
 
 **Provider-neutral:** virtual accounts can be issued by Noah **or** a
-no-onboarding-fee alternative such as Bridge. The deposit on-ramp is routed by
-`selectDepositProvider()` (see "On-ramp routing" below), so S-PAY is not locked
-to Noah for deposits.
+no-onboarding-fee alternative — **Bridge** for USD ACH / EU IBAN, and **Conduit**
+or **Yellow Card** for **local-currency** accounts in their corridors (e.g. a
+Kenyan or Nigerian account a local payer sends to). The admin picks the issuer
+(`virtualAccountIssuer`); the deposit on-ramp itself is routed per-transaction by
+`selectDepositProvider()` (see "On-ramp routing" below), so S-PAY is never locked
+to Noah.
 
 ---
 
