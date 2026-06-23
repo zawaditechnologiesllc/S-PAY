@@ -48,7 +48,7 @@ export default function AdminSeo() {
     const s = (e as { status?: number })?.status;
     toast({
       title: "Couldn't draft",
-      description: s === 503 ? "AI drafting isn't switched on yet (set ANTHROPIC_API_KEY)."
+      description: s === 503 ? "AI drafting isn't switched on yet (set GEMINI_API_KEY)."
         : s === 422 ? "No research available yet — connect Search Console or load Reddit topics."
         : "Please try again.",
       variant: "destructive",
@@ -81,7 +81,7 @@ export default function AdminSeo() {
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill label="Search Console" ok={!!status?.gscConfigured} />
           <StatusPill label="Analytics (GA4)" ok={!!status?.ga4Configured} />
-          <StatusPill label="AI drafting (Haiku)" ok={!!status?.draftConfigured} />
+          <StatusPill label="AI drafting (Gemini)" ok={!!status?.draftConfigured} />
           <StatusPill label="Reddit topics" ok={!!status?.redditEnabled} />
           <p className="text-xs text-gray-400 ml-1">Research picks the keyword + audience. Drafts are AI-written, grounded in product facts. Nothing publishes until you approve it.</p>
         </div>
