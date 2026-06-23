@@ -11,6 +11,7 @@ import {
   type WalletProvidersUpdateRequestActiveProvider,
   useGetPayoutProviders, getGetPayoutProvidersQueryKey, useUpdatePayoutProviders,
   type PayoutProvidersUpdateRequestPreferredProvider,
+  type PayoutProvidersUpdateRequestVirtualAccountIssuer,
 } from "@workspace/api-client-react";
 import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone, UserPlus, Trash2, Link2, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -104,6 +105,12 @@ export default function AdminSettings() {
   const updateFees = useUpdateFeeSchedule();
   const updateWalletProviders = useUpdateWalletProviders();
   const { toast } = useToast();
+
+  // Only superadmins manage the critical switches; managers get the operational
+  // bits (notifications + the team roster). Mirrors the backend role guards so
+  // the UI never shows controls a role can't actually use.
+  const { data: team } = useGetAdminTeam({ query: { queryKey: getGetAdminTeamQueryKey() } });
+  const isSuper = team?.myRole === "superadmin";
 
   const setActiveProvider = (key: string) => {
     updateWalletProviders.mutate(
@@ -262,6 +269,12 @@ export default function AdminSettings() {
     <AdminLayout title="Settings & System Status">
       <div className="space-y-6 max-w-3xl">
 
+        {/* Manager + superadmin: send notifications and view the team roster. */}
+        <NotificationSection />
+        <TeamSection />
+
+        {isSuper && (
+        <>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           This page shows which integrations are configured. Set environment variables on Render to enable each service.
         </p>
@@ -322,9 +335,7 @@ export default function AdminSettings() {
           </div>
         </Section>
 
-        <TeamSection />
         <SiteContentSection />
-        <NotificationSection />
 
         <Section icon={<Wallet size={16} />} title="Wallet Infrastructure (Celo · WaaS)">
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
@@ -555,6 +566,8 @@ export default function AdminSettings() {
             <p className="text-xs text-gray-400 mt-3">To add an admin, set <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">ADMIN_EMAILS=email1@x.com,email2@x.com</code> on Render.</p>
           </div>
         </Section>
+        </>
+        )}
 
       </div>
     </AdminLayout>
@@ -589,7 +602,7 @@ function PayoutProvidersSection() {
         onSuccess: () => {
           toast({
             title: next ? `${key} switched ON` : `${key} switched OFF`,
-            description: next ? "This rail is back in payout routing." : "Kill switch: this rail is removed from payout routing until re-enabled. In-flight payouts are unaffected.",
+            description: next ? "This rail is back in deposit + payout routing." : "Kill switch: this rail is removed from deposit AND payout routing until re-enabled. In-flight payouts are unaffected.",
           });
           refetch();
         },
@@ -598,12 +611,27 @@ function PayoutProvidersSection() {
     );
   };
 
+  const setIssuer = (key: string) => {
+    update.mutate(
+      { data: { virtualAccountIssuer: key as PayoutProvidersUpdateRequestVirtualAccountIssuer } },
+      {
+        onSuccess: () => {
+          toast({ title: `New virtual accounts issued by ${key}`, description: "Existing accounts keep their issuer — account numbers never change. Live within 15 seconds." });
+          refetch();
+        },
+        onError: () => toast({ title: "Could not set issuer", description: "Please try again.", variant: "destructive" }),
+      },
+    );
+  };
+
+  const issuers = (data?.providers ?? []).filter((p) => p.supportsVirtualAccounts);
+
   return (
-    <Section icon={<Banknote size={16} />} title="Payout Providers (Payroll & Withdrawals)">
+    <Section icon={<Banknote size={16} />} title="Money Rails (Deposits, Payouts & Accounts)">
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
-        The pluggable cash-out rails for batch payroll and withdrawals. Set a provider's env vars on Render to configure it,
-        then pick the <strong>preferred</strong> provider for new payouts — routing falls back to the next enabled + configured
-        provider when the preferred one can't serve a corridor.
+        The pluggable rails for deposits, batch payroll and withdrawals. Set a provider's env vars on Render to configure it,
+        then turn it on/off below. Routing always picks the <strong>best rate for the customer</strong> among enabled providers
+        (the user never sees which rail) — the <strong>preferred</strong> provider is only a tiebreaker when rates match.
       </p>
       {(data?.providers ?? []).map((p) => {
         const isPreferred = data?.preferredProvider === p.key;
@@ -615,7 +643,7 @@ function PayoutProvidersSection() {
                   {p.label}
                   {isPreferred && (
                     <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-[#4DC9EE] px-2 py-0.5 rounded-full">
-                      Preferred — new payouts
+                      Preferred (tiebreaker)
                     </span>
                   )}
                   {p.configured ? (
@@ -655,9 +683,32 @@ function PayoutProvidersSection() {
           </div>
         );
       })}
+      {/* Virtual-account issuer — sticky single issuer (unlike per-transaction routing) */}
+      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Virtual-account issuer</p>
+        <p className="text-xs text-gray-400 mt-0.5 mb-2 leading-relaxed">
+          Who issues <strong>new</strong> virtual accounts (US ACH / EU IBAN, or local accounts via Conduit / Yellow Card).
+          Unlike deposits/withdrawals, an account is a sticky identifier — existing accounts keep their issuer; this only sets
+          the issuer for accounts not yet opened.
+        </p>
+        <select
+          value={data?.virtualAccountIssuer ?? ""}
+          onChange={(e) => setIssuer(e.target.value)}
+          disabled={update.isPending || issuers.length === 0}
+          className="w-full sm:w-auto text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 disabled:opacity-50"
+        >
+          {issuers.length === 0 && <option value="">No issuer-capable provider</option>}
+          {issuers.map((p) => (
+            <option key={p.key} value={p.key} disabled={!p.configured || !p.enabled}>
+              {p.label}{!p.configured ? " — not set" : !p.enabled ? " — off" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 leading-relaxed">
         <strong>No onboarding fees</strong> for Bridge, Conduit, Yellow Card or Thunes — costs are transactional only.
-        Every withdrawal and batch-payroll payout routes through whichever provider is preferred + able to serve the corridor.
+        Every deposit, withdrawal and batch-payroll payout routes through whichever enabled provider gives the customer the best rate.
       </div>
     </Section>
   );

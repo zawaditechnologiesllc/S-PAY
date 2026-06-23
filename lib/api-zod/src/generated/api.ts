@@ -1161,14 +1161,17 @@ export const UpdateWalletProvidersResponse = zod.object({
  * @summary Read the payout (cash-out) provider switches — preferred provider, per-provider on/off, configuration status
  */
 export const GetPayoutProvidersResponse = zod.object({
-  "preferredProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).describe('Provider tried first for a corridor; routing falls back to the next enabled+configured one'),
+  "preferredProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).describe('Tiebreaker only; routing always picks the best rate for the customer'),
+  "virtualAccountIssuer": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional().describe('Designated issuer for NEW virtual accounts (sticky per user once issued)'),
   "providers": zod.array(zod.object({
   "key": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']),
   "label": zod.string().describe('Human-readable provider name'),
   "configured": zod.boolean().describe('Whether the provider\'s API credentials are set in the environment'),
   "enabled": zod.boolean().describe('Admin on\/off switch — OFF removes this rail from payout routing'),
   "envHint": zod.string().describe('The environment variables that activate this provider'),
-  "pricingNote": zod.string().describe('One-line note on commercial terms (onboarding-fee posture especially)')
+  "pricingNote": zod.string().describe('One-line note on commercial terms (onboarding-fee posture especially)'),
+  "supportsDeposits": zod.boolean().optional().describe('Whether this provider can on-ramp (deposit) at least one corridor'),
+  "supportsVirtualAccounts": zod.boolean().optional().describe('Whether this provider can issue persistent virtual accounts (USD\/EUR or local)')
 }))
 })
 
@@ -1178,6 +1181,7 @@ export const GetPayoutProvidersResponse = zod.object({
  */
 export const UpdatePayoutProvidersBody = zod.object({
   "preferredProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional(),
+  "virtualAccountIssuer": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional(),
   "enabled": zod.object({
   "noah": zod.boolean().optional(),
   "bridge": zod.boolean().optional(),
@@ -1185,17 +1189,20 @@ export const UpdatePayoutProvidersBody = zod.object({
   "yellowcard": zod.boolean().optional(),
   "thunes": zod.boolean().optional()
 }).optional().describe('Per-provider on\/off, e.g. {\"noah\": false, \"yellowcard\": true}')
-}).describe('Partial update — switch the preferred provider and\/or toggle providers on\/off')
+}).describe('Partial update — preferred provider (tiebreaker), per-provider on\/off, and\/or the virtual-account issuer')
 
 export const UpdatePayoutProvidersResponse = zod.object({
-  "preferredProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).describe('Provider tried first for a corridor; routing falls back to the next enabled+configured one'),
+  "preferredProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).describe('Tiebreaker only; routing always picks the best rate for the customer'),
+  "virtualAccountIssuer": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional().describe('Designated issuer for NEW virtual accounts (sticky per user once issued)'),
   "providers": zod.array(zod.object({
   "key": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']),
   "label": zod.string().describe('Human-readable provider name'),
   "configured": zod.boolean().describe('Whether the provider\'s API credentials are set in the environment'),
   "enabled": zod.boolean().describe('Admin on\/off switch — OFF removes this rail from payout routing'),
   "envHint": zod.string().describe('The environment variables that activate this provider'),
-  "pricingNote": zod.string().describe('One-line note on commercial terms (onboarding-fee posture especially)')
+  "pricingNote": zod.string().describe('One-line note on commercial terms (onboarding-fee posture especially)'),
+  "supportsDeposits": zod.boolean().optional().describe('Whether this provider can on-ramp (deposit) at least one corridor'),
+  "supportsVirtualAccounts": zod.boolean().optional().describe('Whether this provider can issue persistent virtual accounts (USD\/EUR or local)')
 }))
 })
 

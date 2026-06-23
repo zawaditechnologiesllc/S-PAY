@@ -5,17 +5,32 @@ import {
   Shield, Bell, ChevronRight, Settings, Menu, X, Briefcase, Inbox, Banknote,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
+import { useGetAdminTeam, getGetAdminTeamQueryKey } from "@workspace/api-client-react";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
-const NAV = [
-  { href: "/admin", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
-  { href: "/admin/users", icon: <Users size={18} />, label: "Users & KYC" },
-  { href: "/admin/transactions", icon: <ArrowLeftRight size={18} />, label: "Transactions" },
-  { href: "/admin/payroll", icon: <Banknote size={18} />, label: "Payroll" },
-  { href: "/admin/jobs", icon: <Briefcase size={18} />, label: "Job Listings" },
-  { href: "/admin/enquiries", icon: <Inbox size={18} />, label: "Enquiries" },
-  { href: "/admin/settings", icon: <Settings size={18} />, label: "Settings" },
+// Role hierarchy — matches the backend (lib/admin-roles.ts). A panel is shown
+// only when the viewer's role is at least its minRole, so a support/manager
+// admin never sees the superadmin's switches. Reads are enforced again on the
+// server, but the nav must not advertise destinations a role can't use.
+export type AdminRole = "support" | "manager" | "superadmin";
+const ROLE_RANK: Record<AdminRole, number> = { support: 1, manager: 2, superadmin: 3 };
+export const roleRank = (r?: string | null): number => ROLE_RANK[(r as AdminRole)] ?? 0;
+
+const NAV: { href: string; icon: React.ReactNode; label: string; minRole: AdminRole }[] = [
+  { href: "/admin", icon: <LayoutDashboard size={18} />, label: "Dashboard", minRole: "support" },
+  { href: "/admin/users", icon: <Users size={18} />, label: "Users & KYC", minRole: "support" },
+  { href: "/admin/transactions", icon: <ArrowLeftRight size={18} />, label: "Transactions", minRole: "support" },
+  { href: "/admin/payroll", icon: <Banknote size={18} />, label: "Payroll", minRole: "manager" },
+  { href: "/admin/jobs", icon: <Briefcase size={18} />, label: "Job Listings", minRole: "manager" },
+  { href: "/admin/enquiries", icon: <Inbox size={18} />, label: "Enquiries", minRole: "support" },
+  { href: "/admin/settings", icon: <Settings size={18} />, label: "Settings", minRole: "manager" },
 ];
+
+/** The signed-in admin's effective role, resolved fresh from the server. */
+export function useMyAdminRole(): AdminRole | undefined {
+  const { data } = useGetAdminTeam({ query: { queryKey: getGetAdminTeamQueryKey() } });
+  return (data?.myRole as AdminRole | undefined);
+}
 
 function NavItem({ href, icon, label, onClick }: { href: string; icon: React.ReactNode; label: string; onClick?: () => void }) {
   const [active] = useRoute(href === "/admin" ? "/admin" : `${href}*`);
@@ -37,6 +52,11 @@ function NavItem({ href, icon, label, onClick }: { href: string; icon: React.Rea
 function Sidebar({ onClose }: { onClose?: () => void }) {
   const [, setLocation] = useLocation();
   const handleLogout = () => { clearToken(); setLocation("/login"); };
+  const myRole = useMyAdminRole();
+  // While the role loads, show only the universal (support-level) items so we
+  // never flash superadmin destinations to a lower-tier admin.
+  const viewerRank = roleRank(myRole ?? "support");
+  const visibleNav = NAV.filter((n) => viewerRank >= roleRank(n.minRole));
 
   return (
     <div className="flex flex-col h-full bg-[#1A2B4A]">
@@ -61,7 +81,7 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-3 pb-2 pt-1">Management</p>
-        {NAV.map((n) => <NavItem key={n.href} {...n} onClick={onClose} />)}
+        {visibleNav.map((n) => <NavItem key={n.href} {...n} onClick={onClose} />)}
       </nav>
 
       {/* Bottom */}
@@ -81,6 +101,7 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
 
 export function AdminLayout({ children, title }: { children: React.ReactNode; title?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const myRole = useMyAdminRole();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-800/60 flex">
@@ -127,7 +148,7 @@ export function AdminLayout({ children, title }: { children: React.ReactNode; ti
               <div className="w-6 h-6 bg-[#1A2B4A] rounded-full flex items-center justify-center">
                 <Shield size={12} className="text-white" />
               </div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Admin</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">{myRole ?? "Admin"}</span>
             </div>
           </div>
         </header>

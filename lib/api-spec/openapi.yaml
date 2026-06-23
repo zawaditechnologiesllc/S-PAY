@@ -3010,6 +3010,12 @@ components:
         pricingNote:
           type: string
           description: One-line note on commercial terms (onboarding-fee posture especially)
+        supportsDeposits:
+          type: boolean
+          description: Whether this provider can on-ramp (deposit) at least one corridor
+        supportsVirtualAccounts:
+          type: boolean
+          description: Whether this provider can issue persistent virtual accounts (USD/EUR or local)
       required:
         - key
         - label
@@ -3024,7 +3030,11 @@ components:
         preferredProvider:
           type: string
           enum: [noah, bridge, conduit, yellowcard, thunes]
-          description: Provider tried first for a corridor; routing falls back to the next enabled+configured one
+          description: Tiebreaker only; routing always picks the best rate for the customer
+        virtualAccountIssuer:
+          type: string
+          enum: [noah, bridge, conduit, yellowcard, thunes]
+          description: Designated issuer for NEW virtual accounts (sticky per user once issued)
         providers:
           type: array
           items:
@@ -3035,9 +3045,12 @@ components:
 
     PayoutProvidersUpdateRequest:
       type: object
-      description: Partial update — switch the preferred provider and/or toggle providers on/off
+      description: Partial update — preferred provider (tiebreaker), per-provider on/off, and/or the virtual-account issuer
       properties:
         preferredProvider:
+          type: string
+          enum: [noah, bridge, conduit, yellowcard, thunes]
+        virtualAccountIssuer:
           type: string
           enum: [noah, bridge, conduit, yellowcard, thunes]
         enabled:

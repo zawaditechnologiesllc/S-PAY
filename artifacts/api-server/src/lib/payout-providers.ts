@@ -116,12 +116,12 @@ export interface VirtualAccountDetails {
   provider: PayoutProviderKey;
   externalId?: string;
   currency: string;
-  accountType: "ach" | "iban";
+  accountType: "ach" | "iban" | "local_bank";
   country?: string;
   holderName: string;
   bankName?: string;
   accountNumberMasked?: string; // last4 only
-  routingNumber?: string;       // ACH
+  routingNumber?: string;       // ACH (or local sort/branch code)
   ibanMasked?: string;          // masked IBAN
 }
 
@@ -153,9 +153,12 @@ export interface MoneyRailProvider {
   createVirtualAccount(req: VirtualAccountRequest): Promise<VirtualAccountDetails>;
 }
 
-/** USD → US ACH, EUR → EU IBAN. */
-export function accountTypeForCurrency(currency: string): "ach" | "iban" {
-  return currency?.toUpperCase() === "EUR" ? "iban" : "ach";
+/** USD → US ACH, EUR → EU IBAN, any other currency → a local bank account. */
+export function accountTypeForCurrency(currency: string): "ach" | "iban" | "local_bank" {
+  const c = currency?.toUpperCase();
+  if (c === "USD") return "ach";
+  if (c === "EUR") return "iban";
+  return "local_bank";
 }
 
 // Indicative FX rates (stablecoin base). Shared with banking.ts's table; live
@@ -255,7 +258,8 @@ const conduitProvider: MoneyRailProvider = {
   supportsDeposit: (c) => CONDUIT_CURRENCIES.has(c?.toUpperCase()),
   quoteDeposit: (req) => makeDepositQuote("conduit", 0.008, req),
   createDeposit: async () => { throw new DepositNotConfiguredError("conduit"); },
-  supportsVirtualAccount: () => false, // collections/payouts, not persistent accounts
+  // Issues local-currency collection accounts across its corridors (plus USD).
+  supportsVirtualAccount: (c) => CONDUIT_CURRENCIES.has(c?.toUpperCase()),
   createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("conduit"); },
 };
 
@@ -273,7 +277,8 @@ const yellowcardProvider: MoneyRailProvider = {
   supportsDeposit: (c) => YELLOWCARD_CURRENCIES.has(c?.toUpperCase()),
   quoteDeposit: (req) => makeDepositQuote("yellowcard", 0.009, req),
   createDeposit: async () => { throw new DepositNotConfiguredError("yellowcard"); },
-  supportsVirtualAccount: () => false, // mobile-money/bank rails, not USD/EUR accounts
+  // Issues local-currency collection accounts across its African corridors.
+  supportsVirtualAccount: (c) => YELLOWCARD_CURRENCIES.has(c?.toUpperCase()),
   createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("yellowcard"); },
 };
 
@@ -318,7 +323,8 @@ export function payoutProviderCatalog(): Array<{
   return Object.values(PROVIDERS).map((p) => ({
     key: p.key, label: p.label, configured: p.isConfigured(),
     envHint: p.envHint, pricingNote: p.pricingNote, supportsDeposits: anyDeposit(p),
-    supportsVirtualAccounts: p.supportsVirtualAccount("USD") || p.supportsVirtualAccount("EUR"),
+    // USD/EUR (Bridge, Noah) or local-currency accounts (Conduit, Yellow Card).
+    supportsVirtualAccounts: ["USD", "EUR", "KES", "NGN", "BRL"].some((c) => p.supportsVirtualAccount(c)),
   }));
 }
 

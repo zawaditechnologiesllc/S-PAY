@@ -1105,10 +1105,14 @@ export interface PayoutProviderInfo {
   envHint: string;
   /** One-line note on commercial terms (onboarding-fee posture especially) */
   pricingNote: string;
+  /** Whether this provider can on-ramp (deposit) at least one corridor */
+  supportsDeposits?: boolean;
+  /** Whether this provider can issue persistent virtual accounts (USD/EUR or local) */
+  supportsVirtualAccounts?: boolean;
 }
 
 /**
- * Provider tried first for a corridor; routing falls back to the next enabled+configured one
+ * Tiebreaker only; routing always picks the best rate for the customer
  */
 export type PayoutProvidersResponsePreferredProvider = typeof PayoutProvidersResponsePreferredProvider[keyof typeof PayoutProvidersResponsePreferredProvider];
 
@@ -1121,9 +1125,25 @@ export const PayoutProvidersResponsePreferredProvider = {
   thunes: 'thunes',
 } as const;
 
+/**
+ * Designated issuer for NEW virtual accounts (sticky per user once issued)
+ */
+export type PayoutProvidersResponseVirtualAccountIssuer = typeof PayoutProvidersResponseVirtualAccountIssuer[keyof typeof PayoutProvidersResponseVirtualAccountIssuer];
+
+
+export const PayoutProvidersResponseVirtualAccountIssuer = {
+  noah: 'noah',
+  bridge: 'bridge',
+  conduit: 'conduit',
+  yellowcard: 'yellowcard',
+  thunes: 'thunes',
+} as const;
+
 export interface PayoutProvidersResponse {
-  /** Provider tried first for a corridor; routing falls back to the next enabled+configured one */
+  /** Tiebreaker only; routing always picks the best rate for the customer */
   preferredProvider: PayoutProvidersResponsePreferredProvider;
+  /** Designated issuer for NEW virtual accounts (sticky per user once issued) */
+  virtualAccountIssuer?: PayoutProvidersResponseVirtualAccountIssuer;
   providers: PayoutProviderInfo[];
 }
 
@@ -1131,6 +1151,17 @@ export type PayoutProvidersUpdateRequestPreferredProvider = typeof PayoutProvide
 
 
 export const PayoutProvidersUpdateRequestPreferredProvider = {
+  noah: 'noah',
+  bridge: 'bridge',
+  conduit: 'conduit',
+  yellowcard: 'yellowcard',
+  thunes: 'thunes',
+} as const;
+
+export type PayoutProvidersUpdateRequestVirtualAccountIssuer = typeof PayoutProvidersUpdateRequestVirtualAccountIssuer[keyof typeof PayoutProvidersUpdateRequestVirtualAccountIssuer];
+
+
+export const PayoutProvidersUpdateRequestVirtualAccountIssuer = {
   noah: 'noah',
   bridge: 'bridge',
   conduit: 'conduit',
@@ -1150,10 +1181,11 @@ export type PayoutProvidersUpdateRequestEnabled = {
 };
 
 /**
- * Partial update — switch the preferred provider and/or toggle providers on/off
+ * Partial update — preferred provider (tiebreaker), per-provider on/off, and/or the virtual-account issuer
  */
 export interface PayoutProvidersUpdateRequest {
   preferredProvider?: PayoutProvidersUpdateRequestPreferredProvider;
+  virtualAccountIssuer?: PayoutProvidersUpdateRequestVirtualAccountIssuer;
   /** Per-provider on/off, e.g. {"noah": false, "yellowcard": true} */
   enabled?: PayoutProvidersUpdateRequestEnabled;
 }
