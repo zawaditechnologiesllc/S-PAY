@@ -4,11 +4,11 @@
 
 > 📋 **Start here for operations:** [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) — what's live, how to activate each provider (wallets/Noah/Stripe/Google/Apple/EAS), every remaining task with file paths, and how to run the platform without a terminal. For wallets specifically (the six switchable providers, costs, setup): [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md).
 >
-> 💼 **For investors & partners:** [`docs/INVESTOR-OVERVIEW.md`](./docs/INVESTOR-OVERVIEW.md) (what it is, status, the ask) · [`docs/REVENUE-MODEL.md`](./docs/REVENUE-MODEL.md) (how the business makes money) · [`docs/MARKETPLACE-INTEGRATION.md`](./docs/MARKETPLACE-INTEGRATION.md) (what to tell a marketplace and which option to choose) · [`docs/PAYMENT-FLOWS.md`](./docs/PAYMENT-FLOWS.md) (how money actually moves — the single-balance model).
+> 💼 **For investors & partners:** [`docs/INVESTOR-OVERVIEW.md`](./docs/INVESTOR-OVERVIEW.md) (what it is, status, the ask) · [`docs/REVENUE-MODEL.md`](./docs/REVENUE-MODEL.md) (how the business makes money) · [`docs/MARKETPLACE-INTEGRATION.md`](./docs/MARKETPLACE-INTEGRATION.md) (what to tell a marketplace and which option to choose) · [`docs/PAYMENT-FLOWS.md`](./docs/PAYMENT-FLOWS.md) (how money actually moves — the single-balance model) · [`docs/SEO-ENGINE.md`](./docs/SEO-ENGINE.md) (GSC → AI drafts → reviewed blog content).
 
 Like MiniPay, S-PAY is built on the Celo network: stablecoin-first balances (USDC), sub-cent fees, 5-second finality, and no seed phrase, ever — a wallet appears automatically the first time money moves.
 
-S-PAY was born in 2016 by a team of full-stack fintech and crypto engineers frustrated by PayPal blocking legitimate remote worker accounts across Africa and Southeast Asia. The goal: give every remote worker a real US bank account, instant local cash-outs, and the financial tools they deserve — with no gatekeeper.
+S-PAY was founded in 2024 by a team of full-stack fintech and crypto engineers frustrated by PayPal blocking legitimate remote worker accounts across Africa and Southeast Asia. The goal: give every remote worker a real US bank account, instant local cash-outs, and the financial tools they deserve — with no gatekeeper.
 
 ---
 

@@ -7,3 +7,5 @@ export * from "./custom-jobs";
 export * from "./notifications";
 export * from "./enquiries";
 export * from "./payroll";
+export * from "./virtual-accounts";
+export * from "./blog-posts";
