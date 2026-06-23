@@ -2,10 +2,13 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { getFeeSchedule, withdrawalFee } from "../lib/settings";
 import { ensureUserWallet } from "../lib/wallet-providers";
-import { selectPayoutProvider, selectDepositProvider } from "../lib/payout-providers";
+import {
+  selectPayoutProvider, selectDepositProvider, selectVirtualAccountIssuer,
+  accountTypeForCurrency,
+} from "../lib/payout-providers";
 import { verifyTransactionPin } from "../lib/pin";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, usersTable, virtualAccountsTable } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
 
 const router = Router();
 
@@ -52,17 +55,116 @@ function lookupRate(target: string | undefined): number {
   return PAYOUT_RATES[target.toUpperCase()] ?? 1.0;
 }
 
-// Virtual accounts (US ACH / EU IBAN) are provisioned by a money-rail partner
-// after KYC/KYB approval — Noah, or a no-onboarding-fee alternative like Bridge.
-// Until a provider key is live we return an empty, honest state — never fake
-// routing numbers that someone might give to an employer.
+// Virtual accounts (US ACH / EU IBAN). A virtual account is an *entry point*,
+// not a balance: fiat that lands in it is auto-converted to USDC and settled to
+// the user's own Celo wallet (the single balance). So this lists account details
+// to receive into and always reports totalBalance 0 — the spendable balance is
+// the on-chain USDC, surfaced by /wallet/balance.
 //
-// Note: a virtual account is only an *entry point*. Funds that land in it are
-// auto-converted to USDC and settled to the user's Celo wallet (the single
-// balance), so this endpoint lists account details to receive into — not a
-// separate balance to reconcile.
-router.get("/banking/accounts", requireAuth, (req, res) => {
-  res.json({ accounts: [], totalBalance: 0 });
+// Sticky single issuer, presented generically: an account is issued once by the
+// admin-designated provider and never re-branded. Until that provider's key is
+// live, provisioning returns an honest 503 and this list stays empty — never a
+// fake routing number someone might hand to an employer.
+function serializeAccount(a: typeof virtualAccountsTable.$inferSelect) {
+  return {
+    id: a.id,
+    currency: a.currency,
+    accountType: a.accountType,
+    country: a.country,
+    holderName: a.holderName,
+    bankName: a.bankName,
+    accountNumberMasked: a.accountNumberMasked,
+    routingNumber: a.routingNumber,
+    ibanMasked: a.ibanMasked,
+    status: a.status,
+    // label is generic on purpose — never "Noah account" / "Bridge account"
+    label: `Your ${a.currency} account`,
+    createdAt: a.createdAt.toISOString(),
+  };
+}
+
+router.get("/banking/accounts", requireAuth, async (req, res) => {
+  try {
+    const rows = await db.select().from(virtualAccountsTable)
+      .where(and(eq(virtualAccountsTable.userId, req.user!.userId), eq(virtualAccountsTable.status, "active")));
+    res.json({ accounts: rows.map(serializeAccount), totalBalance: 0 });
+  } catch (err) {
+    req.log.error({ err }, "List virtual accounts error");
+    res.status(500).json({ error: "internal_error", message: "Failed to load your accounts" });
+  }
+});
+
+// Provision (or return the existing) virtual account for a currency. KYC/KYB-gated
+// and sticky: one active account per user+currency, issued by the designated
+// provider. Honest 503 until that provider's key is configured.
+router.post("/banking/accounts", requireAuth, async (req, res) => {
+  try {
+    const currency = String((req.body as { currency?: string }).currency ?? "USD").toUpperCase();
+    if (!["USD", "EUR"].includes(currency)) {
+      res.status(400).json({ error: "validation_error", message: "currency must be USD or EUR" });
+      return;
+    }
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "not_found", message: "User not found" });
+      return;
+    }
+    if (user.kycStatus !== "approved") {
+      res.status(403).json({ error: "kyc_required", message: "Complete identity verification (KYC/KYB) before opening a bank account." });
+      return;
+    }
+
+    // Sticky: return the existing account instead of issuing a second one.
+    const [existing] = await db.select().from(virtualAccountsTable)
+      .where(and(eq(virtualAccountsTable.userId, user.id), eq(virtualAccountsTable.currency, currency), eq(virtualAccountsTable.status, "active")))
+      .limit(1);
+    if (existing) {
+      res.json({ account: serializeAccount(existing), created: false });
+      return;
+    }
+
+    const issuer = await selectVirtualAccountIssuer(currency);
+    if (!issuer) {
+      res.status(503).json({
+        error: "not_configured",
+        message: "Bank accounts are activating soon. We'll open yours the moment our banking partner is live.",
+      });
+      return;
+    }
+
+    // Business accounts present the company name on the account.
+    const holderName = user.accountType === "business" && user.businessName ? user.businessName : user.fullName;
+
+    let details;
+    try {
+      details = await issuer.createVirtualAccount({ userId: user.id, currency, holderName, country: user.country ?? undefined });
+    } catch {
+      req.log.info({ issuer: issuer.key, currency }, "Virtual account requested — issuer not configured");
+      res.status(503).json({ error: "not_configured", message: "Bank accounts are being finalized with our banking partner." });
+      return;
+    }
+
+    const [created] = await db.insert(virtualAccountsTable).values({
+      userId: user.id,
+      provider: details.provider,
+      externalId: details.externalId ?? null,
+      currency: details.currency.toUpperCase(),
+      accountType: details.accountType ?? accountTypeForCurrency(currency),
+      country: details.country ?? null,
+      holderName: details.holderName,
+      bankName: details.bankName ?? null,
+      accountNumberMasked: details.accountNumberMasked ?? null,
+      routingNumber: details.routingNumber ?? null,
+      ibanMasked: details.ibanMasked ?? null,
+    }).returning();
+
+    req.log.info({ issuer: issuer.key, currency, userId: user.id }, "Virtual account provisioned");
+    res.status(201).json({ account: serializeAccount(created), created: true });
+  } catch (err) {
+    req.log.error({ err }, "Provision virtual account error");
+    res.status(500).json({ error: "internal_error", message: "Could not open your account" });
+  }
 });
 
 router.get("/banking/incoming-payments", requireAuth, (req, res) => {

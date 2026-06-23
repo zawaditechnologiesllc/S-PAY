@@ -41,6 +41,12 @@ export class DepositNotConfiguredError extends Error {
   }
 }
 
+export class VirtualAccountNotConfiguredError extends Error {
+  constructor(public provider: PayoutProviderKey) {
+    super(`Virtual-account provider "${provider}" is not configured`);
+  }
+}
+
 // ─── Off-ramp (payout) shapes ──────────────────────────────────────────────────
 
 export interface PayoutQuote {
@@ -97,6 +103,28 @@ export interface DepositResult {
   instructions?: string;
 }
 
+// ─── Virtual account (persistent fiat receiving account) shapes ────────────────
+
+export interface VirtualAccountRequest {
+  userId: string;
+  currency: string;       // USD | EUR
+  holderName: string;     // person, or businessName for business accounts
+  country?: string;
+}
+
+export interface VirtualAccountDetails {
+  provider: PayoutProviderKey;
+  externalId?: string;
+  currency: string;
+  accountType: "ach" | "iban";
+  country?: string;
+  holderName: string;
+  bankName?: string;
+  accountNumberMasked?: string; // last4 only
+  routingNumber?: string;       // ACH
+  ibanMasked?: string;          // masked IBAN
+}
+
 export interface MoneyRailProvider {
   key: PayoutProviderKey;
   label: string;
@@ -117,6 +145,17 @@ export interface MoneyRailProvider {
   supportsDeposit(sourceCurrency: string, method: string): boolean;
   quoteDeposit(req: Pick<DepositRequest, "amountLocal" | "sourceCurrency" | "method">): DepositQuote;
   createDeposit(req: DepositRequest): Promise<DepositResult>;
+
+  // Virtual accounts (persistent US ACH / EU IBAN)
+  /** Can this provider issue a persistent virtual account in the given currency? */
+  supportsVirtualAccount(currency: string): boolean;
+  /** Issue (or fetch) a virtual account. Throws VirtualAccountNotConfiguredError until keys are set. */
+  createVirtualAccount(req: VirtualAccountRequest): Promise<VirtualAccountDetails>;
+}
+
+/** USD → US ACH, EUR → EU IBAN. */
+export function accountTypeForCurrency(currency: string): "ach" | "iban" {
+  return currency?.toUpperCase() === "EUR" ? "iban" : "ach";
 }
 
 // Indicative FX rates (stablecoin base). Shared with banking.ts's table; live
@@ -177,6 +216,8 @@ const noahProvider: MoneyRailProvider = {
   supportsDeposit: (c) => NOAH_CURRENCIES.has(c?.toUpperCase()),
   quoteDeposit: (req) => makeDepositQuote("noah", 0.01, req),
   createDeposit: async () => { throw new DepositNotConfiguredError("noah"); },
+  supportsVirtualAccount: (c) => ["USD", "EUR"].includes(c?.toUpperCase()),
+  createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("noah"); },
 };
 
 // ─── Bridge (Stripe) — USD/EUR virtual accounts + stablecoin orchestration ─────
@@ -194,6 +235,10 @@ const bridgeProvider: MoneyRailProvider = {
   supportsDeposit: (c, m) => ["USD", "EUR"].includes(c?.toUpperCase()) || ["ach", "sepa", "wire", "card"].includes(m),
   quoteDeposit: (req) => makeDepositQuote("bridge", 0.005, req),
   createDeposit: async () => { throw new DepositNotConfiguredError("bridge"); },
+  // Bridge's core product: issue USD ACH / EU IBAN accounts that auto-convert to
+  // USDC. No onboarding fee → the preferred default virtual-account issuer.
+  supportsVirtualAccount: (c) => ["USD", "EUR"].includes(c?.toUpperCase()),
+  createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("bridge"); },
 };
 
 // ─── Conduit — cross-border B2B/marketplace payments (LatAm/Africa/Asia) ────────
@@ -210,6 +255,8 @@ const conduitProvider: MoneyRailProvider = {
   supportsDeposit: (c) => CONDUIT_CURRENCIES.has(c?.toUpperCase()),
   quoteDeposit: (req) => makeDepositQuote("conduit", 0.008, req),
   createDeposit: async () => { throw new DepositNotConfiguredError("conduit"); },
+  supportsVirtualAccount: () => false, // collections/payouts, not persistent accounts
+  createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("conduit"); },
 };
 
 // ─── Yellow Card — pan-African mobile money + bank (on- AND off-ramp) ───────────
@@ -226,6 +273,8 @@ const yellowcardProvider: MoneyRailProvider = {
   supportsDeposit: (c) => YELLOWCARD_CURRENCIES.has(c?.toUpperCase()),
   quoteDeposit: (req) => makeDepositQuote("yellowcard", 0.009, req),
   createDeposit: async () => { throw new DepositNotConfiguredError("yellowcard"); },
+  supportsVirtualAccount: () => false, // mobile-money/bank rails, not USD/EUR accounts
+  createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("yellowcard"); },
 };
 
 // ─── Thunes — very broad global payout network (payout-first) ───────────────────
@@ -244,6 +293,8 @@ const thunesProvider: MoneyRailProvider = {
   supportsDeposit: () => false, // payout-first; collections not advertised
   quoteDeposit: (req) => makeDepositQuote("thunes", 0.011, req),
   createDeposit: async () => { throw new DepositNotConfiguredError("thunes"); },
+  supportsVirtualAccount: () => false, // payout network, not an account issuer
+  createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("thunes"); },
 };
 
 // ─── Registry + routing ────────────────────────────────────────────────────────
@@ -259,7 +310,7 @@ const PROVIDERS: Record<PayoutProviderKey, MoneyRailProvider> = {
 /** Static provider facts for the admin panel. */
 export function payoutProviderCatalog(): Array<{
   key: PayoutProviderKey; label: string; configured: boolean; envHint: string;
-  pricingNote: string; supportsDeposits: boolean;
+  pricingNote: string; supportsDeposits: boolean; supportsVirtualAccounts: boolean;
 }> {
   // A provider "supports deposits" in general if it can on-ramp any corridor.
   const anyDeposit = (p: MoneyRailProvider) =>
@@ -267,6 +318,7 @@ export function payoutProviderCatalog(): Array<{
   return Object.values(PROVIDERS).map((p) => ({
     key: p.key, label: p.label, configured: p.isConfigured(),
     envHint: p.envHint, pricingNote: p.pricingNote, supportsDeposits: anyDeposit(p),
+    supportsVirtualAccounts: p.supportsVirtualAccount("USD") || p.supportsVirtualAccount("EUR"),
   }));
 }
 
@@ -335,6 +387,30 @@ export async function selectDepositProvider(sourceCurrency: string, method: stri
     (p) => { const q = p.quoteDeposit({ amountLocal: 1, sourceCurrency, method }); return netRate(q.rate, q.feePercent); },
     config.preferredProvider,
   );
+}
+
+/**
+ * Pick the provider that issues a NEW virtual account for a currency. Unlike
+ * deposits/withdrawals (re-routed per transaction), a virtual account is a
+ * persistent identifier, so issuance honors the admin's designated issuer first
+ * — if it's enabled, configured and can issue the currency — then falls back to
+ * any enabled+configured issuer. Existing accounts are sticky to whoever issued
+ * them; this only chooses the issuer for accounts not yet provisioned. Returns
+ * null when nothing can issue (caller answers with an honest 503).
+ */
+export async function selectVirtualAccountIssuer(currency: string): Promise<MoneyRailProvider | null> {
+  const config = await getPayoutProviderConfig();
+  const eligible = (p: MoneyRailProvider) => config.enabled[p.key] && p.isConfigured() && p.supportsVirtualAccount(currency);
+
+  const designated = PROVIDERS[config.virtualAccountIssuer];
+  if (designated && eligible(designated)) return designated;
+
+  const fallback = Object.values(PROVIDERS).find(eligible);
+  if (!fallback) {
+    logger.info({ currency }, "No configured virtual-account issuer for currency");
+    return null;
+  }
+  return fallback;
 }
 
 /** All providers that could pay out a corridor (configured + enabled), for quotes/comparison. */

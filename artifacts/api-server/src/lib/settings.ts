@@ -140,11 +140,16 @@ export interface PayoutProviderConfig {
   preferredProvider: PayoutProviderKey;
   /** Per-provider on/off. OFF = never selected for a deposit OR a payout. */
   enabled: Record<PayoutProviderKey, boolean>;
+  /** Designated issuer for NEW virtual accounts (US ACH / EU IBAN). Unlike
+   *  transactional routing, a virtual account is a sticky persistent identifier,
+   *  so the admin chooses one issuer; existing accounts keep whoever issued them. */
+  virtualAccountIssuer: PayoutProviderKey;
 }
 
 const DEFAULT_PAYOUT_PROVIDERS: PayoutProviderConfig = {
   preferredProvider: "noah",
   enabled: { noah: true, bridge: true, conduit: true, yellowcard: true, thunes: true },
+  virtualAccountIssuer: "bridge", // no onboarding fee for USD/EUR accounts
 };
 
 const PAYOUT_PROVIDERS_KEY = "payout_providers";
@@ -154,20 +159,26 @@ export async function getPayoutProviderConfig(): Promise<PayoutProviderConfig> {
   const preferred = PAYOUT_PROVIDER_KEYS.includes(stored.preferredProvider as PayoutProviderKey)
     ? (stored.preferredProvider as PayoutProviderKey)
     : DEFAULT_PAYOUT_PROVIDERS.preferredProvider;
+  const issuer = PAYOUT_PROVIDER_KEYS.includes(stored.virtualAccountIssuer as PayoutProviderKey)
+    ? (stored.virtualAccountIssuer as PayoutProviderKey)
+    : DEFAULT_PAYOUT_PROVIDERS.virtualAccountIssuer;
   return {
     preferredProvider: preferred,
     enabled: { ...DEFAULT_PAYOUT_PROVIDERS.enabled, ...(stored.enabled ?? {}) },
+    virtualAccountIssuer: issuer,
   };
 }
 
 export async function setPayoutProviderConfig(update: {
   preferredProvider?: PayoutProviderKey;
   enabled?: Partial<Record<PayoutProviderKey, boolean>>;
+  virtualAccountIssuer?: PayoutProviderKey;
 }): Promise<PayoutProviderConfig> {
   const current = await getPayoutProviderConfig();
   const next: PayoutProviderConfig = {
     preferredProvider: update.preferredProvider ?? current.preferredProvider,
     enabled: { ...current.enabled, ...(update.enabled ?? {}) },
+    virtualAccountIssuer: update.virtualAccountIssuer ?? current.virtualAccountIssuer,
   };
   await setSetting(PAYOUT_PROVIDERS_KEY, next);
   return next;
