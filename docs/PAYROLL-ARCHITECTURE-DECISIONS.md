@@ -49,9 +49,9 @@ if (user.accountType !== 'business') {
 |---------|----------|----------|
 | **Personal wallet** | ✓ | ✓ |
 | **Send/Receive P2P** | ✓ | ✗ (team-only) |
-| **US ACH account** | ✓ | ✓ (company name) |
-| **EU IBAN** | ✓ | ✓ (company name) |
-| **Virtual card** | ✓ | ✗ (later: corporate cards) |
+| **US ACH account** | ⚙️ after KYC, pending provider key (D4) | ⚙️ after KYB (company name), pending provider key (D4) |
+| **EU IBAN** | ⚙️ after KYC, pending provider key (D4) | ⚙️ after KYB (company name), pending provider key (D4) |
+| **Virtual card** | ✓ (Stripe Issuing, admin switch) | ✗ (later: corporate cards) |
 | **Payroll** | ✗ **(recommend)** | ✓ |
 | **Job postings** | ✗ | ✓ (post to 500K workers) |
 | **KYC** | Lax (email verified) | Strict (KYB + representative) |
@@ -200,22 +200,26 @@ Admin sees in /admin/enquiries
 
 ## Payment Flows Summary
 
-### Flow 1: Payroll (Employer → Workers)
-**S-PAY Receives:** Employer USDC → Debit employer → Credit workers → Payout provider routes locally
+> Authoritative, code-matched detail lives in [`docs/PAYMENT-FLOWS.md`](./PAYMENT-FLOWS.md).
+> Summary only below.
 
-**Timeline:** Batch submitted → instant wallet credit → local settlement 1min–24h
+### Flow 1: Payroll (Employer → Workers)
+Employer funds a Celo funding wallet with USDC → on submit, S-PAY **reserves** the
+cost on the employer ledger and **settles on-chain** (real USDC transfer from the
+funding wallet to the worker's Celo wallet), records a `receive` with the tx hash,
+and sweeps the fee to treasury. If no wallet provider is configured the payment
+**fails honestly and the employer is not charged** — never a faked credit.
 
 ### Flow 2: Celo Wallet Direct
-**S-PAY Receives:** USDC already in Celo wallet (peer, off-chain bridge, employer) → Withdraw to local
+USDC already in the worker's Celo wallet (peer, employer, exchange) → withdraw to local.
 
-**Timeline:** Direct wallet debit → provider conversion → local settlement
+### Flow 3: Virtual Account (USD/EUR) + Withdraw
+ACH/SEPA hits the worker's virtual account → the provider auto-converts to USDC and
+settles it **on-chain to the worker's own wallet** → withdraw to local.
 
-### Flow 3: Bank Account + Withdraw
-**S-PAY Receives:** ACH/SEPA to virtual bank account → Auto-converted to USDC → Withdraw to local
-
-**Timeline:** ACH arrives → instant Celo credit → withdraw → local settlement
-
-**Key Insight:** S-PAY always holds USDC/USDT on Celo as the canonical ledger. Flows differ in how funds arrive, but settlement is identical.
+**Key insight:** there is **one balance** — USDC/USDT in the user's Celo wallet,
+read live from chain. The flows differ only in how money enters that wallet; the
+`transactions` table is history, never a spendable balance.
 
 ---
 

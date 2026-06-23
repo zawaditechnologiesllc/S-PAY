@@ -2,7 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { getFeeSchedule, withdrawalFee } from "../lib/settings";
 import { ensureUserWallet } from "../lib/wallet-providers";
-import { selectPayoutProvider } from "../lib/payout-providers";
+import { selectPayoutProvider, selectDepositProvider } from "../lib/payout-providers";
 import { verifyTransactionPin } from "../lib/pin";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -52,9 +52,15 @@ function lookupRate(target: string | undefined): number {
   return PAYOUT_RATES[target.toUpperCase()] ?? 1.0;
 }
 
-// Virtual accounts are provisioned by Noah after KYC approval. Until the
-// Noah partner key is live we return an empty, honest state — never fake
+// Virtual accounts (US ACH / EU IBAN) are provisioned by a money-rail partner
+// after KYC/KYB approval — Noah, or a no-onboarding-fee alternative like Bridge.
+// Until a provider key is live we return an empty, honest state — never fake
 // routing numbers that someone might give to an employer.
+//
+// Note: a virtual account is only an *entry point*. Funds that land in it are
+// auto-converted to USDC and settled to the user's Celo wallet (the single
+// balance), so this endpoint lists account details to receive into — not a
+// separate balance to reconcile.
 router.get("/banking/accounts", requireAuth, (req, res) => {
   res.json({ accounts: [], totalBalance: 0 });
 });
@@ -139,26 +145,70 @@ router.post("/banking/withdraw", requireAuth, async (req, res) => {
   });
 });
 
-// Mobile-money top-up. Gated on the payments partner: the endpoint, quotes,
-// and UI are live — execution starts the moment NOAH_API_KEY is set.
+// Mobile-money / local top-up (on-ramp). Provider-agnostic: routed to the best
+// configured deposit rail for the corridor (Yellow Card for M-Pesa, Bridge for
+// USD/EUR, Noah elsewhere…) — NOT Noah-only — so we can avoid Noah's onboarding
+// fee where a cheaper rail serves the corridor. The endpoint, quotes, and UI
+// are live; execution starts the moment any deposit provider's keys are set.
+//
+// The deposit settles to the user's own Celo wallet as USDC (the single
+// balance). No provider configured for the corridor → honest 503.
 router.post("/banking/deposit", requireAuth, async (req, res) => {
   try {
-    const { amount, method, phoneNumber } = req.body as { amount?: number; method?: string; phoneNumber?: string };
+    const { amount, method, phoneNumber, sourceCurrency } = req.body as {
+      amount?: number; method?: string; phoneNumber?: string; sourceCurrency?: string;
+    };
     if (!amount || amount <= 0 || !method) {
       res.status(400).json({ error: "validation_error", message: "amount and method are required" });
       return;
     }
-    if (!process.env.NOAH_API_KEY) {
+
+    const depositProvider = await selectDepositProvider(String(sourceCurrency ?? "USD"), String(method));
+    if (!depositProvider) {
       res.status(503).json({
         error: "not_configured",
-        message: "Mobile money top-ups are being switched on. Use Exchange or wallet deposit meanwhile — it's instant.",
+        message: "Local top-ups are activating soon. Use Exchange or a direct Celo wallet deposit meanwhile — it's instant.",
       });
       return;
     }
-    // TODO (Noah onramp): create the collection request for `method` and
-    // return the payment instructions / STK push status.
-    req.log.info({ method, amount, phoneNumber }, "Deposit requested");
-    res.status(503).json({ error: "not_configured", message: "Deposit rails are being finalized with our payments partner." });
+
+    // Deposits settle USDC to the user's own wallet — provision it first.
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "not_found", message: "User not found" });
+      return;
+    }
+    const wallet = await ensureUserWallet(user);
+    if (!wallet) {
+      res.status(503).json({
+        error: "not_configured",
+        message: "Top-ups are activating soon. Your wallet is being prepared — try again shortly.",
+      });
+      return;
+    }
+
+    // Provider with no keys throws DepositNotConfiguredError → honest 503,
+    // never a faked deposit.
+    try {
+      const deposit = await depositProvider.createDeposit({
+        amountLocal: amount,
+        sourceCurrency: String(sourceCurrency ?? "USD"),
+        method: String(method),
+        reference: `dep-${crypto.randomUUID()}`,
+        destinationAddress: wallet.address,
+        payer: phoneNumber ? { phoneNumber } : undefined,
+      });
+      res.json({
+        depositId: deposit.depositId,
+        status: deposit.status,
+        provider: deposit.provider,
+        instructions: deposit.instructions,
+        celoAddress: wallet.address,
+      });
+    } catch {
+      req.log.info({ method, amount, provider: depositProvider.key }, "Deposit requested — provider not configured");
+      res.status(503).json({ error: "not_configured", message: "Deposit rails are being finalized with our payments partner." });
+    }
   } catch (err) {
     req.log.error({ err }, "Deposit error");
     res.status(500).json({ error: "internal_error", message: "Could not start the deposit" });

@@ -3,6 +3,8 @@
 **Built by Zawadi Technologies LLC · Built on [Celo](https://celo.org)**
 
 > 📋 **Start here for operations:** [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) — what's live, how to activate each provider (wallets/Noah/Stripe/Google/Apple/EAS), every remaining task with file paths, and how to run the platform without a terminal. For wallets specifically (the six switchable providers, costs, setup): [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md).
+>
+> 💼 **For investors & partners:** [`docs/INVESTOR-OVERVIEW.md`](./docs/INVESTOR-OVERVIEW.md) (what it is, status, the ask) · [`docs/REVENUE-MODEL.md`](./docs/REVENUE-MODEL.md) (how the business makes money) · [`docs/MARKETPLACE-INTEGRATION.md`](./docs/MARKETPLACE-INTEGRATION.md) (what to tell a marketplace and which option to choose) · [`docs/PAYMENT-FLOWS.md`](./docs/PAYMENT-FLOWS.md) (how money actually moves — the single-balance model).
 
 Like MiniPay, S-PAY is built on the Celo network: stablecoin-first balances (USDC), sub-cent fees, 5-second finality, and no seed phrase, ever — a wallet appears automatically the first time money moves.
 

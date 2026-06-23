@@ -38,6 +38,7 @@ router.post("/webhooks/noah", async (req, res) => {
     customer_id?: string;
     amount?: number;
     currency?: string;
+    tx_hash?: string;            // on-chain settlement hash, when the provider supplies one
   };
 
   logger.info({ event: event.event, customerId: event.customer_id }, "Noah webhook received");
@@ -70,9 +71,12 @@ router.post("/webhooks/noah", async (req, res) => {
         }
         break;
 
-      // Fiat received on the virtual account (USD wire/ACH or EU SEPA) —
-      // Noah auto-converts it to stablecoin and settles to the user's Celo
-      // wallet. Credit the ledger so it shows in history immediately.
+      // Fiat hit the user's virtual account (USD wire/ACH or EU SEPA). The
+      // provider auto-converts it to USDC and settles it on-chain to the user's
+      // OWN Celo wallet — the single balance. This webhook is the provider's
+      // confirmation of that settlement, so we record the matching "receive"
+      // history row (with the settlement tx hash when supplied). The spendable
+      // balance itself is always read live from chain, never from this row.
       case "payment.received":
       case "deposit.completed":
       case "onramp.completed":
@@ -89,9 +93,10 @@ router.post("/webhooks/noah", async (req, res) => {
               description: `Bank deposit — auto-converted to ${token}`,
               counterparty: "Virtual account deposit",
               status: "completed",
+              txHash: event.tx_hash ?? null,
             });
-            notifyUser(user.id, "Deposit received 🏦", `A bank deposit of ${event.amount} arrived and was credited to your balance as ${token}.`);
-            logger.info({ customerId: event.customer_id, amount: event.amount, token }, "Fiat deposit converted to stablecoin and credited");
+            notifyUser(user.id, "Deposit received 🏦", `A bank deposit of ${event.amount} arrived and was settled to your wallet as ${token}.`);
+            logger.info({ customerId: event.customer_id, amount: event.amount, token, txHash: event.tx_hash }, "Fiat deposit converted to USDC and settled to the user's wallet");
           }
         }
         break;
