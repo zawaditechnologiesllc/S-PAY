@@ -555,8 +555,22 @@ export interface OpenAccountResponse {
 
 export interface SeoStatus {
   gscConfigured: boolean;
+  ga4Configured?: boolean;
   draftConfigured: boolean;
   redditEnabled: boolean;
+}
+
+export interface Ga4LandingPage {
+  page: string;
+  sessions: number;
+  engagementRate: number;
+  conversions: number;
+}
+
+export interface SeoAnalyticsResponse {
+  configured: boolean;
+  message?: string;
+  pages: Ga4LandingPage[];
 }
 
 export interface SeoOpportunity {

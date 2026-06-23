@@ -98,6 +98,7 @@ import type {
   RevokeEmployerApiKey200,
   SendAdminNotificationBody,
   SendMoneyRequest,
+  SeoAnalyticsResponse,
   SeoOpportunitiesResponse,
   SeoStatus,
   SetTransactionPinBody,
@@ -6018,6 +6019,83 @@ export function useGetSeoStatus<TData = Awaited<ReturnType<typeof getSeoStatus>>
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetSeoStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSeoAnalyticsUrl = () => {
+
+
+
+
+  return `/api/admin/seo/analytics`
+}
+
+/**
+ * @summary Top landing pages from Google Analytics (GA4)
+ */
+export const getSeoAnalytics = async ( options?: RequestInit): Promise<SeoAnalyticsResponse> => {
+
+  return customFetch<SeoAnalyticsResponse>(getGetSeoAnalyticsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSeoAnalyticsQueryKey = () => {
+    return [
+    `/api/admin/seo/analytics`
+    ] as const;
+    }
+
+
+export const getGetSeoAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getSeoAnalytics>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSeoAnalyticsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSeoAnalytics>>> = ({ signal }) => getSeoAnalytics({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSeoAnalytics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSeoAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getSeoAnalytics>>>
+export type GetSeoAnalyticsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Top landing pages from Google Analytics (GA4)
+ */
+
+export function useGetSeoAnalytics<TData = Awaited<ReturnType<typeof getSeoAnalytics>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSeoAnalyticsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

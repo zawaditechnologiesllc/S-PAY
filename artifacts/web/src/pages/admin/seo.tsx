@@ -3,12 +3,13 @@ import { AdminLayout } from "./layout";
 import {
   useGetSeoStatus, getGetSeoStatusQueryKey,
   useGetSeoOpportunities, getGetSeoOpportunitiesQueryKey,
+  useGetSeoAnalytics, getGetSeoAnalyticsQueryKey,
   useGetSeoRedditTopics, getGetSeoRedditTopicsQueryKey,
   useGetSeoPosts, getGetSeoPostsQueryKey,
   useGetSeoPost, getGetSeoPostQueryKey,
   useCreateSeoDraft, useAutoDraftSeo, useUpdateSeoPost, usePublishSeoPost, useUnpublishSeoPost,
 } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, Send, RefreshCw, Archive, ExternalLink, TrendingUp, MessageSquare, Wand2 } from "lucide-react";
+import { CheckCircle2, XCircle, Send, RefreshCw, Archive, ExternalLink, TrendingUp, MessageSquare, Wand2, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatusPill({ label, ok }: { label: string; ok: boolean }) {
@@ -30,6 +31,7 @@ export default function AdminSeo() {
   const { toast } = useToast();
   const { data: status } = useGetSeoStatus({ query: { queryKey: getGetSeoStatusQueryKey() } });
   const { data: opps } = useGetSeoOpportunities({ query: { queryKey: getGetSeoOpportunitiesQueryKey() } });
+  const { data: analytics } = useGetSeoAnalytics({ query: { queryKey: getGetSeoAnalyticsQueryKey() } });
   const { data: posts, refetch: refetchPosts } = useGetSeoPosts(undefined, { query: { queryKey: getGetSeoPostsQueryKey() } });
 
   const [showReddit, setShowReddit] = useState(false);
@@ -78,6 +80,7 @@ export default function AdminSeo() {
         {/* Status */}
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill label="Search Console" ok={!!status?.gscConfigured} />
+          <StatusPill label="Analytics (GA4)" ok={!!status?.ga4Configured} />
           <StatusPill label="AI drafting (Haiku)" ok={!!status?.draftConfigured} />
           <StatusPill label="Reddit topics" ok={!!status?.redditEnabled} />
           <p className="text-xs text-gray-400 ml-1">Research picks the keyword + audience. Drafts are AI-written, grounded in product facts. Nothing publishes until you approve it.</p>
@@ -146,6 +149,34 @@ export default function AdminSeo() {
               </ul>
             )}
           </div>
+        </div>
+
+        {/* Analytics — which content actually performs (GA4 feedback loop) */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-2"><BarChart3 size={16} className="text-[#4DC9EE]" /> Top content (Google Analytics)</h2>
+          {!analytics?.configured ? (
+            <p className="text-xs text-gray-400">{analytics?.message ?? "Connect Google Analytics to see which content performs."}</p>
+          ) : (analytics.pages ?? []).length === 0 ? (
+            <p className="text-xs text-gray-400">No analytics data yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-gray-400 text-left">
+                  <tr><th className="font-medium pb-1.5">Page</th><th className="font-medium pb-1.5 text-right">Sessions</th><th className="font-medium pb-1.5 text-right">Engagement</th><th className="font-medium pb-1.5 text-right">Conversions</th></tr>
+                </thead>
+                <tbody>
+                  {analytics.pages.map((p) => (
+                    <tr key={p.page} className="border-t border-gray-50 dark:border-gray-800">
+                      <td className="py-1.5 pr-2 text-gray-800 dark:text-gray-200 truncate max-w-xs">{p.page}</td>
+                      <td className="py-1.5 text-right text-gray-600 dark:text-gray-300">{p.sessions.toLocaleString()}</td>
+                      <td className="py-1.5 text-right text-gray-600 dark:text-gray-300">{Math.round(p.engagementRate * 100)}%</td>
+                      <td className="py-1.5 text-right text-gray-600 dark:text-gray-300">{p.conversions.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Review queue + editor */}

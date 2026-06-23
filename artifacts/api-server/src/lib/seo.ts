@@ -60,6 +60,40 @@ export async function fetchSearchAnalytics(_days = 28): Promise<SearchAnalyticsR
   return [];
 }
 
+// ─── Google Analytics (GA4) — the feedback signal ───────────────────────────────
+// GA4 tells us which CONTENT actually performs (sessions, engagement, conversions
+// per landing page), so the loop can prioritize topics that convert and flag
+// pages to refresh. Same honest contract as GSC: null until configured, never
+// fabricated. The GA4 service account can reuse the GSC one.
+
+export interface Ga4LandingPage {
+  page: string;            // landing page path
+  sessions: number;
+  engagementRate: number;  // 0..1
+  conversions: number;
+}
+
+export function isGa4Configured(): boolean {
+  return Boolean(process.env.GA4_PROPERTY_ID && (process.env.GA4_SERVICE_ACCOUNT_JSON || process.env.GSC_SERVICE_ACCOUNT_JSON));
+}
+
+/**
+ * Pull the last `days` of top landing pages from GA4. Returns null when GA4 isn't
+ * configured — callers surface an honest "connect Analytics" state.
+ *
+ * NOTE (wiring task): with creds present, exchange the service account for an
+ * access token and POST to the GA4 Data API
+ *   https://analyticsdata.googleapis.com/v1beta/properties/{GA4_PROPERTY_ID}:runReport
+ * with dimensions:["landingPagePlusQueryString"] and
+ * metrics:["sessions","engagementRate","conversions"]. The shape returned here
+ * matches that response so the routes need no change when this is wired.
+ */
+export async function fetchGa4LandingPages(_days = 28): Promise<Ga4LandingPage[] | null> {
+  if (!isGa4Configured()) return null;
+  logger.info("GA4 configured — Data API fetch not yet wired (returns empty, never fake)");
+  return [];
+}
+
 // ─── Opportunity ranker (pure, testable) ────────────────────────────────────────
 
 export interface Opportunity {

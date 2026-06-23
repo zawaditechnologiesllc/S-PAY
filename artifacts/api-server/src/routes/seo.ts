@@ -3,6 +3,7 @@ import { requireAuth } from "../middlewares/auth";
 import { requireAnyAdmin, requireManager } from "../lib/admin-roles";
 import {
   fetchSearchAnalytics, isGscConfigured, rankOpportunities,
+  fetchGa4LandingPages, isGa4Configured,
   generateBlogDraft, isDraftConfigured, DraftNotConfiguredError,
   fetchRedditTopics, isRedditEnabled, deriveAudience, slugify, articleJsonLd,
 } from "../lib/seo";
@@ -81,7 +82,32 @@ router.get("/admin/seo/opportunities", requireAuth, requireAnyAdmin, async (req,
 
 // Status of the engine's integrations, for the admin panel.
 router.get("/admin/seo/status", requireAuth, requireAnyAdmin, (_req, res) => {
-  res.json({ gscConfigured: isGscConfigured(), draftConfigured: isDraftConfigured(), redditEnabled: isRedditEnabled() });
+  res.json({
+    gscConfigured: isGscConfigured(),
+    ga4Configured: isGa4Configured(),
+    draftConfigured: isDraftConfigured(),
+    redditEnabled: isRedditEnabled(),
+  });
+});
+
+// Top landing pages from Google Analytics (GA4) — the performance/feedback view.
+// Honest empty + configured:false until GA4 creds are set.
+router.get("/admin/seo/analytics", requireAuth, requireAnyAdmin, async (req, res) => {
+  try {
+    const rows = await fetchGa4LandingPages(Number(req.query.days) || 28);
+    if (rows === null) {
+      res.json({
+        configured: false,
+        pages: [],
+        message: "Connect Google Analytics (set GA4_PROPERTY_ID + a service account) to see which content performs.",
+      });
+      return;
+    }
+    res.json({ configured: true, pages: rows.slice(0, Number(req.query.limit) || 25) });
+  } catch (err) {
+    req.log.error({ err }, "SEO analytics error");
+    res.status(500).json({ error: "internal_error", message: "Failed to load analytics" });
+  }
 });
 
 // Topic ideas mined from project-related subreddits (public old.reddit JSON).
