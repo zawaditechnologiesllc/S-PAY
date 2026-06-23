@@ -17,6 +17,19 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+// Generous default so a genuinely slow link (or a cold-start backend) still
+// completes, but a dead connection eventually aborts instead of hanging forever
+// (the browser's own timeout can be minutes). Tunable via setRequestTimeout.
+let _timeoutMs = 45_000;
+
+/**
+ * Maximum time a single request may take before it is aborted (ms). Aborted
+ * requests surface as errors, which React Query then retries with backoff.
+ * Pass 0 to disable the timeout.
+ */
+export function setRequestTimeout(ms: number): void {
+  _timeoutMs = ms > 0 ? ms : 0;
+}
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -360,7 +373,27 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  // Bound every request with a timeout, combined with any caller-supplied
+  // AbortSignal (React Query passes one for cancellation). Either firing aborts
+  // the fetch; a hung connection can no longer block the UI indefinitely.
+  const controller = new AbortController();
+  const callerSignal = init.signal as AbortSignal | null | undefined;
+  const forwardAbort = () => controller.abort((callerSignal as { reason?: unknown } | null)?.reason);
+  if (callerSignal) {
+    if (callerSignal.aborted) forwardAbort();
+    else callerSignal.addEventListener("abort", forwardAbort, { once: true });
+  }
+  const timer = _timeoutMs > 0
+    ? setTimeout(() => controller.abort(new DOMException("Request timed out", "TimeoutError")), _timeoutMs)
+    : undefined;
+
+  let response: Response;
+  try {
+    response = await fetch(input, { ...init, method, headers, signal: controller.signal });
+  } finally {
+    if (timer) clearTimeout(timer);
+    callerSignal?.removeEventListener("abort", forwardAbort);
+  }
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

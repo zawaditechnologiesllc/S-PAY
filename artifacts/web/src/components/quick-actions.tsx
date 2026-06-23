@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import jsQR from "jsqr";
 import { useSendMoney, getGetDashboardSummaryQueryKey, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -269,30 +268,35 @@ function ScanDialog({ open, onClose, onResult }: { open: boolean; onClose: () =>
     return true;
   };
 
-  // Live camera scanning — only while the user is on the camera view.
+  // Live camera scanning — only while the user is on the camera view. jsQR is
+  // loaded on demand (not in the dashboard bundle) so the app stays light.
   useEffect(() => {
     if (!open || view !== "camera") return;
     let stream: MediaStream | null = null;
     let raf = 0;
     let cancelled = false;
+    let decode: typeof import("jsqr").default | null = null;
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
     const tick = () => {
       const video = videoRef.current;
-      if (video && ctx && video.readyState === video.HAVE_ENOUGH_DATA) {
+      if (video && ctx && decode && video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0);
         const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(img.data, img.width, img.height);
+        const code = decode(img.data, img.width, img.height);
         if (code && handleDecoded(code.data)) return;
       }
       if (!cancelled) raf = requestAnimationFrame(tick);
     };
 
-    navigator.mediaDevices?.getUserMedia({ video: { facingMode: "environment" } })
-      .then((s) => {
+    (async () => {
+      try {
+        decode = (await import("jsqr")).default;
+        const s = await navigator.mediaDevices?.getUserMedia({ video: { facingMode: "environment" } });
+        if (!s) { setCameraError(true); return; }
         if (cancelled) { s.getTracks().forEach((t) => t.stop()); return; }
         stream = s;
         if (videoRef.current) {
@@ -300,8 +304,10 @@ function ScanDialog({ open, onClose, onResult }: { open: boolean; onClose: () =>
           void videoRef.current.play();
         }
         raf = requestAnimationFrame(tick);
-      })
-      .catch(() => setCameraError(true));
+      } catch {
+        setCameraError(true);
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -316,7 +322,7 @@ function ScanDialog({ open, onClose, onResult }: { open: boolean; onClose: () =>
     if (!file) return;
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
+    img.onload = async () => {
       const max = 1600;
       const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
       const w = Math.max(1, Math.round(img.naturalWidth * scale));
@@ -328,7 +334,8 @@ function ScanDialog({ open, onClose, onResult }: { open: boolean; onClose: () =>
       if (!ctx) { toast({ title: "Couldn't read that image", variant: "destructive" }); return; }
       ctx.drawImage(img, 0, 0, w, h);
       const data = ctx.getImageData(0, 0, w, h);
-      const code = jsQR(data.data, data.width, data.height);
+      const decode = (await import("jsqr")).default;
+      const code = decode(data.data, data.width, data.height);
       if (!code || !handleDecoded(code.data)) {
         toast({ title: "No S-PAY code found", description: "That image didn't contain a readable S-PAY ID or wallet QR.", variant: "destructive" });
       }
