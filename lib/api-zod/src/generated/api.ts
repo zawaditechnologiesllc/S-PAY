@@ -1635,8 +1635,24 @@ export const ListPayrollWebhookDeliveriesResponse = zod.object({
  */
 export const GetSeoStatusResponse = zod.object({
   "gscConfigured": zod.boolean(),
+  "ga4Configured": zod.boolean().optional(),
   "draftConfigured": zod.boolean(),
   "redditEnabled": zod.boolean()
+})
+
+
+/**
+ * @summary Top landing pages from Google Analytics (GA4)
+ */
+export const GetSeoAnalyticsResponse = zod.object({
+  "configured": zod.boolean(),
+  "message": zod.string().optional(),
+  "pages": zod.array(zod.object({
+  "page": zod.string(),
+  "sessions": zod.number(),
+  "engagementRate": zod.number(),
+  "conversions": zod.number()
+}))
 })
 
 

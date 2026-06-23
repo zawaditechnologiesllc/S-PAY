@@ -86,6 +86,8 @@ It never invents query data or articles; until configured it says so.
 |---|---|
 | `GSC_SERVICE_ACCOUNT_JSON` | Google service-account JSON for Search Console API |
 | `GSC_SITE_URL` | The verified GSC property (e.g. `https://spayewallet.com/`) |
+| `GA4_PROPERTY_ID` | Google Analytics 4 property id (feedback: which content performs) |
+| `GA4_SERVICE_ACCOUNT_JSON` | Service account for the GA4 Data API (falls back to `GSC_SERVICE_ACCOUNT_JSON`) |
 | `ANTHROPIC_API_KEY` | Claude Haiku drafting |
 | `SEO_DRAFT_MODEL` | Optional model override (default `claude-haiku-4-5-20251001`) |
 | `SEO_REDDIT_ENABLED` | Set `false` to disable Reddit mining (default on) |
