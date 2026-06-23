@@ -4,7 +4,7 @@ import { requireAnyAdmin, requireManager } from "../lib/admin-roles";
 import {
   fetchSearchAnalytics, isGscConfigured, rankOpportunities,
   generateBlogDraft, isDraftConfigured, DraftNotConfiguredError,
-  fetchRedditTopics, isRedditEnabled, slugify, articleJsonLd,
+  fetchRedditTopics, isRedditEnabled, deriveAudience, slugify, articleJsonLd,
 } from "../lib/seo";
 import { db, blogPostsTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
@@ -12,6 +12,48 @@ import { and, desc, eq } from "drizzle-orm";
 const router = Router();
 
 const SITE_URL = (process.env.SITE_URL ?? "https://spayewallet.com").replace(/\/+$/, "");
+
+type DraftSource = "gsc" | "reddit" | "manual";
+
+/**
+ * Generate + store a draft from a RESEARCHED keyword. The audience is derived
+ * from the research context (subreddit / keyword terms) — the admin never picks
+ * a keyword or audience by hand. Returns the inserted post row.
+ */
+async function createResearchedDraft(input: { keyword: string; source: DraftSource; subreddit?: string }) {
+  const keyword = input.keyword.trim();
+  const audience = deriveAudience({ keyword, source: input.source, subreddit: input.subreddit });
+  const draft = await generateBlogDraft(keyword, audience);
+
+  let slug = slugify(draft.title || keyword);
+  const [clash] = await db.select({ id: blogPostsTable.id }).from(blogPostsTable).where(eq(blogPostsTable.slug, slug)).limit(1);
+  if (clash) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
+
+  const [post] = await db.insert(blogPostsTable).values({
+    slug,
+    title: draft.title,
+    metaDescription: draft.metaDescription || null,
+    excerpt: draft.excerpt || null,
+    keyword,
+    bodyMarkdown: draft.bodyMarkdown,
+    status: "draft",
+    source: input.source,
+    model: draft.model,
+  }).returning();
+  return post;
+}
+
+/** Find the single best researched keyword: top GSC opportunity, else top Reddit topic. */
+async function topResearchedKeyword(): Promise<{ keyword: string; source: DraftSource; subreddit?: string } | null> {
+  const rows = await fetchSearchAnalytics();
+  if (rows && rows.length > 0) {
+    const top = rankOpportunities(rows, 1)[0];
+    if (top) return { keyword: top.query, source: "gsc" };
+  }
+  const topics = await fetchRedditTopics({ perSub: 3 });
+  if (topics.length > 0) return { keyword: topics[0].title, source: "reddit", subreddit: topics[0].subreddit };
+  return null;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SEO content engine — admin (review/approve/publish; nothing auto-publishes)
@@ -55,48 +97,51 @@ router.get("/admin/seo/reddit-topics", requireAuth, requireAnyAdmin, async (req,
   }
 });
 
-// Generate an AI draft (Claude Haiku) for a keyword, grounded in product facts,
-// and store it as a DRAFT for review. Honest 503 until ANTHROPIC_API_KEY is set.
+// Generate an AI draft from a RESEARCHED keyword (a GSC opportunity or a Reddit
+// topic the admin clicked). The keyword comes from research and the audience is
+// derived from its context — the admin never types either. Honest 503 until
+// ANTHROPIC_API_KEY is set.
 router.post("/admin/seo/drafts", requireAuth, requireManager, async (req, res) => {
   try {
-    const { keyword, audienceHint, source } = req.body as { keyword?: string; audienceHint?: string; source?: string };
+    const { keyword, source, subreddit } = req.body as { keyword?: string; source?: string; subreddit?: string };
     if (!keyword?.trim()) {
-      res.status(400).json({ error: "validation_error", message: "keyword is required" });
+      res.status(400).json({ error: "validation_error", message: "keyword is required (pick a researched opportunity or topic)" });
       return;
     }
-    const draftSource = (["gsc", "reddit", "manual"].includes(String(source)) ? source : "gsc") as "gsc" | "reddit" | "manual";
-    let draft;
-    try {
-      draft = await generateBlogDraft(keyword.trim(), audienceHint?.trim());
-    } catch (err) {
-      if (err instanceof DraftNotConfiguredError) {
-        res.status(503).json({ error: "not_configured", message: "AI drafting is activating soon (set ANTHROPIC_API_KEY)." });
-        return;
-      }
-      throw err;
-    }
-
-    // Unique slug (append a short suffix on collision).
-    let slug = slugify(draft.title || keyword);
-    const [clash] = await db.select({ id: blogPostsTable.id }).from(blogPostsTable).where(eq(blogPostsTable.slug, slug)).limit(1);
-    if (clash) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
-
-    const [post] = await db.insert(blogPostsTable).values({
-      slug,
-      title: draft.title,
-      metaDescription: draft.metaDescription || null,
-      excerpt: draft.excerpt || null,
-      keyword: keyword.trim(),
-      bodyMarkdown: draft.bodyMarkdown,
-      status: "draft",
-      source: draftSource,
-      model: draft.model,
-    }).returning();
-
+    const draftSource = (["gsc", "reddit"].includes(String(source)) ? source : "gsc") as DraftSource;
+    const post = await createResearchedDraft({ keyword: keyword.trim(), source: draftSource, subreddit: subreddit?.trim() || undefined });
     res.status(201).json({ post: serializePost(post) });
   } catch (err) {
+    if (err instanceof DraftNotConfiguredError) {
+      res.status(503).json({ error: "not_configured", message: "AI drafting is activating soon (set ANTHROPIC_API_KEY)." });
+      return;
+    }
     req.log.error({ err }, "SEO draft generation error");
     res.status(500).json({ error: "internal_error", message: "Could not generate the draft" });
+  }
+});
+
+// Fully hands-off: research picks the single best keyword (top GSC opportunity,
+// else top Reddit topic), derives the audience, and drafts it. No admin input.
+router.post("/admin/seo/auto-draft", requireAuth, requireManager, async (req, res) => {
+  try {
+    const pick = await topResearchedKeyword();
+    if (!pick) {
+      res.status(422).json({
+        error: "no_research",
+        message: "No research available yet. Connect Search Console or enable Reddit topics, then try again.",
+      });
+      return;
+    }
+    const post = await createResearchedDraft(pick);
+    res.status(201).json({ post: serializePost(post), pickedKeyword: pick.keyword, source: pick.source });
+  } catch (err) {
+    if (err instanceof DraftNotConfiguredError) {
+      res.status(503).json({ error: "not_configured", message: "AI drafting is activating soon (set ANTHROPIC_API_KEY)." });
+      return;
+    }
+    req.log.error({ err }, "SEO auto-draft error");
+    res.status(500).json({ error: "internal_error", message: "Could not auto-draft" });
   }
 });
 

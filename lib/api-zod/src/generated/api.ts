@@ -1683,9 +1683,9 @@ export const GetSeoRedditTopicsResponse = zod.object({
  */
 export const CreateSeoDraftBody = zod.object({
   "keyword": zod.string(),
-  "audienceHint": zod.string().optional(),
-  "source": zod.enum(['gsc', 'manual', 'reddit']).optional()
-})
+  "source": zod.enum(['gsc', 'reddit']).optional(),
+  "subreddit": zod.string().optional().describe('For reddit-sourced keywords; used to derive the audience')
+}).describe('Draft from a RESEARCHED keyword (a GSC opportunity or Reddit topic). Audience is derived server-side from the context — no manual audience.')
 
 
 /**

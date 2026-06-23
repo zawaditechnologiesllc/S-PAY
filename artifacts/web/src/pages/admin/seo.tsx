@@ -6,9 +6,9 @@ import {
   useGetSeoRedditTopics, getGetSeoRedditTopicsQueryKey,
   useGetSeoPosts, getGetSeoPostsQueryKey,
   useGetSeoPost, getGetSeoPostQueryKey,
-  useCreateSeoDraft, useUpdateSeoPost, usePublishSeoPost, useUnpublishSeoPost,
+  useCreateSeoDraft, useAutoDraftSeo, useUpdateSeoPost, usePublishSeoPost, useUnpublishSeoPost,
 } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, Sparkles, Send, RefreshCw, Archive, ExternalLink, TrendingUp, MessageSquare } from "lucide-react";
+import { CheckCircle2, XCircle, Send, RefreshCw, Archive, ExternalLink, TrendingUp, MessageSquare, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatusPill({ label, ok }: { label: string; ok: boolean }) {
@@ -32,8 +32,6 @@ export default function AdminSeo() {
   const { data: opps } = useGetSeoOpportunities({ query: { queryKey: getGetSeoOpportunitiesQueryKey() } });
   const { data: posts, refetch: refetchPosts } = useGetSeoPosts(undefined, { query: { queryKey: getGetSeoPostsQueryKey() } });
 
-  const [keyword, setKeyword] = useState("");
-  const [audience, setAudience] = useState("");
   const [showReddit, setShowReddit] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -41,15 +39,37 @@ export default function AdminSeo() {
     useGetSeoRedditTopics(undefined, { query: { queryKey: getGetSeoRedditTopicsQueryKey(), enabled: showReddit } });
 
   const createDraft = useCreateSeoDraft();
-  const generate = (source: "gsc" | "reddit" | "manual" = "manual") => {
-    if (!keyword.trim()) { toast({ title: "Enter a keyword first", variant: "destructive" }); return; }
+  const autoDraft = useAutoDraftSeo();
+  const busy = createDraft.isPending || autoDraft.isPending;
+
+  const onDraftError = (e: unknown) => {
+    const s = (e as { status?: number })?.status;
+    toast({
+      title: "Couldn't draft",
+      description: s === 503 ? "AI drafting isn't switched on yet (set ANTHROPIC_API_KEY)."
+        : s === 422 ? "No research available yet — connect Search Console or load Reddit topics."
+        : "Please try again.",
+      variant: "destructive",
+    });
+  };
+
+  // Draft straight from a researched item — the keyword comes from research and
+  // the audience is derived server-side. The admin never types either.
+  const draftFrom = (keyword: string, source: "gsc" | "reddit", subreddit?: string) => {
     createDraft.mutate(
-      { data: { keyword: keyword.trim(), audienceHint: audience.trim() || undefined, source } },
+      { data: { keyword, source, ...(subreddit ? { subreddit } : {}) } },
       {
-        onSuccess: (res) => { toast({ title: "Draft generated", description: "Review and publish it below." }); setKeyword(""); setAudience(""); setSelectedId(res.post.id); refetchPosts(); },
-        onError: (e) => toast({ title: "Could not generate", description: (e as { status?: number })?.status === 503 ? "AI drafting isn't switched on yet (set ANTHROPIC_API_KEY)." : "Please try again.", variant: "destructive" }),
+        onSuccess: (res) => { toast({ title: "Draft generated", description: `For “${res.post.keyword ?? keyword}”. Review and publish below.` }); setSelectedId(res.post.id); refetchPosts(); },
+        onError: onDraftError,
       },
     );
+  };
+
+  const runAutoDraft = () => {
+    autoDraft.mutate(undefined, {
+      onSuccess: (res) => { toast({ title: "Auto-drafted", description: `Research picked “${res.pickedKeyword}”. Review and publish below.` }); setSelectedId(res.post.id); refetchPosts(); },
+      onError: onDraftError,
+    });
   };
 
   return (
@@ -60,25 +80,22 @@ export default function AdminSeo() {
           <StatusPill label="Search Console" ok={!!status?.gscConfigured} />
           <StatusPill label="AI drafting (Haiku)" ok={!!status?.draftConfigured} />
           <StatusPill label="Reddit topics" ok={!!status?.redditEnabled} />
-          <p className="text-xs text-gray-400 ml-1">Drafts are AI-written, grounded in product facts. Nothing publishes until you approve it.</p>
+          <p className="text-xs text-gray-400 ml-1">Research picks the keyword + audience. Drafts are AI-written, grounded in product facts. Nothing publishes until you approve it.</p>
         </div>
 
-        {/* Generate */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3"><Sparkles size={16} className="text-[#4DC9EE]" /> Generate a draft</h2>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Target keyword, e.g. how to receive USD in Kenya"
-              className="flex-1 text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900" />
-            <input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Audience (optional)"
-              className="sm:w-56 text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900" />
-            <button onClick={() => generate("manual")} disabled={createDraft.isPending}
-              className="px-4 py-2 rounded-lg bg-[#4DC9EE] text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5">
-              <Sparkles size={14} /> {createDraft.isPending ? "Writing…" : "Generate"}
-            </button>
+        {/* Auto-draft — research chooses everything */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2"><Wand2 size={16} className="text-[#4DC9EE]" /> Auto-draft from research</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Picks the single best keyword (top Search Console opportunity, else top Reddit topic), derives the audience, and writes a draft — no input needed.</p>
           </div>
+          <button onClick={runAutoDraft} disabled={busy}
+            className="px-4 py-2.5 rounded-lg bg-[#4DC9EE] text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5 flex-shrink-0">
+            <Wand2 size={15} /> {autoDraft.isPending ? "Researching…" : "Auto-draft"}
+          </button>
         </div>
 
-        {/* Opportunities + Reddit */}
+        {/* Opportunities + Reddit — each is one-click "Draft" */}
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
             <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-2"><TrendingUp size={16} className="text-[#4DC9EE]" /> Search Console opportunities</h2>
@@ -89,11 +106,13 @@ export default function AdminSeo() {
             ) : (
               <ul className="space-y-1.5 max-h-72 overflow-y-auto">
                 {opps.opportunities.map((o) => (
-                  <li key={o.query}>
-                    <button onClick={() => setKeyword(o.query)} className="w-full text-left p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <li key={o.query} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{o.query}</p>
-                      <p className="text-[11px] text-gray-400">{o.reason}</p>
-                    </button>
+                      <p className="text-[11px] text-gray-400 truncate">{o.reason}</p>
+                    </div>
+                    <button onClick={() => draftFrom(o.query, "gsc")} disabled={busy}
+                      className="flex-shrink-0 text-xs font-semibold text-[#4DC9EE] hover:underline disabled:opacity-40">Draft</button>
                   </li>
                 ))}
               </ul>
@@ -115,11 +134,13 @@ export default function AdminSeo() {
             ) : (
               <ul className="space-y-1.5 max-h-72 overflow-y-auto">
                 {reddit!.topics.map((t, i) => (
-                  <li key={i}>
-                    <button onClick={() => setKeyword(t.title)} className="w-full text-left p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <li key={i} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2">{t.title}</p>
                       <p className="text-[11px] text-gray-400">r/{t.subreddit} · {t.score} pts · {t.numComments} comments</p>
-                    </button>
+                    </div>
+                    <button onClick={() => draftFrom(t.title, "reddit", t.subreddit)} disabled={busy}
+                      className="flex-shrink-0 text-xs font-semibold text-[#4DC9EE] hover:underline disabled:opacity-40">Draft</button>
                   </li>
                 ))}
               </ul>
@@ -132,7 +153,7 @@ export default function AdminSeo() {
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm">
             <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">Posts</h2>
             <div className="space-y-1 max-h-[28rem] overflow-y-auto">
-              {(posts?.posts ?? []).length === 0 && <p className="text-xs text-gray-400">No posts yet — generate a draft above.</p>}
+              {(posts?.posts ?? []).length === 0 && <p className="text-xs text-gray-400">No posts yet — use Auto-draft or click Draft on a researched item.</p>}
               {(posts?.posts ?? []).map((p) => (
                 <button key={p.id} onClick={() => setSelectedId(p.id)}
                   className={`w-full text-left p-2.5 rounded-lg transition-colors ${selectedId === p.id ? "bg-[#4DC9EE]/10" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}>
