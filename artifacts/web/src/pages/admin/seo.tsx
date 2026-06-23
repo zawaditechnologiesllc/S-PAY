@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AdminLayout } from "./layout";
 import {
   useGetSeoStatus, getGetSeoStatusQueryKey,
+  useGetSeoResearch, getGetSeoResearchQueryKey,
   useGetSeoOpportunities, getGetSeoOpportunitiesQueryKey,
   useGetSeoAnalytics, getGetSeoAnalyticsQueryKey,
   useGetSeoRedditTopics, getGetSeoRedditTopicsQueryKey,
@@ -32,6 +33,7 @@ export default function AdminSeo() {
   const { data: status } = useGetSeoStatus({ query: { queryKey: getGetSeoStatusQueryKey() } });
   const { data: opps } = useGetSeoOpportunities({ query: { queryKey: getGetSeoOpportunitiesQueryKey() } });
   const { data: analytics } = useGetSeoAnalytics({ query: { queryKey: getGetSeoAnalyticsQueryKey() } });
+  const { data: research } = useGetSeoResearch({ query: { queryKey: getGetSeoResearchQueryKey() } });
   const { data: posts, refetch: refetchPosts } = useGetSeoPosts(undefined, { query: { queryKey: getGetSeoPostsQueryKey() } });
 
   const [showReddit, setShowReddit] = useState(false);
@@ -96,6 +98,30 @@ export default function AdminSeo() {
             className="px-4 py-2.5 rounded-lg bg-[#4DC9EE] text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5 flex-shrink-0">
             <Wand2 size={15} /> {autoDraft.isPending ? "Researching…" : "Auto-draft"}
           </button>
+        </div>
+
+        {/* Recommended — Google + Reddit research fused, "both"-validated on top */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-2"><Wand2 size={16} className="text-[#4DC9EE]" /> Recommended to write (Google + Reddit)</h2>
+          {(research?.candidates ?? []).length === 0 ? (
+            <p className="text-xs text-gray-400">Loading research… connect Search Console and/or load Reddit to populate this.</p>
+          ) : (
+            <ul className="space-y-1.5 max-h-80 overflow-y-auto">
+              {research!.candidates.map((c, i) => (
+                <li key={i} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <span className={`flex-shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${c.source === "both" ? "bg-green-100 text-green-700" : c.source === "gsc" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>
+                    {c.source === "both" ? "Both" : c.source === "gsc" ? "Google" : "Reddit"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{c.keyword}</p>
+                    <p className="text-[11px] text-gray-400 truncate">{c.reason}</p>
+                  </div>
+                  <button onClick={() => draftFrom(c.keyword, c.source === "reddit" ? "reddit" : "gsc", c.subreddit)} disabled={busy}
+                    className="flex-shrink-0 text-xs font-semibold text-[#4DC9EE] hover:underline disabled:opacity-40">Draft</button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Opportunities + Reddit — each is one-click "Draft" */}

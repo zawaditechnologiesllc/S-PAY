@@ -74,6 +74,7 @@ const Terms = lazyWithReload(() => import("@/pages/terms"));
 const Contact = lazyWithReload(() => import("@/pages/contact"));
 const Careers = lazyWithReload(() => import("@/pages/careers"));
 const Blog = lazyWithReload(() => import("@/pages/blog"));
+const BlogPost = lazyWithReload(() => import("@/pages/blog-post"));
 const Cookies = lazyWithReload(() => import("@/pages/cookies"));
 const ForgotPassword = lazyWithReload(() => import("@/pages/forgot-password"));
 const AuthCallback = lazyWithReload(() => import("@/pages/auth-callback"));
@@ -151,6 +152,7 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/careers" component={Careers} />
       <Route path="/blog" component={Blog} />
+      <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/cookies" component={Cookies} />
 
       {/* ── Auth pages ── */}

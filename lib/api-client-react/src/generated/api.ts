@@ -36,6 +36,7 @@ import type {
   BatchCreateRequest,
   BatchListResponse,
   BatchResponse,
+  BlogPostPublicResponse,
   BlogPostResponse,
   BlogPostsResponse,
   CardDetailsResponse,
@@ -62,6 +63,7 @@ import type {
   GetAdminSettings200,
   GetAdminTransactionsParams,
   GetAdminUsersParams,
+  GetBlogPostsParams,
   GetCardTransactionsParams,
   GetExchangeRatesParams,
   GetIncomingPaymentsParams,
@@ -100,6 +102,7 @@ import type {
   SendMoneyRequest,
   SeoAnalyticsResponse,
   SeoOpportunitiesResponse,
+  SeoResearchResponse,
   SeoStatus,
   SetTransactionPinBody,
   SiteContent,
@@ -6339,6 +6342,244 @@ export const useCreateSeoDraft = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCreateSeoDraftMutationOptions(options));
     }
+
+export const getGetSeoResearchUrl = () => {
+
+
+
+
+  return `/api/admin/seo/research`
+}
+
+/**
+ * @summary Combined Google + Reddit research (ranked blog candidates)
+ */
+export const getSeoResearch = async ( options?: RequestInit): Promise<SeoResearchResponse> => {
+
+  return customFetch<SeoResearchResponse>(getGetSeoResearchUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSeoResearchQueryKey = () => {
+    return [
+    `/api/admin/seo/research`
+    ] as const;
+    }
+
+
+export const getGetSeoResearchQueryOptions = <TData = Awaited<ReturnType<typeof getSeoResearch>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoResearch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSeoResearchQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSeoResearch>>> = ({ signal }) => getSeoResearch({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSeoResearch>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSeoResearchQueryResult = NonNullable<Awaited<ReturnType<typeof getSeoResearch>>>
+export type GetSeoResearchQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Combined Google + Reddit research (ranked blog candidates)
+ */
+
+export function useGetSeoResearch<TData = Awaited<ReturnType<typeof getSeoResearch>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoResearch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSeoResearchQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetBlogPostsUrl = (params?: GetBlogPostsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/blog?${stringifiedParams}` : `/api/blog`
+}
+
+/**
+ * @summary Published blog posts (public)
+ */
+export const getBlogPosts = async (params?: GetBlogPostsParams, options?: RequestInit): Promise<BlogPostsResponse> => {
+
+  return customFetch<BlogPostsResponse>(getGetBlogPostsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBlogPostsQueryKey = (params?: GetBlogPostsParams,) => {
+    return [
+    `/api/blog`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBlogPostsQueryOptions = <TData = Awaited<ReturnType<typeof getBlogPosts>>, TError = ErrorType<unknown>>(params?: GetBlogPostsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBlogPosts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBlogPostsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBlogPosts>>> = ({ signal }) => getBlogPosts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBlogPosts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBlogPostsQueryResult = NonNullable<Awaited<ReturnType<typeof getBlogPosts>>>
+export type GetBlogPostsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Published blog posts (public)
+ */
+
+export function useGetBlogPosts<TData = Awaited<ReturnType<typeof getBlogPosts>>, TError = ErrorType<unknown>>(
+ params?: GetBlogPostsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBlogPosts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBlogPostsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetBlogPostUrl = (slug: string,) => {
+
+
+
+
+  return `/api/blog/${slug}`
+}
+
+/**
+ * @summary One published blog post by slug (public, with Article JSON-LD)
+ */
+export const getBlogPost = async (slug: string, options?: RequestInit): Promise<BlogPostPublicResponse> => {
+
+  return customFetch<BlogPostPublicResponse>(getGetBlogPostUrl(slug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBlogPostQueryKey = (slug: string,) => {
+    return [
+    `/api/blog/${slug}`
+    ] as const;
+    }
+
+
+export const getGetBlogPostQueryOptions = <TData = Awaited<ReturnType<typeof getBlogPost>>, TError = ErrorType<void>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBlogPost>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBlogPostQueryKey(slug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBlogPost>>> = ({ signal }) => getBlogPost(slug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(slug), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBlogPost>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBlogPostQueryResult = NonNullable<Awaited<ReturnType<typeof getBlogPost>>>
+export type GetBlogPostQueryError = ErrorType<void>
+
+
+/**
+ * @summary One published blog post by slug (public, with Article JSON-LD)
+ */
+
+export function useGetBlogPost<TData = Awaited<ReturnType<typeof getBlogPost>>, TError = ErrorType<void>>(
+ slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBlogPost>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBlogPostQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getAutoDraftSeoUrl = () => {
 

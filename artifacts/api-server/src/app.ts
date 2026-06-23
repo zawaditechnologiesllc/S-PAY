@@ -68,7 +68,7 @@ const envOrigins = process.env.CORS_ORIGIN
 // in the built-in production origins so they're always permitted.
 const allowedOrigins = envOrigins ? Array.from(new Set([...envOrigins, ...BUILTIN_ORIGINS])) : null;
 
-const PUBLIC_READ = [/^\/api\/jobs/, /^\/api\/sitemap\.xml/, /^\/api\/site-content/, /^\/api\/status/, /^\/api\/healthz/];
+const PUBLIC_READ = [/^\/api\/jobs/, /^\/api\/blog/, /^\/api\/sitemap\.xml/, /^\/api\/site-content/, /^\/api\/status/, /^\/api\/healthz/];
 
 app.use(cors((req, done) => {
   // Match the GET *and* its preflight: once a user logs in the client adds an

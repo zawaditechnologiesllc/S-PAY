@@ -651,6 +651,40 @@ export interface BlogPostsResponse {
   posts: BlogPost[];
 }
 
+/**
+ * Article JSON-LD to embed in the page head
+ */
+export type BlogPostPublicResponseJsonLd = { [key: string]: unknown };
+
+export interface BlogPostPublicResponse {
+  post: BlogPost;
+  /** Article JSON-LD to embed in the page head */
+  jsonLd?: BlogPostPublicResponseJsonLd;
+}
+
+export type BlogCandidateSource = typeof BlogCandidateSource[keyof typeof BlogCandidateSource];
+
+
+export const BlogCandidateSource = {
+  gsc: 'gsc',
+  reddit: 'reddit',
+  both: 'both',
+} as const;
+
+export interface BlogCandidate {
+  keyword: string;
+  source: BlogCandidateSource;
+  score: number;
+  reason: string;
+  subreddit?: string;
+}
+
+export interface SeoResearchResponse {
+  gscConfigured: boolean;
+  redditEnabled: boolean;
+  candidates: BlogCandidate[];
+}
+
 export type CreateDraftRequestSource = typeof CreateDraftRequestSource[keyof typeof CreateDraftRequestSource];
 
 
@@ -1636,6 +1670,11 @@ export const GetSeoRedditTopicsTimeframe = {
   week: 'week',
   month: 'month',
 } as const;
+
+export type GetBlogPostsParams = {
+limit?: number;
+offset?: number;
+};
 
 export type GetSeoPostsParams = {
 status?: GetSeoPostsStatus;

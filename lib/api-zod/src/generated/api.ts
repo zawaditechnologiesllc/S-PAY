@@ -1705,6 +1705,89 @@ export const CreateSeoDraftBody = zod.object({
 
 
 /**
+ * @summary Combined Google + Reddit research (ranked blog candidates)
+ */
+export const GetSeoResearchResponse = zod.object({
+  "gscConfigured": zod.boolean(),
+  "redditEnabled": zod.boolean(),
+  "candidates": zod.array(zod.object({
+  "keyword": zod.string(),
+  "source": zod.enum(['gsc', 'reddit', 'both']),
+  "score": zod.number(),
+  "reason": zod.string(),
+  "subreddit": zod.string().optional()
+}))
+})
+
+
+/**
+ * @summary Published blog posts (public)
+ */
+export const getBlogPostsQueryLimitDefault = 20;
+export const getBlogPostsQueryOffsetDefault = 0;
+
+export const GetBlogPostsQueryParams = zod.object({
+  "limit": zod.coerce.number().default(getBlogPostsQueryLimitDefault),
+  "offset": zod.coerce.number().default(getBlogPostsQueryOffsetDefault)
+})
+
+export const GetBlogPostsResponse = zod.object({
+  "posts": zod.array(zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "metaDescription": zod.string().nullish(),
+  "excerpt": zod.string().nullish(),
+  "keyword": zod.string().nullish(),
+  "status": zod.enum(['draft', 'approved', 'published', 'archived']),
+  "source": zod.enum(['gsc', 'manual', 'reddit']),
+  "model": zod.string().nullish(),
+  "gsc": zod.object({
+  "impressions": zod.number().nullish(),
+  "clicks": zod.number().nullish(),
+  "position": zod.number().nullish()
+}).optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "bodyMarkdown": zod.string().optional()
+}))
+})
+
+
+/**
+ * @summary One published blog post by slug (public, with Article JSON-LD)
+ */
+export const GetBlogPostParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetBlogPostResponse = zod.object({
+  "post": zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "metaDescription": zod.string().nullish(),
+  "excerpt": zod.string().nullish(),
+  "keyword": zod.string().nullish(),
+  "status": zod.enum(['draft', 'approved', 'published', 'archived']),
+  "source": zod.enum(['gsc', 'manual', 'reddit']),
+  "model": zod.string().nullish(),
+  "gsc": zod.object({
+  "impressions": zod.number().nullish(),
+  "clicks": zod.number().nullish(),
+  "position": zod.number().nullish()
+}).optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "bodyMarkdown": zod.string().optional()
+}),
+  "jsonLd": zod.record(zod.string(), zod.unknown()).optional().describe('Article JSON-LD to embed in the page head')
+})
+
+
+/**
  * @summary List blog posts (any status) for the review queue
  */
 export const GetSeoPostsQueryParams = zod.object({

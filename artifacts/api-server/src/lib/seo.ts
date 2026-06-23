@@ -218,6 +218,78 @@ export async function fetchRedditTopics(opts?: { perSub?: number; timeframe?: "d
   return out.sort((a, b) => b.score - a.score);
 }
 
+// ─── Combined research: Google + Reddit working together ────────────────────────
+// The "correct blogs to push" are topics validated by BOTH signals — real Google
+// search demand (GSC) AND active community interest (Reddit). We normalize the
+// two score scales, merge them, and BOOST overlaps so "both"-sourced candidates
+// rise to the top. Until GSC is wired the list is Reddit-led; it sharpens as GSC
+// data arrives. Honest: empty when there's nothing to research.
+
+export interface BlogCandidate {
+  keyword: string;
+  source: "gsc" | "reddit" | "both";
+  score: number;        // 0..1, comparable across sources
+  reason: string;
+  subreddit?: string;
+}
+
+const STOP = new Set(["the", "and", "for", "with", "your", "how", "what", "are", "can", "from", "you", "that", "this", "best", "online", "money"]);
+function tokens(s: string): Set<string> {
+  return new Set((s.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((w) => w.length >= 4 && !STOP.has(w)));
+}
+/** Do a Reddit title and a GSC query cover the same topic? (shared significant words) */
+function overlaps(a: string, b: string): boolean {
+  const ta = tokens(a), tb = tokens(b);
+  let shared = 0;
+  for (const w of ta) if (tb.has(w)) shared++;
+  return shared >= 2 || (shared >= 1 && (ta.size <= 2 || tb.size <= 2));
+}
+
+/**
+ * Merge Google Search Console opportunities and Reddit topics into one ranked
+ * list of blog candidates. Overlapping topics become `source: "both"` with a
+ * strong score boost — those are the highest-confidence blogs to write.
+ */
+export async function combinedResearch(limit = 20): Promise<{ candidates: BlogCandidate[]; gscConfigured: boolean; redditEnabled: boolean }> {
+  const gscRows = await fetchSearchAnalytics();
+  const gsc = gscRows ? rankOpportunities(gscRows, 50) : [];
+  const reddit = await fetchRedditTopics({ perSub: 4 });
+
+  const gMax = Math.max(...gsc.map((o) => o.score), 1);
+  const rMax = Math.max(...reddit.map((t) => t.score), 1);
+
+  const byKey = new Map<string, BlogCandidate>();
+  const keyOf = (s: string) => s.toLowerCase().trim();
+
+  for (const o of gsc) {
+    byKey.set(keyOf(o.query), { keyword: o.query, source: "gsc", score: o.score / gMax, reason: `Google search: ${o.reason}` });
+  }
+
+  for (const t of reddit) {
+    // If this Reddit topic matches an existing GSC query, fuse them and boost.
+    const match = gsc.find((o) => overlaps(t.title, o.query));
+    if (match) {
+      const existing = byKey.get(keyOf(match.query));
+      if (existing) {
+        existing.source = "both";
+        existing.score = Math.min(1, existing.score + 0.5 + (t.score / rMax) * 0.2);
+        existing.reason = `Google search demand + Reddit interest (r/${t.subreddit})`;
+        existing.subreddit = t.subreddit;
+        continue;
+      }
+    }
+    byKey.set(keyOf(t.title), {
+      keyword: t.title, source: "reddit",
+      score: (t.score / rMax) * 0.7, // Reddit-only ranks below validated "both"
+      reason: `Reddit interest: r/${t.subreddit} · ${t.score} pts`,
+      subreddit: t.subreddit,
+    });
+  }
+
+  const candidates = [...byKey.values()].sort((a, b) => b.score - a.score).slice(0, limit);
+  return { candidates, gscConfigured: gscRows !== null, redditEnabled: isRedditEnabled() };
+}
+
 // ─── Gemini draft generation (grounded) ─────────────────────────────────────────
 
 export class DraftNotConfiguredError extends Error {

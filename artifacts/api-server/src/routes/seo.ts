@@ -5,7 +5,7 @@ import {
   fetchSearchAnalytics, isGscConfigured, rankOpportunities,
   fetchGa4LandingPages, isGa4Configured,
   generateBlogDraft, isDraftConfigured, DraftNotConfiguredError,
-  fetchRedditTopics, isRedditEnabled, deriveAudience, slugify, articleJsonLd,
+  fetchRedditTopics, isRedditEnabled, combinedResearch, deriveAudience, slugify, articleJsonLd,
 } from "../lib/seo";
 import { db, blogPostsTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
@@ -44,16 +44,13 @@ async function createResearchedDraft(input: { keyword: string; source: DraftSour
   return post;
 }
 
-/** Find the single best researched keyword: top GSC opportunity, else top Reddit topic. */
+/** The single best keyword from the COMBINED Google + Reddit research. */
 async function topResearchedKeyword(): Promise<{ keyword: string; source: DraftSource; subreddit?: string } | null> {
-  const rows = await fetchSearchAnalytics();
-  if (rows && rows.length > 0) {
-    const top = rankOpportunities(rows, 1)[0];
-    if (top) return { keyword: top.query, source: "gsc" };
-  }
-  const topics = await fetchRedditTopics({ perSub: 3 });
-  if (topics.length > 0) return { keyword: topics[0].title, source: "reddit", subreddit: topics[0].subreddit };
-  return null;
+  const { candidates } = await combinedResearch(1);
+  const top = candidates[0];
+  if (!top) return null;
+  // A "both" candidate is GSC-anchored; record it as gsc but keep its subreddit.
+  return { keyword: top.keyword, source: top.source === "reddit" ? "reddit" : "gsc", subreddit: top.subreddit };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -120,6 +117,18 @@ router.get("/admin/seo/reddit-topics", requireAuth, requireAnyAdmin, async (req,
   } catch (err) {
     req.log.error({ err }, "Reddit topics error");
     res.status(500).json({ error: "internal_error", message: "Failed to load Reddit topics" });
+  }
+});
+
+// Combined Google + Reddit research — one ranked list of blog candidates, with
+// "both"-validated topics on top. This is the recommended "what to write next".
+router.get("/admin/seo/research", requireAuth, requireAnyAdmin, async (req, res) => {
+  try {
+    const { candidates, gscConfigured, redditEnabled } = await combinedResearch(Number(req.query.limit) || 20);
+    res.json({ gscConfigured, redditEnabled, candidates });
+  } catch (err) {
+    req.log.error({ err }, "SEO research error");
+    res.status(500).json({ error: "internal_error", message: "Failed to load research" });
   }
 });
 

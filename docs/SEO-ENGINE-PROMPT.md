@@ -46,9 +46,13 @@ of `{ query, impressions, clicks, position, score, reason }`.
 
 ## 4. Research-driven keyword + audience (NO manual input)
 
-- The **keyword** always comes from research: a one-click **"Draft"** on any GSC
-  opportunity or Reddit topic, plus an **"Auto-draft"** that picks the single
-  best keyword (top GSC opportunity, else top Reddit topic) with zero input.
+- **Fuse the signals:** merge GSC opportunities (search demand) and Reddit topics
+  (community interest) into one ranked candidate list; normalize the two score
+  scales and **boost overlaps to `source: "both"`** — topics validated by both
+  signals are the highest-confidence blogs and rank first.
+- The **keyword** always comes from research: a one-click **"Draft"** on any
+  candidate, plus an **"Auto-draft"** that picks the top of the combined list
+  with zero input.
 - The **audience is derived server-side** from the research context: map the
   **subreddit** to an audience (e.g. `r/Kenya` → "remote workers in Kenya",
   `r/freelance` → "freelancers"), or detect country/role terms in the keyword;

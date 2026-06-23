@@ -23,11 +23,26 @@ GSC Search Analytics ─▶ opportunity ranker ─▶ Gemini 2.5 Flash draft (gr
 
 > **Research chooses the keyword AND the audience — the admin never types
 > either.** Each opportunity/topic has a one-click **Draft**, plus an
-> **Auto-draft** that picks the single best keyword (top GSC opportunity, else
-> top Reddit topic) with no input at all. The audience is derived server-side
-> (`deriveAudience`) from the research context — the subreddit it came from, or
-> country/role terms in the keyword — so targeting is research-driven, not
-> hand-picked.
+> **Auto-draft** that picks the single best keyword with no input at all. The
+> audience is derived server-side (`deriveAudience`) from the research context.
+
+> **Google + Reddit work together.** `combinedResearch()` merges GSC
+> opportunities (real search demand) with Reddit topics (community interest),
+> normalizes the two score scales, and **boosts overlaps to `source: "both"`** —
+> those topics, validated by *both* signals, are the highest-confidence blogs to
+> write and rise to the top of `GET /admin/seo/research` (the "Recommended"
+> panel). Auto-draft picks from this combined list.
+
+### Published posts route on real frontend URLs
+
+- Public API: `GET /blog`, `GET /blog/:slug` (post + Article JSON-LD).
+- SPA pages: `/blog` (list) and `/blog/:slug` (renders the Markdown body, sets
+  title/meta, injects Article JSON-LD).
+- **Bot SSR** (`routes/ssr.ts` → `/ssr/blog`, `/ssr/blog/:slug`): Googlebot and
+  social crawlers get fully server-rendered HTML with Article JSON-LD via the
+  `vercel.json` user-agent rewrites — compliant dynamic rendering, same content.
+- **Sitemap**: published posts are added to `/api/sitemap.xml` (served at
+  `/jobs-sitemap.xml`) so Google discovers and indexes them.
 4. **Review + approve** in admin — a human edits and publishes. **Nothing
    auto-publishes** (Google demotes unreviewed AI content; grounding + a human
    gate keep posts truthful and on-message).
