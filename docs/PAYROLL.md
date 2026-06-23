@@ -27,7 +27,8 @@ currency).
   ───────────────────                 ─────                         ──────
   POST /payroll/batches  ───────────▶ store batch (draft)
   POST /…/submit         ───────────▶ check balance, resolve,
-                                       debit employer, credit worker ─▶ in-app balance
+                                       reserve employer ledger,
+                                       SETTLE ON-CHAIN: USDC ─────────▶ worker's Celo wallet
                           ◀─────────── signed webhooks                  + notification
                                                                         cash out via
                                                                         withdraw flow
@@ -36,8 +37,12 @@ currency).
 - **Employer** — the company. Owned by a regular S-PAY user account (the person
   who registers it and signs in to the dashboard).
 - **Prepaid balance** — payroll is drawn from a USDC balance the employer funds
-  first. Honest by construction: money only moves between internal ledger rows,
-  so nothing is ever "paid" that wasn't funded.
+  first (real USDC in their Celo funding wallet). Honest by construction:
+  **live** payments settle as a **real on-chain USDC transfer** to the worker's
+  Celo wallet, and a payment is only marked paid once it has a tx hash; if no
+  wallet provider is configured the payment fails and the employer isn't charged.
+  **Sandbox** payments move ledger rows only (clearly-labelled TEST credits), so
+  you integrate end-to-end without touching real funds.
 - **Sandbox vs live** — every API key is either `test` or `live`. Test keys move
   only **sandbox** balance (minted freely), so you integrate end-to-end without
   touching real funds. Live keys require business verification (KYB).

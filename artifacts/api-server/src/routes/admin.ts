@@ -321,6 +321,7 @@ async function payoutProvidersPayload() {
       enabled: config.enabled[p.key],
       envHint: p.envHint,
       pricingNote: p.pricingNote,
+      supportsDeposits: p.supportsDeposits,
     })),
   };
 }

@@ -2,20 +2,31 @@ import { logger } from "./logger";
 import { getPayoutProviderConfig, type PayoutProviderKey } from "./settings";
 
 /**
- * Pluggable payout layer — the local-currency cash-out rails workers withdraw
- * to (M-Pesa, MoMo, PIX, SEPA, ACH…). Mirrors lib/wallet-providers.ts: a set of
- * interchangeable providers, each activated by its own env keys and switchable
- * live from /admin/settings, with corridor-aware routing so S-PAY is never
- * locked to one partner.
+ * Pluggable money-rails layer — every provider that moves value across the
+ * fiat ↔ stablecoin boundary for S-PAY users:
+ *   • OFF-RAMP (payout)  — USDC on Celo → local currency (M-Pesa, MoMo, PIX, SEPA, ACH…).
+ *   • ON-RAMP  (deposit) — local currency / virtual account → USDC on Celo.
  *
- * Why this exists: Noah was the first rail, but it charges onboarding fees and
- * doesn't cover every corridor cheaply. This abstraction lets us add fee-free,
- * emerging-market-focused alternatives (Bridge, Conduit, Yellow Card, Thunes)
- * and route each payout to the best-configured provider for its country.
+ * Mirrors lib/wallet-providers.ts: a set of interchangeable providers, each
+ * activated by its own env keys and switchable live from /admin/settings, with
+ * corridor-aware routing so S-PAY is never locked to one partner.
+ *
+ * Why this exists: Noah was the first rail, but it charges onboarding/setup fees
+ * and doesn't cover every corridor cheaply. This abstraction lets us add
+ * usage-based, emerging-market-focused alternatives (Bridge, Conduit, Yellow
+ * Card, Thunes) and route each deposit AND each payout to the best-configured
+ * provider for its country — for deposits especially, so we can avoid Noah's
+ * onboarding fee where another rail already serves the corridor.
  *
  * Honest by construction: a provider with no env keys reports `configured:
- * false` and its createPayout throws PayoutNotConfiguredError, so callers return
- * the same honest 503 the banking endpoints already use — never a faked payout.
+ * false`, and its createPayout / createDeposit throw the matching
+ * NotConfiguredError — so callers return the same honest 503 the banking
+ * endpoints already use, never a faked movement of money.
+ *
+ * Settlement target: every deposit settles to USDC in the user's own Celo
+ * wallet (the single balance — there is no separate "virtual-account balance").
+ * The virtual account / mobile-money collection is only the entry point; the
+ * provider auto-converts to USDC and pushes it on-chain to the user's address.
  */
 
 export class PayoutNotConfiguredError extends Error {
@@ -23,6 +34,14 @@ export class PayoutNotConfiguredError extends Error {
     super(`Payout provider "${provider}" is not configured`);
   }
 }
+
+export class DepositNotConfiguredError extends Error {
+  constructor(public provider: PayoutProviderKey) {
+    super(`Deposit provider "${provider}" is not configured`);
+  }
+}
+
+// ─── Off-ramp (payout) shapes ──────────────────────────────────────────────────
 
 export interface PayoutQuote {
   provider: PayoutProviderKey;
@@ -48,7 +67,37 @@ export interface PayoutResult {
   status: "pending" | "completed" | "failed";
 }
 
-export interface PayoutProvider {
+// ─── On-ramp (deposit) shapes ──────────────────────────────────────────────────
+
+export interface DepositQuote {
+  provider: PayoutProviderKey;
+  sourceCurrency: string;   // local fiat the user funds with (KES, USD, EUR…)
+  targetCurrency: "USDC";   // always settles to USDC on Celo
+  method: string;           // mpesa | mtn_momo | pix | sepa | ach | bank_transfer | card | …
+  rate: number;             // 1 sourceCurrency → N USDC (inverse of the payout rate)
+  feePercent: number;       // provider + S-PAY margin, as a fraction (0.01 = 1%)
+  estimatedArrival: string;
+}
+
+export interface DepositRequest {
+  amountLocal: number;
+  sourceCurrency: string;
+  method: string;
+  reference: string;            // S-PAY's id for reconciliation
+  destinationAddress: string;   // the user's Celo wallet — where USDC settles
+  payer?: Record<string, string>; // phone / bank details used to collect the funds
+}
+
+export interface DepositResult {
+  depositId: string;
+  provider: PayoutProviderKey;
+  status: "pending" | "completed" | "failed";
+  /** What the user does next to complete the on-ramp (STK push ref, bank
+   *  details, hosted-checkout URL…). Provider-specific. */
+  instructions?: string;
+}
+
+export interface MoneyRailProvider {
   key: PayoutProviderKey;
   label: string;
   /** Env vars that activate this provider (shown in the admin panel). */
@@ -56,10 +105,18 @@ export interface PayoutProvider {
   /** One-line note on commercial terms — onboarding-fee posture especially. */
   pricingNote: string;
   isConfigured(): boolean;
-  /** Can this provider settle to the given currency + method? */
+
+  // Off-ramp (payout)
+  /** Can this provider settle USDC → the given currency + method? */
   supports(targetCurrency: string, method: string): boolean;
   quote(req: Pick<PayoutRequest, "amountUsd" | "targetCurrency" | "method">): PayoutQuote;
   createPayout(req: PayoutRequest): Promise<PayoutResult>;
+
+  // On-ramp (deposit)
+  /** Can this provider collect the given currency + method and settle USDC on Celo? */
+  supportsDeposit(sourceCurrency: string, method: string): boolean;
+  quoteDeposit(req: Pick<DepositRequest, "amountLocal" | "sourceCurrency" | "method">): DepositQuote;
+  createDeposit(req: DepositRequest): Promise<DepositResult>;
 }
 
 // Indicative FX rates (stablecoin base). Shared with banking.ts's table; live
@@ -76,11 +133,11 @@ const ARRIVAL: Record<string, string> = {
   gcash: "Within 1 minute", gopay: "Within 1 minute", upi: "Within 1 minute",
   pix: "Within 1 minute", nequi: "Within 5 minutes", spei: "Same day",
   sepa: "Same day – next business day", faster_payments: "Within 2 hours",
+  card: "Within 1 minute",
   bank_transfer: "1–2 business days", ach: "1–2 business days", wire: "1–2 business days",
 };
 const arrivalFor = (m: string) => ARRIVAL[m] ?? "Within 2 hours";
 
-// Per-provider corridor strengths. "*" = currency-agnostic for that provider.
 function makeQuote(key: PayoutProviderKey, feePercent: number, req: { amountUsd: number; targetCurrency: string; method: string }): PayoutQuote {
   return {
     provider: key,
@@ -93,9 +150,22 @@ function makeQuote(key: PayoutProviderKey, feePercent: number, req: { amountUsd:
   };
 }
 
+function makeDepositQuote(key: PayoutProviderKey, feePercent: number, req: { amountLocal: number; sourceCurrency: string; method: string }): DepositQuote {
+  const fx = rateFor(req.sourceCurrency); // 1 USD → N local
+  return {
+    provider: key,
+    sourceCurrency: req.sourceCurrency?.toUpperCase() ?? "USD",
+    targetCurrency: "USDC",
+    method: req.method,
+    rate: fx > 0 ? 1 / fx : 1, // 1 local → N USDC
+    feePercent,
+    estimatedArrival: arrivalFor(req.method),
+  };
+}
+
 // ─── Noah — incumbent global rail (note: charges onboarding fees) ──────────────
 const NOAH_CURRENCIES = new Set(["KES", "NGN", "GHS", "UGX", "TZS", "RWF", "XAF", "ZAR", "PHP", "IDR", "BRL", "COP", "MXN", "EUR", "GBP", "USD"]);
-const noahProvider: PayoutProvider = {
+const noahProvider: MoneyRailProvider = {
   key: "noah",
   label: "Noah",
   envHint: "NOAH_API_KEY, NOAH_WEBHOOK_SECRET",
@@ -104,61 +174,81 @@ const noahProvider: PayoutProvider = {
   supports: (c) => NOAH_CURRENCIES.has(c?.toUpperCase()),
   quote: (req) => makeQuote("noah", 0.01, req),
   createPayout: async () => { throw new PayoutNotConfiguredError("noah"); },
+  supportsDeposit: (c) => NOAH_CURRENCIES.has(c?.toUpperCase()),
+  quoteDeposit: (req) => makeDepositQuote("noah", 0.01, req),
+  createDeposit: async () => { throw new DepositNotConfiguredError("noah"); },
 };
 
 // ─── Bridge (Stripe) — USD/EUR virtual accounts + stablecoin orchestration ─────
-const bridgeProvider: PayoutProvider = {
+const bridgeProvider: MoneyRailProvider = {
   key: "bridge",
   label: "Bridge (Stripe)",
   envHint: "BRIDGE_API_KEY",
-  pricingNote: "API-first stablecoin orchestration; usage-based, no setup fee.",
+  pricingNote: "API-first stablecoin orchestration; usage-based, no setup fee. Strong on USD/EUR virtual accounts.",
   isConfigured: () => Boolean(process.env.BRIDGE_API_KEY),
   supports: (c, m) => ["USD", "EUR"].includes(c?.toUpperCase()) || ["ach", "sepa", "wire"].includes(m),
   quote: (req) => makeQuote("bridge", 0.005, req),
   createPayout: async () => { throw new PayoutNotConfiguredError("bridge"); },
+  // Bridge's core strength: issue a USD ACH / EU IBAN virtual account that
+  // auto-converts inbound fiat to USDC. Best on-ramp for US/EU corridors.
+  supportsDeposit: (c, m) => ["USD", "EUR"].includes(c?.toUpperCase()) || ["ach", "sepa", "wire", "card"].includes(m),
+  quoteDeposit: (req) => makeDepositQuote("bridge", 0.005, req),
+  createDeposit: async () => { throw new DepositNotConfiguredError("bridge"); },
 };
 
-// ─── Conduit — cross-border B2B/marketplace payouts (LatAm/Africa/Asia) ────────
+// ─── Conduit — cross-border B2B/marketplace payments (LatAm/Africa/Asia) ────────
 const CONDUIT_CURRENCIES = new Set(["BRL", "MXN", "COP", "NGN", "KES", "GHS", "ZAR", "PHP", "IDR", "INR", "USD"]);
-const conduitProvider: PayoutProvider = {
+const conduitProvider: MoneyRailProvider = {
   key: "conduit",
   label: "Conduit",
   envHint: "CONDUIT_API_KEY",
-  pricingNote: "Purpose-built for emerging-market payouts; usage-based, no setup fee.",
+  pricingNote: "Purpose-built for emerging-market collections + payouts; usage-based, no setup fee.",
   isConfigured: () => Boolean(process.env.CONDUIT_API_KEY),
   supports: (c) => CONDUIT_CURRENCIES.has(c?.toUpperCase()),
   quote: (req) => makeQuote("conduit", 0.008, req),
   createPayout: async () => { throw new PayoutNotConfiguredError("conduit"); },
+  supportsDeposit: (c) => CONDUIT_CURRENCIES.has(c?.toUpperCase()),
+  quoteDeposit: (req) => makeDepositQuote("conduit", 0.008, req),
+  createDeposit: async () => { throw new DepositNotConfiguredError("conduit"); },
 };
 
-// ─── Yellow Card — pan-African mobile money + bank ─────────────────────────────
+// ─── Yellow Card — pan-African mobile money + bank (on- AND off-ramp) ───────────
 const YELLOWCARD_CURRENCIES = new Set(["KES", "NGN", "GHS", "UGX", "TZS", "RWF", "XAF", "ZAR"]);
-const yellowcardProvider: PayoutProvider = {
+const yellowcardProvider: MoneyRailProvider = {
   key: "yellowcard",
   label: "Yellow Card",
   envHint: "YELLOWCARD_API_KEY, YELLOWCARD_API_SECRET",
-  pricingNote: "Strongest African corridors (M-Pesa, MoMo); usage-based, no setup fee.",
+  pricingNote: "Strongest African corridors (M-Pesa, MoMo) for both deposits and payouts; usage-based, no setup fee.",
   isConfigured: () => Boolean(process.env.YELLOWCARD_API_KEY),
   supports: (c) => YELLOWCARD_CURRENCIES.has(c?.toUpperCase()),
   quote: (req) => makeQuote("yellowcard", 0.009, req),
   createPayout: async () => { throw new PayoutNotConfiguredError("yellowcard"); },
+  supportsDeposit: (c) => YELLOWCARD_CURRENCIES.has(c?.toUpperCase()),
+  quoteDeposit: (req) => makeDepositQuote("yellowcard", 0.009, req),
+  createDeposit: async () => { throw new DepositNotConfiguredError("yellowcard"); },
 };
 
-// ─── Thunes — very broad global mobile-wallet + bank network ───────────────────
-const thunesProvider: PayoutProvider = {
+// ─── Thunes — very broad global payout network (payout-first) ───────────────────
+// Thunes is primarily a payout/disbursement network; its collection (deposit)
+// coverage is narrower and enterprise-gated, so we expose payouts globally but
+// do NOT advertise it as a deposit rail until that side is contracted.
+const thunesProvider: MoneyRailProvider = {
   key: "thunes",
   label: "Thunes",
   envHint: "THUNES_API_KEY, THUNES_API_SECRET",
-  pricingNote: "Widest global payout network; enterprise terms — confirm minimums.",
+  pricingNote: "Widest global payout network; enterprise terms — confirm minimums. Payout-first (limited collections).",
   isConfigured: () => Boolean(process.env.THUNES_API_KEY),
-  supports: () => true, // global coverage
+  supports: () => true, // global payout coverage
   quote: (req) => makeQuote("thunes", 0.011, req),
   createPayout: async () => { throw new PayoutNotConfiguredError("thunes"); },
+  supportsDeposit: () => false, // payout-first; collections not advertised
+  quoteDeposit: (req) => makeDepositQuote("thunes", 0.011, req),
+  createDeposit: async () => { throw new DepositNotConfiguredError("thunes"); },
 };
 
 // ─── Registry + routing ────────────────────────────────────────────────────────
 
-const PROVIDERS: Record<PayoutProviderKey, PayoutProvider> = {
+const PROVIDERS: Record<PayoutProviderKey, MoneyRailProvider> = {
   noah: noahProvider,
   bridge: bridgeProvider,
   conduit: conduitProvider,
@@ -168,22 +258,27 @@ const PROVIDERS: Record<PayoutProviderKey, PayoutProvider> = {
 
 /** Static provider facts for the admin panel. */
 export function payoutProviderCatalog(): Array<{
-  key: PayoutProviderKey; label: string; configured: boolean; envHint: string; pricingNote: string;
+  key: PayoutProviderKey; label: string; configured: boolean; envHint: string;
+  pricingNote: string; supportsDeposits: boolean;
 }> {
+  // A provider "supports deposits" in general if it can on-ramp any corridor.
+  const anyDeposit = (p: MoneyRailProvider) =>
+    ["USD", "EUR", "KES", "NGN", "BRL", "GHS", "ZAR", "PHP"].some((c) => p.supportsDeposit(c, "bank_transfer") || p.supportsDeposit(c, "mpesa"));
   return Object.values(PROVIDERS).map((p) => ({
-    key: p.key, label: p.label, configured: p.isConfigured(), envHint: p.envHint, pricingNote: p.pricingNote,
+    key: p.key, label: p.label, configured: p.isConfigured(),
+    envHint: p.envHint, pricingNote: p.pricingNote, supportsDeposits: anyDeposit(p),
   }));
 }
 
 /**
- * Pick the best provider for a corridor: the admin's preferred one if it's
- * enabled, configured and supports the corridor; otherwise the first enabled +
- * configured provider that supports it. Returns null when nothing can serve it
- * (caller answers with an honest "cash-outs activating soon" 503).
+ * Pick the best payout provider for a corridor: the admin's preferred one if
+ * it's enabled, configured and supports the corridor; otherwise the first
+ * enabled + configured provider that supports it. Returns null when nothing can
+ * serve it (caller answers with an honest "cash-outs activating soon" 503).
  */
-export async function selectPayoutProvider(targetCurrency: string, method: string): Promise<PayoutProvider | null> {
+export async function selectPayoutProvider(targetCurrency: string, method: string): Promise<MoneyRailProvider | null> {
   const config = await getPayoutProviderConfig();
-  const eligible = (p: PayoutProvider) => config.enabled[p.key] && p.isConfigured() && p.supports(targetCurrency, method);
+  const eligible = (p: MoneyRailProvider) => config.enabled[p.key] && p.isConfigured() && p.supports(targetCurrency, method);
 
   const preferred = PROVIDERS[config.preferredProvider];
   if (preferred && eligible(preferred)) return preferred;
@@ -196,10 +291,40 @@ export async function selectPayoutProvider(targetCurrency: string, method: strin
   return fallback;
 }
 
-/** All providers that could serve a corridor (configured + enabled), for quotes/comparison. */
+/**
+ * Pick the best deposit (on-ramp) provider for a corridor. Same routing rule as
+ * payouts, but evaluated against each provider's deposit coverage — so a
+ * deposit can route to a cheaper, no-onboarding-fee rail (e.g. Yellow Card for
+ * M-Pesa, Bridge for USD/EUR) instead of always Noah. Returns null when nothing
+ * can serve it (caller answers with an honest 503).
+ */
+export async function selectDepositProvider(sourceCurrency: string, method: string): Promise<MoneyRailProvider | null> {
+  const config = await getPayoutProviderConfig();
+  const eligible = (p: MoneyRailProvider) => config.enabled[p.key] && p.isConfigured() && p.supportsDeposit(sourceCurrency, method);
+
+  const preferred = PROVIDERS[config.preferredProvider];
+  if (preferred && eligible(preferred)) return preferred;
+
+  const fallback = Object.values(PROVIDERS).find(eligible);
+  if (!fallback) {
+    logger.info({ sourceCurrency, method }, "No configured deposit provider for corridor");
+    return null;
+  }
+  return fallback;
+}
+
+/** All providers that could pay out a corridor (configured + enabled), for quotes/comparison. */
 export async function quotesForCorridor(targetCurrency: string, method: string, amountUsd: number): Promise<PayoutQuote[]> {
   const config = await getPayoutProviderConfig();
   return Object.values(PROVIDERS)
     .filter((p) => config.enabled[p.key] && p.isConfigured() && p.supports(targetCurrency, method))
     .map((p) => p.quote({ amountUsd, targetCurrency, method }));
+}
+
+/** All providers that could collect a deposit for a corridor, for quotes/comparison. */
+export async function depositQuotesForCorridor(sourceCurrency: string, method: string, amountLocal: number): Promise<DepositQuote[]> {
+  const config = await getPayoutProviderConfig();
+  return Object.values(PROVIDERS)
+    .filter((p) => config.enabled[p.key] && p.isConfigured() && p.supportsDeposit(sourceCurrency, method))
+    .map((p) => p.quoteDeposit({ amountLocal, sourceCurrency, method }));
 }
