@@ -131,13 +131,16 @@ router.post("/banking/withdraw", requireAuth, async (req, res) => {
   }
 
   const rate = lookupRate(targetCurrency);
-  // User-facing fee from the admin-set schedule: Noah's cost + S-PAY margin
+  // User-facing fee from the admin-set schedule (provider cost + S-PAY margin).
   const fee = withdrawalFee(amount, await getFeeSchedule());
+
+  // The chosen rail is an internal routing decision — log it for reconciliation,
+  // but never surface it to the user (they just get the best rate).
+  req.log.info({ provider: payoutProvider.key, targetCurrency, method }, "Withdrawal routed");
 
   res.json({
     withdrawalId: `wdw-${crypto.randomUUID()}`,
     status: "pending",
-    provider: payoutProvider.key,
     estimatedArrival: METHOD_ARRIVAL[String(method)] ?? "1–2 business days",
     localAmount: Math.max(amount - fee, 0) * rate,
     localCurrency: targetCurrency ?? "USD",
@@ -198,10 +201,11 @@ router.post("/banking/deposit", requireAuth, async (req, res) => {
         destinationAddress: wallet.address,
         payer: phoneNumber ? { phoneNumber } : undefined,
       });
+      // The chosen rail is internal — log it, don't surface it to the user.
+      req.log.info({ provider: deposit.provider, method, sourceCurrency }, "Deposit routed");
       res.json({
         depositId: deposit.depositId,
         status: deposit.status,
-        provider: deposit.provider,
         instructions: deposit.instructions,
         celoAddress: wallet.address,
       });

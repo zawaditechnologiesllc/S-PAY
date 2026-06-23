@@ -270,47 +270,71 @@ export function payoutProviderCatalog(): Array<{
   }));
 }
 
-/**
- * Pick the best payout provider for a corridor: the admin's preferred one if
- * it's enabled, configured and supports the corridor; otherwise the first
- * enabled + configured provider that supports it. Returns null when nothing can
- * serve it (caller answers with an honest "cash-outs activating soon" 503).
- */
-export async function selectPayoutProvider(targetCurrency: string, method: string): Promise<MoneyRailProvider | null> {
-  const config = await getPayoutProviderConfig();
-  const eligible = (p: MoneyRailProvider) => config.enabled[p.key] && p.isConfigured() && p.supports(targetCurrency, method);
+// The customer's net take-home per unit: how much local currency (payout) or
+// USDC (deposit) reaches them after the provider's FX rate and fee. Routing
+// maximizes this — the user always gets the best-priced rail and never sees
+// which provider it was. The admin's `preferredProvider` is only a tiebreaker
+// when two rails price identically.
+const netRate = (rate: number, feePercent: number) => rate * (1 - feePercent);
 
-  const preferred = PROVIDERS[config.preferredProvider];
-  if (preferred && eligible(preferred)) return preferred;
-
-  const fallback = Object.values(PROVIDERS).find(eligible);
-  if (!fallback) {
-    logger.info({ targetCurrency, method }, "No configured payout provider for corridor");
-    return null;
-  }
-  return fallback;
+function pickBest(
+  eligible: MoneyRailProvider[],
+  scoreOf: (p: MoneyRailProvider) => number,
+  preferred: PayoutProviderKey,
+): MoneyRailProvider {
+  return eligible.reduce((best, p) => {
+    const s = scoreOf(p);
+    const bestScore = scoreOf(best);
+    if (s > bestScore) return p;
+    if (s === bestScore && p.key === preferred) return p; // tiebreak → admin preference
+    return best;
+  });
 }
 
 /**
- * Pick the best deposit (on-ramp) provider for a corridor. Same routing rule as
- * payouts, but evaluated against each provider's deposit coverage — so a
- * deposit can route to a cheaper, no-onboarding-fee rail (e.g. Yellow Card for
- * M-Pesa, Bridge for USD/EUR) instead of always Noah. Returns null when nothing
- * can serve it (caller answers with an honest 503).
+ * Pick the payout provider that gives the CUSTOMER the best rate for a corridor,
+ * among those an admin has enabled + that are configured + that support the
+ * corridor. The provider is an internal routing decision — never surfaced to the
+ * user. Returns null when nothing can serve it (caller answers with an honest
+ * "cash-outs activating soon" 503).
+ */
+export async function selectPayoutProvider(targetCurrency: string, method: string): Promise<MoneyRailProvider | null> {
+  const config = await getPayoutProviderConfig();
+  const eligible = Object.values(PROVIDERS).filter(
+    (p) => config.enabled[p.key] && p.isConfigured() && p.supports(targetCurrency, method),
+  );
+  if (eligible.length === 0) {
+    logger.info({ targetCurrency, method }, "No configured payout provider for corridor");
+    return null;
+  }
+  return pickBest(
+    eligible,
+    (p) => { const q = p.quote({ amountUsd: 1, targetCurrency, method }); return netRate(q.rate, q.feePercent); },
+    config.preferredProvider,
+  );
+}
+
+/**
+ * Pick the deposit (on-ramp) provider that gives the CUSTOMER the best rate for a
+ * corridor — evaluated against each provider's deposit coverage, so a deposit can
+ * route to a cheaper, no-onboarding-fee rail (e.g. Yellow Card for M-Pesa, Bridge
+ * for USD/EUR) instead of always Noah. The provider is never surfaced to the
+ * user. Returns null when nothing can serve it (caller answers with an honest 503).
  */
 export async function selectDepositProvider(sourceCurrency: string, method: string): Promise<MoneyRailProvider | null> {
   const config = await getPayoutProviderConfig();
-  const eligible = (p: MoneyRailProvider) => config.enabled[p.key] && p.isConfigured() && p.supportsDeposit(sourceCurrency, method);
-
-  const preferred = PROVIDERS[config.preferredProvider];
-  if (preferred && eligible(preferred)) return preferred;
-
-  const fallback = Object.values(PROVIDERS).find(eligible);
-  if (!fallback) {
+  const eligible = Object.values(PROVIDERS).filter(
+    (p) => config.enabled[p.key] && p.isConfigured() && p.supportsDeposit(sourceCurrency, method),
+  );
+  if (eligible.length === 0) {
     logger.info({ sourceCurrency, method }, "No configured deposit provider for corridor");
     return null;
   }
-  return fallback;
+  return pickBest(
+    eligible,
+    (p) => { const q = p.quoteDeposit({ amountLocal: 1, sourceCurrency, method }); return netRate(q.rate, q.feePercent); },
+    config.preferredProvider,
+  );
 }
 
 /** All providers that could pay out a corridor (configured + enabled), for quotes/comparison. */

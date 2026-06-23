@@ -211,14 +211,40 @@ configured for the corridor → honest 503.
 ## Provider routing rule (one rule, both directions)
 
 ```
-preferred = admin's preferred provider
-if preferred is enabled AND configured AND supports(corridor): use it
-else: first enabled+configured provider that supports(corridor)
-else: null  → caller returns an honest 503 (never a faked movement)
+candidates = providers that are admin-ENABLED + configured + support(corridor)
+if none: null → caller returns an honest 503 (never a faked movement)
+else: pick the candidate with the BEST RATE FOR THE CUSTOMER
+      (max  rate × (1 − feePercent));  ties broken by the admin's preferred provider
 ```
 
-Off-ramp evaluates `supports()`; on-ramp evaluates `supportsDeposit()`. Both are
-admin-switchable live from `/admin/settings` with no redeploy.
+- Off-ramp evaluates `supports()` + `quote()`; on-ramp evaluates
+  `supportsDeposit()` + `quoteDeposit()`.
+- **The provider is never shown to the user.** Deposit and withdrawal responses
+  expose only the rate/fee/ETA/amount — the chosen rail is an internal routing
+  decision (logged for reconciliation, returned to no one). This is deliberate:
+  the user should never have to understand or choose between Noah/Bridge/etc.
+- **The admin only turns providers on/off** (and sets a tiebreaker) from
+  `/admin/settings` → Payout Providers, live with no redeploy. A single switch
+  governs **both** a provider's deposits and its payouts.
+
+### Virtual accounts are the one exception (sticky single issuer)
+
+A virtual account (US ACH / EU IBAN) is a **persistent identifier a worker shares
+with employers**, so it cannot be re-routed per transaction the way a deposit or
+withdrawal can. Rule:
+
+- A worker's virtual account is issued **once**, by one enabled provider, and
+  **stays with that provider** (stored on the user) so the account number never
+  changes underneath them.
+- It is presented **generically** — "Your USD account" / "Your EUR account" —
+  never branded "Noah account" or "Bridge account," so switching the issuer for
+  *new* users never confuses *existing* ones.
+- Which provider issues *new* virtual accounts follows the same enabled-set you
+  control in admin; existing accounts are untouched (exactly like wallet
+  providers: keys/accounts never move once created).
+
+*(Virtual-account provisioning itself is task D4 — gated on a provider key. The
+sticky-issuer rule above is the contract D4 implements.)*
 
 ---
 

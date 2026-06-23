@@ -90,9 +90,11 @@ Full request/response shapes, error codes, and webhook payloads:
 
 ## Which cash-out rail does a worker get? (and why it's not your problem)
 
-You never pick a provider. S-PAY routes each worker's cash-out (and each
-deposit) to the **best-configured rail for that corridor** via
-`selectPayoutProvider()` / `selectDepositProvider()`:
+Neither you nor the worker ever picks — or even sees — a provider. S-PAY routes
+each worker's cash-out (and each deposit) to the rail that gives **the customer
+the best rate** for that corridor via `selectPayoutProvider()` /
+`selectDepositProvider()`; the worker only ever sees the rate, fee and ETA. The
+table below is the *internal* routing intuition, not something exposed in the UI:
 
 | Corridor | Routed to (typical) | Why |
 |---|---|---|
