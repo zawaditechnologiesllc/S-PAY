@@ -1,5 +1,43 @@
 import { Router, type IRouter } from "express";
 import { fetchJobs, getJobById, CATEGORY_LABELS, type NormalizedJob } from "../lib/jobs";
+import { articleJsonLd } from "../lib/seo";
+import { db, blogPostsTable } from "@workspace/db";
+import { and, desc, eq } from "drizzle-orm";
+
+// Minimal, safe Markdown → HTML for blog bodies. Escapes all HTML first, then
+// only emits a known tag set; links are restricted to http(s)/relative — so the
+// AI-generated body can never inject script/styles/handlers.
+function mdToHtml(md: string): string {
+  const escAll = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const inline = (s: string) =>
+    escAll(s)
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/[^\s)]*)\)/g, '<a href="$2" rel="noopener">$1</a>');
+  const lines = md.replace(/\r\n/g, "\n").split("\n");
+  const out: string[] = [];
+  let list: "ul" | "ol" | null = null;
+  let para: string[] = [];
+  const flushPara = () => { if (para.length) { out.push(`<p>${inline(para.join(" "))}</p>`); para = []; } };
+  const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { flushPara(); closeList(); continue; }
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) { flushPara(); closeList(); const lvl = Math.min(h[1].length, 6); out.push(`<h${lvl}>${inline(h[2])}</h${lvl}>`); continue; }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) { flushPara(); closeList(); out.push("<hr/>"); continue; }
+    const ul = line.match(/^[-*]\s+(.*)$/);
+    const ol = line.match(/^\d+\.\s+(.*)$/);
+    if (ul) { flushPara(); if (list !== "ul") { closeList(); out.push("<ul>"); list = "ul"; } out.push(`<li>${inline(ul[1])}</li>`); continue; }
+    if (ol) { flushPara(); if (list !== "ol") { closeList(); out.push("<ol>"); list = "ol"; } out.push(`<li>${inline(ol[1])}</li>`); continue; }
+    const bq = line.match(/^>\s?(.*)$/);
+    if (bq) { flushPara(); closeList(); out.push(`<blockquote>${inline(bq[1])}</blockquote>`); continue; }
+    closeList(); para.push(line);
+  }
+  flushPara(); closeList();
+  return out.join("\n");
+}
 
 // Server-rendered job pages for search engines & social previews.
 // Vercel routes bot user-agents on spayewallet.com/jobs* here (see
@@ -241,6 +279,62 @@ router.get("/jobs/:jobId", async (req, res) => {
     }));
   } catch (err) {
     req.log.error({ err }, "SSR job detail error");
+    res.status(500).send("");
+  }
+});
+
+// ── Blog: crawlable index + full server-rendered articles (Article JSON-LD) ──
+
+router.get("/blog", async (req, res) => {
+  try {
+    const rows = await db.select().from(blogPostsTable)
+      .where(eq(blogPostsTable.status, "published"))
+      .orderBy(desc(blogPostsTable.publishedAt)).limit(200);
+    const items = rows.map((p) =>
+      `<div class="card"><h2><a href="${SITE()}/blog/${esc(p.slug)}">${esc(p.title)}</a></h2>` +
+      `<p class="meta">${esc(p.metaDescription ?? p.excerpt ?? "")}</p></div>`,
+    ).join("\n");
+    res.set("Cache-Control", "public, max-age=600");
+    res.send(pageShell({
+      title: "S-PAY Blog — money tips for global remote workers",
+      description: "Guides on getting paid globally and cashing out locally — for remote workers, freelancers and the businesses that pay them.",
+      canonical: `${SITE()}/blog`,
+      body: `<h1>S-PAY Blog</h1>${items || "<p>New articles are on the way.</p>"}`,
+    }));
+  } catch (err) {
+    req.log?.error?.({ err }, "Blog SSR index error");
+    res.status(500).send("");
+  }
+});
+
+router.get("/blog/:slug", async (req, res) => {
+  try {
+    const [p] = await db.select().from(blogPostsTable)
+      .where(and(eq(blogPostsTable.slug, String(req.params.slug)), eq(blogPostsTable.status, "published")))
+      .limit(1);
+    if (!p) {
+      res.status(404).send(pageShell({
+        title: "Article not found · S-PAY", description: "This article isn't available.",
+        canonical: `${SITE()}/blog`, body: `<h1>Not found</h1><p><a href="${SITE()}/blog">Back to the blog</a></p>`,
+      }));
+      return;
+    }
+    const body =
+      `<h1>${esc(p.title)}</h1>` +
+      `<p class="meta">${p.publishedAt ? new Date(p.publishedAt).toDateString() : ""}</p>` +
+      `<div class="desc">${mdToHtml(p.bodyMarkdown)}</div>` +
+      `<div class="spay-callout"><p>Get paid globally. Cash out locally — M-Pesa, PIX, SEPA, bank.</p>` +
+      `<a class="cta" href="${SITE()}/register">Open a free S-PAY account</a></div>`;
+    res.set("Cache-Control", "public, max-age=600");
+    res.send(pageShell({
+      title: `${p.title} · S-PAY`,
+      description: p.metaDescription ?? p.excerpt ?? p.title,
+      canonical: `${SITE()}/blog/${esc(p.slug)}`,
+      jsonLd: articleJsonLd(p, SITE()),
+      body,
+    }));
+  } catch (err) {
+    req.log?.error?.({ err }, "Blog SSR article error");
     res.status(500).send("");
   }
 });
