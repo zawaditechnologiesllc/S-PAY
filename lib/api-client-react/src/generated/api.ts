@@ -31,6 +31,7 @@ import type {
   ApiKeyListResponse,
   AppleTokenRequest,
   AuthResponse,
+  AutoDraftResponse,
   BankingAccountsResponse,
   BatchCreateRequest,
   BatchListResponse,
@@ -6259,6 +6260,76 @@ export const useCreateSeoDraft = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateSeoDraftMutationOptions(options));
+    }
+
+export const getAutoDraftSeoUrl = () => {
+
+
+
+
+  return `/api/admin/seo/auto-draft`
+}
+
+/**
+ * @summary Research picks the best keyword and drafts it (no admin input)
+ */
+export const autoDraftSeo = async ( options?: RequestInit): Promise<AutoDraftResponse> => {
+
+  return customFetch<AutoDraftResponse>(getAutoDraftSeoUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAutoDraftSeoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof autoDraftSeo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof autoDraftSeo>>, TError,void, TContext> => {
+
+const mutationKey = ['autoDraftSeo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof autoDraftSeo>>, void> = () => {
+
+
+          return  autoDraftSeo(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AutoDraftSeoMutationResult = NonNullable<Awaited<ReturnType<typeof autoDraftSeo>>>
+
+    export type AutoDraftSeoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Research picks the best keyword and drafts it (no admin input)
+ */
+export const useAutoDraftSeo = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof autoDraftSeo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof autoDraftSeo>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAutoDraftSeoMutationOptions(options));
     }
 
 export const getGetSeoPostsUrl = (params?: GetSeoPostsParams,) => {

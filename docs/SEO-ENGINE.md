@@ -16,10 +16,18 @@ GSC Search Analytics ─▶ opportunity ranker ─▶ Claude Haiku draft (ground
 1. **Ingest** real query performance from Google Search Console (official API).
 2. **Rank** "striking-distance" opportunities — queries where we already rank
    ~#5–20 and a content push can win page 1 (`rankOpportunities`, a pure,
-   testable function).
+   testable function) — plus topic ideas mined from Reddit.
 3. **Draft** a post with **Claude Haiku** (`claude-haiku-4-5`), strictly
    **grounded in true product facts** so it can't invent features, rates, or
    earnings claims.
+
+> **Research chooses the keyword AND the audience — the admin never types
+> either.** Each opportunity/topic has a one-click **Draft**, plus an
+> **Auto-draft** that picks the single best keyword (top GSC opportunity, else
+> top Reddit topic) with no input at all. The audience is derived server-side
+> (`deriveAudience`) from the research context — the subreddit it came from, or
+> country/role terms in the keyword — so targeting is research-driven, not
+> hand-picked.
 4. **Review + approve** in admin — a human edits and publishes. **Nothing
    auto-publishes** (Google demotes unreviewed AI content; grounding + a human
    gate keep posts truthful and on-message).

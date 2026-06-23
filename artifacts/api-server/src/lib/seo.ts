@@ -241,6 +241,51 @@ GOOGLE 2026 SEO RULES (follow ALL):
 13. No manipulation: no cloaking, doorway pages, hidden text, fake authorship, or scaled content abuse. Disclose nothing false. Everything must be verifiable and within the PRODUCT FACTS.
 `.trim();
 
+// Map a research signal (the subreddit it came from, or terms in the keyword) to
+// a target audience, so the admin never has to pick one — the research does.
+const SUBREDDIT_AUDIENCE: Record<string, string> = {
+  remotework: "remote workers", digitalnomad: "digital nomads", freelance: "freelancers",
+  freelancewriters: "freelance writers", workonline: "people earning online", forhire: "freelancers for hire",
+  upwork: "Upwork freelancers", fiverr: "Fiverr sellers", juststart: "new online entrepreneurs",
+  sidehustle: "people running a side hustle", passive_income: "people building passive income",
+  entrepreneur: "entrepreneurs", smallbusiness: "small-business owners", ecommerce: "ecommerce sellers",
+  saas: "SaaS founders", personalfinance: "people managing personal finances", povertyfinance: "people on a tight budget",
+  fintech: "fintech-savvy readers", cryptocurrency: "crypto users", stablecoins: "stablecoin users",
+  celo: "Celo users", payoneer: "Payoneer users weighing alternatives", wise: "Wise users weighing alternatives",
+  expats: "expats", iwantout: "people planning to move abroad", cscareerquestions: "software engineers",
+  developersindia: "developers in India", pinoyprogrammer: "developers in the Philippines",
+  kenya: "remote workers in Kenya", nigeria: "remote workers in Nigeria", ghana: "remote workers in Ghana",
+  southafrica: "remote workers in South Africa", india: "remote workers in India", brazil: "remote workers in Brazil",
+  philippines: "remote workers in the Philippines", uganda: "remote workers in Uganda", tanzania: "remote workers in Tanzania",
+};
+const COUNTRY_TERMS: Array<{ term: string; label: string }> = [
+  { term: "kenya", label: "Kenya" }, { term: "nigeria", label: "Nigeria" }, { term: "ghana", label: "Ghana" },
+  { term: "south africa", label: "South Africa" }, { term: "uganda", label: "Uganda" }, { term: "tanzania", label: "Tanzania" },
+  { term: "india", label: "India" }, { term: "philippines", label: "the Philippines" }, { term: "brazil", label: "Brazil" },
+  { term: "mexico", label: "Mexico" }, { term: "indonesia", label: "Indonesia" },
+];
+const ROLE_TERMS: Array<{ term: string; label: string }> = [
+  { term: "freelanc", label: "freelancers" }, { term: "remote work", label: "remote workers" },
+  { term: "developer", label: "developers" }, { term: "tutor", label: "online tutors" },
+  { term: "payroll", label: "businesses paying remote teams" }, { term: "marketplace", label: "marketplaces paying workers" },
+];
+
+/** Derive the target audience from research context (subreddit, then keyword terms). */
+export function deriveAudience(opts: { keyword: string; source?: string; subreddit?: string }): string {
+  if (opts.subreddit) {
+    const a = SUBREDDIT_AUDIENCE[opts.subreddit.toLowerCase()];
+    if (a) return a;
+    return `the r/${opts.subreddit} community`;
+  }
+  const k = (opts.keyword ?? "").toLowerCase();
+  const country = COUNTRY_TERMS.find((c) => k.includes(c.term));
+  const role = ROLE_TERMS.find((r) => k.includes(r.term));
+  if (country && role) return `${role.label} in ${country.label}`;
+  if (country) return `remote workers in ${country.label}`;
+  if (role) return role.label;
+  return "remote workers and the businesses that pay them"; // S-PAY's core audience
+}
+
 /**
  * Draft an SEO blog post for a target keyword, grounded in PRODUCT_FACTS and the
  * Google 2026 SEO rules. Throws DraftNotConfiguredError until ANTHROPIC_API_KEY

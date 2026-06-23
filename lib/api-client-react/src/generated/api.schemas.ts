@@ -642,14 +642,31 @@ export type CreateDraftRequestSource = typeof CreateDraftRequestSource[keyof typ
 
 export const CreateDraftRequestSource = {
   gsc: 'gsc',
-  manual: 'manual',
   reddit: 'reddit',
 } as const;
 
+/**
+ * Draft from a RESEARCHED keyword (a GSC opportunity or Reddit topic). Audience is derived server-side from the context — no manual audience.
+ */
 export interface CreateDraftRequest {
   keyword: string;
-  audienceHint?: string;
   source?: CreateDraftRequestSource;
+  /** For reddit-sourced keywords; used to derive the audience */
+  subreddit?: string;
+}
+
+export type AutoDraftResponseSource = typeof AutoDraftResponseSource[keyof typeof AutoDraftResponseSource];
+
+
+export const AutoDraftResponseSource = {
+  gsc: 'gsc',
+  reddit: 'reddit',
+} as const;
+
+export interface AutoDraftResponse {
+  post: BlogPost;
+  pickedKeyword: string;
+  source: AutoDraftResponseSource;
 }
 
 export interface UpdateBlogPostRequest {
