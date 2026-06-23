@@ -1,8 +1,10 @@
 import { Layout } from "@/components/layout";
-import { 
+import {
   useGetBankingAccounts, getGetBankingAccountsQueryKey,
-  useGetIncomingPayments, getGetIncomingPaymentsQueryKey 
+  useGetIncomingPayments, getGetIncomingPaymentsQueryKey,
+  useOpenVirtualAccount,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +17,27 @@ export default function Banking() {
   const { data: bankingData, isLoading: isLoadingAccounts } = useGetBankingAccounts({ query: { queryKey: getGetBankingAccountsQueryKey() } });
   const { data: paymentsData, isLoading: isLoadingPayments } = useGetIncomingPayments({}, { query: { queryKey: getGetIncomingPaymentsQueryKey() } });
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const openAccount = useOpenVirtualAccount();
+  const existingCurrencies = new Set((bankingData?.accounts ?? []).map((a) => a.currency));
+  const onOpen = (currency: "USD" | "EUR") => {
+    openAccount.mutate({ data: { currency } }, {
+      onSuccess: (res) => {
+        toast({ title: res.created ? `${currency} account opened` : `${currency} account ready`, description: "Share these details to receive payments — they auto-convert to your wallet." });
+        queryClient.invalidateQueries({ queryKey: getGetBankingAccountsQueryKey() });
+      },
+      onError: (e) => {
+        const status = (e as { status?: number })?.status;
+        toast({
+          title: status === 403 ? "Verify your identity first" : status === 503 ? "Accounts activating soon" : "Could not open account",
+          description: status === 403 ? "Complete KYC/KYB, then open your USD/EUR account." : status === 503 ? "Our banking partner is being switched on — check back shortly." : "Please try again.",
+          variant: "destructive",
+        });
+      },
+    });
+  };
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -33,11 +55,17 @@ export default function Banking() {
         
         {/* Virtual Accounts */}
         <div>
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-4 gap-2 flex-wrap">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Your Virtual Accounts</h2>
-            <Button variant="outline" size="sm" className="rounded-full text-primary border-primary">
-              <Plus size={16} className="mr-1" /> Add Account
-            </Button>
+            <div className="flex items-center gap-2">
+              {(["USD", "EUR"] as const).map((c) => (
+                <Button key={c} variant="outline" size="sm" className="rounded-full text-primary border-primary"
+                  disabled={openAccount.isPending || existingCurrencies.has(c)}
+                  onClick={() => onOpen(c)}>
+                  <Plus size={16} className="mr-1" /> {existingCurrencies.has(c) ? `${c} ✓` : `Open ${c}`}
+                </Button>
+              ))}
+            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -74,9 +102,9 @@ export default function Banking() {
                     <div className="flex justify-between items-start mb-6">
                       <div>
                         <div className="text-xs font-bold px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded mb-2 inline-block">
-                          {account.currency} ACCOUNT
+                          {account.currency} · {account.accountType?.toUpperCase()}
                         </div>
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{account.bankName}</h3>
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{account.label ?? account.bankName ?? `Your ${account.currency} account`}</h3>
                       </div>
                       <div className={`px-2 py-1 rounded text-xs font-medium capitalize
                         ${account.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
@@ -85,12 +113,12 @@ export default function Banking() {
                     </div>
                     
                     <div className="space-y-3 bg-gray-50 dark:bg-gray-800/60 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                      {account.accountNumber && (
+                      {account.accountNumberMasked && (
                         <div className="flex justify-between items-center">
                           <span className="text-xs text-gray-500 dark:text-gray-400">Account Number</span>
                           <div className="flex items-center gap-2 font-mono text-sm font-medium">
-                            {account.accountNumber}
-                            <button onClick={() => copyToClipboard(account.accountNumber!, `acc-${account.id}`)} className="text-gray-400 hover:text-primary transition-colors">
+                            {account.accountNumberMasked}
+                            <button onClick={() => copyToClipboard(account.accountNumberMasked!, `acc-${account.id}`)} className="text-gray-400 hover:text-primary transition-colors">
                               {copiedId === `acc-${account.id}` ? <CheckCircle2 size={14} className="text-green-500" /> : <Copy size={14} />}
                             </button>
                           </div>
@@ -107,12 +135,12 @@ export default function Banking() {
                           </div>
                         </div>
                       )}
-                      {account.iban && (
+                      {account.ibanMasked && (
                         <div className="flex justify-between items-center">
                           <span className="text-xs text-gray-500 dark:text-gray-400">IBAN</span>
                           <div className="flex items-center gap-2 font-mono text-sm font-medium">
-                            {account.iban}
-                            <button onClick={() => copyToClipboard(account.iban!, `iban-${account.id}`)} className="text-gray-400 hover:text-primary transition-colors">
+                            {account.ibanMasked}
+                            <button onClick={() => copyToClipboard(account.ibanMasked!, `iban-${account.id}`)} className="text-gray-400 hover:text-primary transition-colors">
                               {copiedId === `iban-${account.id}` ? <CheckCircle2 size={14} className="text-green-500" /> : <Copy size={14} />}
                             </button>
                           </div>

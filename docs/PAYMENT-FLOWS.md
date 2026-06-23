@@ -160,13 +160,17 @@ Worker withdraws via the app → see "Off-ramp" below
 The virtual account is an **entry point, not a balance**. `GET /banking/accounts`
 lists account details to receive into; it never reports a separate balance.
 
-**Provider-neutral:** virtual accounts can be issued by Noah **or** a
-no-onboarding-fee alternative — **Bridge** for USD ACH / EU IBAN, and **Conduit**
-or **Yellow Card** for **local-currency** accounts in their corridors (e.g. a
-Kenyan or Nigerian account a local payer sends to). The admin picks the issuer
-(`virtualAccountIssuer`); the deposit on-ramp itself is routed per-transaction by
-`selectDepositProvider()` (see "On-ramp routing" below), so S-PAY is never locked
-to Noah.
+**Provider-neutral, USD/EUR only:** S-PAY issues **USD ACH / EU IBAN** virtual
+accounts (we don't offer local-currency accounts). The issuer is **Bridge**
+(no onboarding fee) or **Noah** — the admin picks one (`virtualAccountIssuer`),
+and it's sticky per user. The deposit on-ramp itself is routed per-transaction by
+`selectDepositProvider()` (see "On-ramp routing"), so S-PAY is never locked to
+Noah for deposits.
+
+**KYC is provider-agnostic too:** most partners (Noah, Bridge, Conduit, Yellow
+Card) run their own hosted KYC/KYB — S-PAY routes the user to the admin-selected
+`kycProvider`'s flow (`selectKycProvider`) and the result webhooks back to set
+`kycStatus`. Thunes is a payout network and leaves KYC to the partner.
 
 ---
 

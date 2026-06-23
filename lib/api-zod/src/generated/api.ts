@@ -429,16 +429,46 @@ export const AddFundsResponse = zod.object({
 export const GetBankingAccountsResponse = zod.object({
   "accounts": zod.array(zod.object({
   "id": zod.string(),
-  "currency": zod.string(),
-  "accountType": zod.enum(['ach', 'sepa', 'pix']),
-  "accountNumber": zod.string().optional(),
-  "routingNumber": zod.string().optional(),
-  "iban": zod.string().optional(),
-  "bankName": zod.string(),
-  "availableBalance": zod.number(),
-  "status": zod.enum(['active', 'pending', 'inactive'])
-})),
+  "currency": zod.enum(['USD', 'EUR']),
+  "accountType": zod.enum(['ach', 'iban']),
+  "country": zod.string().nullish(),
+  "holderName": zod.string().nullish(),
+  "bankName": zod.string().nullish(),
+  "accountNumberMasked": zod.string().nullish(),
+  "routingNumber": zod.string().nullish(),
+  "ibanMasked": zod.string().nullish(),
+  "status": zod.enum(['active', 'closed']),
+  "label": zod.string().describe('Generic label shown to the user (e.g. \"Your USD account\") — never provider-branded'),
+  "createdAt": zod.string().optional()
+}).describe('A persistent virtual account (USD ACH \/ EU IBAN). An entry point, not a balance.')),
   "totalBalance": zod.number()
+})
+
+
+/**
+ * KYC-gated and sticky — one active account per currency. 503 until an issuer is configured.
+ * @summary Open (or fetch) a USD/EUR virtual account
+ */
+export const OpenVirtualAccountBody = zod.object({
+  "currency": zod.enum(['USD', 'EUR'])
+})
+
+export const OpenVirtualAccountResponse = zod.object({
+  "account": zod.object({
+  "id": zod.string(),
+  "currency": zod.enum(['USD', 'EUR']),
+  "accountType": zod.enum(['ach', 'iban']),
+  "country": zod.string().nullish(),
+  "holderName": zod.string().nullish(),
+  "bankName": zod.string().nullish(),
+  "accountNumberMasked": zod.string().nullish(),
+  "routingNumber": zod.string().nullish(),
+  "ibanMasked": zod.string().nullish(),
+  "status": zod.enum(['active', 'closed']),
+  "label": zod.string().describe('Generic label shown to the user (e.g. \"Your USD account\") — never provider-branded'),
+  "createdAt": zod.string().optional()
+}).describe('A persistent virtual account (USD ACH \/ EU IBAN). An entry point, not a balance.'),
+  "created": zod.boolean()
 })
 
 
@@ -1163,6 +1193,7 @@ export const UpdateWalletProvidersResponse = zod.object({
 export const GetPayoutProvidersResponse = zod.object({
   "preferredProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).describe('Tiebreaker only; routing always picks the best rate for the customer'),
   "virtualAccountIssuer": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional().describe('Designated issuer for NEW virtual accounts (sticky per user once issued)'),
+  "kycProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional().describe('Provider that runs identity verification (KYC\/KYB)'),
   "providers": zod.array(zod.object({
   "key": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']),
   "label": zod.string().describe('Human-readable provider name'),
@@ -1171,7 +1202,8 @@ export const GetPayoutProvidersResponse = zod.object({
   "envHint": zod.string().describe('The environment variables that activate this provider'),
   "pricingNote": zod.string().describe('One-line note on commercial terms (onboarding-fee posture especially)'),
   "supportsDeposits": zod.boolean().optional().describe('Whether this provider can on-ramp (deposit) at least one corridor'),
-  "supportsVirtualAccounts": zod.boolean().optional().describe('Whether this provider can issue persistent virtual accounts (USD\/EUR or local)')
+  "supportsVirtualAccounts": zod.boolean().optional().describe('Whether this provider can issue USD\/EUR virtual accounts'),
+  "supportsKyc": zod.boolean().optional().describe('Whether this provider runs its own hosted KYC\/KYB')
 }))
 })
 
@@ -1182,6 +1214,7 @@ export const GetPayoutProvidersResponse = zod.object({
 export const UpdatePayoutProvidersBody = zod.object({
   "preferredProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional(),
   "virtualAccountIssuer": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional(),
+  "kycProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional(),
   "enabled": zod.object({
   "noah": zod.boolean().optional(),
   "bridge": zod.boolean().optional(),
@@ -1194,6 +1227,7 @@ export const UpdatePayoutProvidersBody = zod.object({
 export const UpdatePayoutProvidersResponse = zod.object({
   "preferredProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).describe('Tiebreaker only; routing always picks the best rate for the customer'),
   "virtualAccountIssuer": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional().describe('Designated issuer for NEW virtual accounts (sticky per user once issued)'),
+  "kycProvider": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']).optional().describe('Provider that runs identity verification (KYC\/KYB)'),
   "providers": zod.array(zod.object({
   "key": zod.enum(['noah', 'bridge', 'conduit', 'yellowcard', 'thunes']),
   "label": zod.string().describe('Human-readable provider name'),
@@ -1202,7 +1236,8 @@ export const UpdatePayoutProvidersResponse = zod.object({
   "envHint": zod.string().describe('The environment variables that activate this provider'),
   "pricingNote": zod.string().describe('One-line note on commercial terms (onboarding-fee posture especially)'),
   "supportsDeposits": zod.boolean().optional().describe('Whether this provider can on-ramp (deposit) at least one corridor'),
-  "supportsVirtualAccounts": zod.boolean().optional().describe('Whether this provider can issue persistent virtual accounts (USD\/EUR or local)')
+  "supportsVirtualAccounts": zod.boolean().optional().describe('Whether this provider can issue USD\/EUR virtual accounts'),
+  "supportsKyc": zod.boolean().optional().describe('Whether this provider runs its own hosted KYC\/KYB')
 }))
 })
 
@@ -1592,4 +1627,226 @@ export const ListPayrollWebhookDeliveriesResponse = zod.object({
   "deliveredAt": zod.string().nullish(),
   "createdAt": zod.string()
 }))
+})
+
+
+/**
+ * @summary SEO engine integration status
+ */
+export const GetSeoStatusResponse = zod.object({
+  "gscConfigured": zod.boolean(),
+  "draftConfigured": zod.boolean(),
+  "redditEnabled": zod.boolean()
+})
+
+
+/**
+ * @summary Ranked keyword opportunities from Search Console
+ */
+export const GetSeoOpportunitiesResponse = zod.object({
+  "configured": zod.boolean(),
+  "message": zod.string().optional(),
+  "opportunities": zod.array(zod.object({
+  "query": zod.string(),
+  "impressions": zod.number(),
+  "clicks": zod.number(),
+  "position": zod.number(),
+  "score": zod.number(),
+  "reason": zod.string()
+}))
+})
+
+
+/**
+ * @summary Topic ideas mined from project subreddits (public old.reddit JSON)
+ */
+export const getSeoRedditTopicsQueryTimeframeDefault = `week`;
+
+export const GetSeoRedditTopicsQueryParams = zod.object({
+  "timeframe": zod.enum(['day', 'week', 'month']).default(getSeoRedditTopicsQueryTimeframeDefault)
+})
+
+export const GetSeoRedditTopicsResponse = zod.object({
+  "enabled": zod.boolean(),
+  "topics": zod.array(zod.object({
+  "subreddit": zod.string(),
+  "title": zod.string(),
+  "url": zod.string(),
+  "score": zod.number(),
+  "numComments": zod.number()
+}))
+})
+
+
+/**
+ * @summary Generate an AI draft for a keyword (grounded in product facts)
+ */
+export const CreateSeoDraftBody = zod.object({
+  "keyword": zod.string(),
+  "audienceHint": zod.string().optional(),
+  "source": zod.enum(['gsc', 'manual', 'reddit']).optional()
+})
+
+
+/**
+ * @summary List blog posts (any status) for the review queue
+ */
+export const GetSeoPostsQueryParams = zod.object({
+  "status": zod.enum(['draft', 'approved', 'published', 'archived']).optional()
+})
+
+export const GetSeoPostsResponse = zod.object({
+  "posts": zod.array(zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "metaDescription": zod.string().nullish(),
+  "excerpt": zod.string().nullish(),
+  "keyword": zod.string().nullish(),
+  "status": zod.enum(['draft', 'approved', 'published', 'archived']),
+  "source": zod.enum(['gsc', 'manual', 'reddit']),
+  "model": zod.string().nullish(),
+  "gsc": zod.object({
+  "impressions": zod.number().nullish(),
+  "clicks": zod.number().nullish(),
+  "position": zod.number().nullish()
+}).optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "bodyMarkdown": zod.string().optional()
+}))
+})
+
+
+/**
+ * @summary Get one blog post (with body)
+ */
+export const GetSeoPostParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetSeoPostResponse = zod.object({
+  "post": zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "metaDescription": zod.string().nullish(),
+  "excerpt": zod.string().nullish(),
+  "keyword": zod.string().nullish(),
+  "status": zod.enum(['draft', 'approved', 'published', 'archived']),
+  "source": zod.enum(['gsc', 'manual', 'reddit']),
+  "model": zod.string().nullish(),
+  "gsc": zod.object({
+  "impressions": zod.number().nullish(),
+  "clicks": zod.number().nullish(),
+  "position": zod.number().nullish()
+}).optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "bodyMarkdown": zod.string().optional()
+})
+})
+
+
+/**
+ * @summary Edit a draft before publishing
+ */
+export const UpdateSeoPostParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateSeoPostBody = zod.object({
+  "title": zod.string().optional(),
+  "metaDescription": zod.string().optional(),
+  "excerpt": zod.string().optional(),
+  "bodyMarkdown": zod.string().optional(),
+  "keyword": zod.string().optional(),
+  "slug": zod.string().optional()
+})
+
+export const UpdateSeoPostResponse = zod.object({
+  "post": zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "metaDescription": zod.string().nullish(),
+  "excerpt": zod.string().nullish(),
+  "keyword": zod.string().nullish(),
+  "status": zod.enum(['draft', 'approved', 'published', 'archived']),
+  "source": zod.enum(['gsc', 'manual', 'reddit']),
+  "model": zod.string().nullish(),
+  "gsc": zod.object({
+  "impressions": zod.number().nullish(),
+  "clicks": zod.number().nullish(),
+  "position": zod.number().nullish()
+}).optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "bodyMarkdown": zod.string().optional()
+})
+})
+
+
+/**
+ * @summary Approve + publish a post (human approval gate)
+ */
+export const PublishSeoPostParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const PublishSeoPostResponse = zod.object({
+  "post": zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "metaDescription": zod.string().nullish(),
+  "excerpt": zod.string().nullish(),
+  "keyword": zod.string().nullish(),
+  "status": zod.enum(['draft', 'approved', 'published', 'archived']),
+  "source": zod.enum(['gsc', 'manual', 'reddit']),
+  "model": zod.string().nullish(),
+  "gsc": zod.object({
+  "impressions": zod.number().nullish(),
+  "clicks": zod.number().nullish(),
+  "position": zod.number().nullish()
+}).optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "bodyMarkdown": zod.string().optional()
+})
+})
+
+
+/**
+ * @summary Unpublish (archive) a post
+ */
+export const UnpublishSeoPostParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UnpublishSeoPostResponse = zod.object({
+  "post": zod.object({
+  "id": zod.string(),
+  "slug": zod.string(),
+  "title": zod.string(),
+  "metaDescription": zod.string().nullish(),
+  "excerpt": zod.string().nullish(),
+  "keyword": zod.string().nullish(),
+  "status": zod.enum(['draft', 'approved', 'published', 'archived']),
+  "source": zod.enum(['gsc', 'manual', 'reddit']),
+  "model": zod.string().nullish(),
+  "gsc": zod.object({
+  "impressions": zod.number().nullish(),
+  "clicks": zod.number().nullish(),
+  "position": zod.number().nullish()
+}).optional(),
+  "publishedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "bodyMarkdown": zod.string().optional()
+})
 })

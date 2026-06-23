@@ -12,6 +12,7 @@ import {
   useGetPayoutProviders, getGetPayoutProvidersQueryKey, useUpdatePayoutProviders,
   type PayoutProvidersUpdateRequestPreferredProvider,
   type PayoutProvidersUpdateRequestVirtualAccountIssuer,
+  type PayoutProvidersUpdateRequestKycProvider,
 } from "@workspace/api-client-react";
 import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone, UserPlus, Trash2, Link2, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -624,7 +625,21 @@ function PayoutProvidersSection() {
     );
   };
 
+  const setKyc = (key: string) => {
+    update.mutate(
+      { data: { kycProvider: key as PayoutProvidersUpdateRequestKycProvider } },
+      {
+        onSuccess: () => {
+          toast({ title: `KYC now runs through ${key}`, description: "New verifications use this provider's hosted flow. Live within 15 seconds." });
+          refetch();
+        },
+        onError: () => toast({ title: "Could not set KYC provider", description: "Please try again.", variant: "destructive" }),
+      },
+    );
+  };
+
   const issuers = (data?.providers ?? []).filter((p) => p.supportsVirtualAccounts);
+  const kycers = (data?.providers ?? []).filter((p) => p.supportsKyc);
 
   return (
     <Section icon={<Banknote size={16} />} title="Money Rails (Deposits, Payouts & Accounts)">
@@ -699,6 +714,28 @@ function PayoutProvidersSection() {
         >
           {issuers.length === 0 && <option value="">No issuer-capable provider</option>}
           {issuers.map((p) => (
+            <option key={p.key} value={p.key} disabled={!p.configured || !p.enabled}>
+              {p.label}{!p.configured ? " — not set" : !p.enabled ? " — off" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* KYC / KYB provider — most partners run their own hosted verification */}
+      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Identity verification (KYC/KYB)</p>
+        <p className="text-xs text-gray-400 mt-0.5 mb-2 leading-relaxed">
+          Which partner runs hosted identity verification. Noah, Bridge, Conduit and Yellow Card each offer their own
+          KYC/KYB; users are sent to the selected provider's flow and the result webhooks back to unlock their account.
+        </p>
+        <select
+          value={data?.kycProvider ?? ""}
+          onChange={(e) => setKyc(e.target.value)}
+          disabled={update.isPending || kycers.length === 0}
+          className="w-full sm:w-auto text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 disabled:opacity-50"
+        >
+          {kycers.length === 0 && <option value="">No KYC-capable provider</option>}
+          {kycers.map((p) => (
             <option key={p.key} value={p.key} disabled={!p.configured || !p.enabled}>
               {p.label}{!p.configured ? " — not set" : !p.enabled ? " — off" : ""}
             </option>

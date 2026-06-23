@@ -17,8 +17,13 @@ import { logger } from "./logger";
  *    set (never a faked article).
  *  - Nothing auto-publishes — a human approves every post.
  *
- * Use official APIs only (GSC Search Analytics, GA4 Data API, Reddit's official
- * API). Do NOT scrape Google/Reddit — it breaks their terms and gets blocked.
+ * Data sources:
+ *  - GSC Search Analytics (official API) for ranking opportunities.
+ *  - Reddit topic mining via the public old.reddit JSON endpoints (no OAuth — the
+ *    official API is heavily gated). We stay polite: a descriptive User-Agent, a
+ *    capped allowlist of ~50 project-related subreddits, a small per-sub limit,
+ *    and a short delay between requests.
+ *  - Never scrape Google search results — that breaks terms and gets blocked.
  */
 
 // ─── Google Search Console ingest ───────────────────────────────────────────────
@@ -100,6 +105,83 @@ export function rankOpportunities(rows: SearchAnalyticsRow[], limit = 20): Oppor
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
+}
+
+// ─── Reddit topic mining (public old.reddit JSON — no OAuth) ────────────────────
+
+// ~50 subreddits relevant to S-PAY: remote work / freelancing, payments &
+// fintech, stablecoins/Celo, and our key corridor countries. Override with
+// SEO_REDDIT_SUBREDDITS (comma-separated) to retarget without a deploy.
+const DEFAULT_SUBREDDITS = [
+  "remotework", "digitalnomad", "freelance", "WorkOnline", "forhire", "Upwork",
+  "Fiverr", "freelanceWriters", "juststart", "sidehustle", "passive_income",
+  "Entrepreneur", "smallbusiness", "kickstarter", "ecommerce", "SaaS",
+  "personalfinance", "povertyfinance", "Frugal", "FinancialPlanning",
+  "fintech", "CryptoCurrency", "stablecoins", "Celo", "ethfinance", "defi",
+  "Bitcoin", "ethereum", "CryptoTechnology", "Payoneer", "wise", "Banking",
+  "expats", "IWantOut", "cscareerquestions", "developersIndia", "webdev",
+  "programming", "PinoyProgrammer", "Kenya", "Nigeria", "ghana", "southafrica",
+  "india", "brazil", "philippines", "Uganda", "Tanzania", "SEO", "content_marketing",
+];
+
+const REDDIT_UA = process.env.SEO_REDDIT_USER_AGENT
+  ?? "web:spay-seo-research:v1 (by /u/spay-team)";
+
+export function isRedditEnabled(): boolean {
+  return process.env.SEO_REDDIT_ENABLED !== "false";
+}
+
+export function redditSubreddits(): string[] {
+  const env = process.env.SEO_REDDIT_SUBREDDITS;
+  const list = env ? env.split(",").map((s) => s.trim()).filter(Boolean) : DEFAULT_SUBREDDITS;
+  return list.slice(0, 50); // hard cap — never hammer Reddit
+}
+
+export interface RedditTopic {
+  subreddit: string;
+  title: string;
+  url: string;          // link to the discussion
+  score: number;
+  numComments: number;
+}
+
+/**
+ * Collect top posts from the allowlisted subreddits via old.reddit's public JSON
+ * (e.g. https://old.reddit.com/r/<sub>/top.json). No OAuth. Polite by design:
+ * capped subs, small per-sub limit, descriptive UA, a short delay between calls.
+ * Failures per subreddit are skipped, never thrown — partial results are fine.
+ * These titles are topic ideas for drafts, not facts to publish verbatim.
+ */
+export async function fetchRedditTopics(opts?: { perSub?: number; timeframe?: "day" | "week" | "month" }): Promise<RedditTopic[]> {
+  if (!isRedditEnabled()) return [];
+  const perSub = Math.min(Math.max(opts?.perSub ?? 4, 1), 10);
+  const timeframe = opts?.timeframe ?? "week";
+  const out: RedditTopic[] = [];
+
+  for (const sub of redditSubreddits()) {
+    try {
+      const res = await axios.get(`https://old.reddit.com/r/${encodeURIComponent(sub)}/top.json`, {
+        params: { t: timeframe, limit: perSub },
+        timeout: 10000,
+        headers: { "User-Agent": REDDIT_UA, Accept: "application/json" },
+      });
+      for (const child of res.data?.data?.children ?? []) {
+        const d = child?.data ?? {};
+        if (d.stickied || !d.title) continue;
+        out.push({
+          subreddit: sub,
+          title: String(d.title),
+          url: d.permalink ? `https://www.reddit.com${d.permalink}` : (d.url ?? ""),
+          score: Number(d.score ?? 0),
+          numComments: Number(d.num_comments ?? 0),
+        });
+      }
+    } catch (err) {
+      logger.warn({ sub, err: axios.isAxiosError(err) ? err.response?.status : String(err) }, "Reddit topic fetch failed (skipped)");
+    }
+    await new Promise((r) => setTimeout(r, 350)); // be polite between subreddits
+  }
+  return out.sort((a, b) => b.score - a.score);
 }
 
 // ─── Claude Haiku draft generation (grounded) ───────────────────────────────────

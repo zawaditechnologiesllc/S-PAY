@@ -35,8 +35,11 @@ import type {
   BatchCreateRequest,
   BatchListResponse,
   BatchResponse,
+  BlogPostResponse,
+  BlogPostsResponse,
   CardDetailsResponse,
   CardTransactionListResponse,
+  CreateDraftRequest,
   CreateEnquiryBody,
   CustomJob,
   CustomJobCreateRequest,
@@ -62,6 +65,8 @@ import type {
   GetExchangeRatesParams,
   GetIncomingPaymentsParams,
   GetJobsParams,
+  GetSeoPostsParams,
+  GetSeoRedditTopicsParams,
   GetSpendingSummaryParams,
   GetWalletTransactionsParams,
   GoogleTokenRequest,
@@ -79,16 +84,21 @@ import type {
   MessageResponse,
   NoahWebhookBody,
   NotificationsResponse,
+  OpenAccountRequest,
+  OpenAccountResponse,
   PaymentListResponse,
   PayoutProvidersResponse,
   PayoutProvidersUpdateRequest,
   PayrollSummary,
   PlatformStatus,
+  RedditTopicsResponse,
   RegisterRequest,
   ResetPasswordBody,
   RevokeEmployerApiKey200,
   SendAdminNotificationBody,
   SendMoneyRequest,
+  SeoOpportunitiesResponse,
+  SeoStatus,
   SetTransactionPinBody,
   SiteContent,
   SiteContentUpdateRequest,
@@ -99,6 +109,7 @@ import type {
   TestPayrollWebhookBody,
   Transaction,
   TransactionListResponse,
+  UpdateBlogPostRequest,
   UpdateEnquiryBody,
   UpdateProfileRequest,
   User,
@@ -1661,6 +1672,78 @@ export function useGetBankingAccounts<TData = Awaited<ReturnType<typeof getBanki
 
 
 
+
+export const getOpenVirtualAccountUrl = () => {
+
+
+
+
+  return `/api/banking/accounts`
+}
+
+/**
+ * KYC-gated and sticky — one active account per currency. 503 until an issuer is configured.
+ * @summary Open (or fetch) a USD/EUR virtual account
+ */
+export const openVirtualAccount = async (openAccountRequest: OpenAccountRequest, options?: RequestInit): Promise<OpenAccountResponse> => {
+
+  return customFetch<OpenAccountResponse>(getOpenVirtualAccountUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      openAccountRequest,)
+  }
+);}
+
+
+
+
+export const getOpenVirtualAccountMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openVirtualAccount>>, TError,{data: BodyType<OpenAccountRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof openVirtualAccount>>, TError,{data: BodyType<OpenAccountRequest>}, TContext> => {
+
+const mutationKey = ['openVirtualAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openVirtualAccount>>, {data: BodyType<OpenAccountRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  openVirtualAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OpenVirtualAccountMutationResult = NonNullable<Awaited<ReturnType<typeof openVirtualAccount>>>
+    export type OpenVirtualAccountMutationBody = BodyType<OpenAccountRequest>
+    export type OpenVirtualAccountMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Open (or fetch) a USD/EUR virtual account
+ */
+export const useOpenVirtualAccount = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openVirtualAccount>>, TError,{data: BodyType<OpenAccountRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof openVirtualAccount>>,
+        TError,
+        {data: BodyType<OpenAccountRequest>},
+        TContext
+      > => {
+      return useMutation(getOpenVirtualAccountMutationOptions(options));
+    }
 
 export const getGetIncomingPaymentsUrl = (params?: GetIncomingPaymentsParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -5868,4 +5951,686 @@ export function useListPayrollWebhookDeliveries<TData = Awaited<ReturnType<typeo
 
 
 
+
+export const getGetSeoStatusUrl = () => {
+
+
+
+
+  return `/api/admin/seo/status`
+}
+
+/**
+ * @summary SEO engine integration status
+ */
+export const getSeoStatus = async ( options?: RequestInit): Promise<SeoStatus> => {
+
+  return customFetch<SeoStatus>(getGetSeoStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSeoStatusQueryKey = () => {
+    return [
+    `/api/admin/seo/status`
+    ] as const;
+    }
+
+
+export const getGetSeoStatusQueryOptions = <TData = Awaited<ReturnType<typeof getSeoStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSeoStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSeoStatus>>> = ({ signal }) => getSeoStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSeoStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSeoStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getSeoStatus>>>
+export type GetSeoStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary SEO engine integration status
+ */
+
+export function useGetSeoStatus<TData = Awaited<ReturnType<typeof getSeoStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSeoStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSeoOpportunitiesUrl = () => {
+
+
+
+
+  return `/api/admin/seo/opportunities`
+}
+
+/**
+ * @summary Ranked keyword opportunities from Search Console
+ */
+export const getSeoOpportunities = async ( options?: RequestInit): Promise<SeoOpportunitiesResponse> => {
+
+  return customFetch<SeoOpportunitiesResponse>(getGetSeoOpportunitiesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSeoOpportunitiesQueryKey = () => {
+    return [
+    `/api/admin/seo/opportunities`
+    ] as const;
+    }
+
+
+export const getGetSeoOpportunitiesQueryOptions = <TData = Awaited<ReturnType<typeof getSeoOpportunities>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoOpportunities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSeoOpportunitiesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSeoOpportunities>>> = ({ signal }) => getSeoOpportunities({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSeoOpportunities>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSeoOpportunitiesQueryResult = NonNullable<Awaited<ReturnType<typeof getSeoOpportunities>>>
+export type GetSeoOpportunitiesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Ranked keyword opportunities from Search Console
+ */
+
+export function useGetSeoOpportunities<TData = Awaited<ReturnType<typeof getSeoOpportunities>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoOpportunities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSeoOpportunitiesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSeoRedditTopicsUrl = (params?: GetSeoRedditTopicsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/seo/reddit-topics?${stringifiedParams}` : `/api/admin/seo/reddit-topics`
+}
+
+/**
+ * @summary Topic ideas mined from project subreddits (public old.reddit JSON)
+ */
+export const getSeoRedditTopics = async (params?: GetSeoRedditTopicsParams, options?: RequestInit): Promise<RedditTopicsResponse> => {
+
+  return customFetch<RedditTopicsResponse>(getGetSeoRedditTopicsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSeoRedditTopicsQueryKey = (params?: GetSeoRedditTopicsParams,) => {
+    return [
+    `/api/admin/seo/reddit-topics`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSeoRedditTopicsQueryOptions = <TData = Awaited<ReturnType<typeof getSeoRedditTopics>>, TError = ErrorType<unknown>>(params?: GetSeoRedditTopicsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoRedditTopics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSeoRedditTopicsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSeoRedditTopics>>> = ({ signal }) => getSeoRedditTopics(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSeoRedditTopics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSeoRedditTopicsQueryResult = NonNullable<Awaited<ReturnType<typeof getSeoRedditTopics>>>
+export type GetSeoRedditTopicsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Topic ideas mined from project subreddits (public old.reddit JSON)
+ */
+
+export function useGetSeoRedditTopics<TData = Awaited<ReturnType<typeof getSeoRedditTopics>>, TError = ErrorType<unknown>>(
+ params?: GetSeoRedditTopicsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoRedditTopics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSeoRedditTopicsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateSeoDraftUrl = () => {
+
+
+
+
+  return `/api/admin/seo/drafts`
+}
+
+/**
+ * @summary Generate an AI draft for a keyword (grounded in product facts)
+ */
+export const createSeoDraft = async (createDraftRequest: CreateDraftRequest, options?: RequestInit): Promise<BlogPostResponse> => {
+
+  return customFetch<BlogPostResponse>(getCreateSeoDraftUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createDraftRequest,)
+  }
+);}
+
+
+
+
+export const getCreateSeoDraftMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSeoDraft>>, TError,{data: BodyType<CreateDraftRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSeoDraft>>, TError,{data: BodyType<CreateDraftRequest>}, TContext> => {
+
+const mutationKey = ['createSeoDraft'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSeoDraft>>, {data: BodyType<CreateDraftRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSeoDraft(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSeoDraftMutationResult = NonNullable<Awaited<ReturnType<typeof createSeoDraft>>>
+    export type CreateSeoDraftMutationBody = BodyType<CreateDraftRequest>
+    export type CreateSeoDraftMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate an AI draft for a keyword (grounded in product facts)
+ */
+export const useCreateSeoDraft = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSeoDraft>>, TError,{data: BodyType<CreateDraftRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSeoDraft>>,
+        TError,
+        {data: BodyType<CreateDraftRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateSeoDraftMutationOptions(options));
+    }
+
+export const getGetSeoPostsUrl = (params?: GetSeoPostsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/seo/posts?${stringifiedParams}` : `/api/admin/seo/posts`
+}
+
+/**
+ * @summary List blog posts (any status) for the review queue
+ */
+export const getSeoPosts = async (params?: GetSeoPostsParams, options?: RequestInit): Promise<BlogPostsResponse> => {
+
+  return customFetch<BlogPostsResponse>(getGetSeoPostsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSeoPostsQueryKey = (params?: GetSeoPostsParams,) => {
+    return [
+    `/api/admin/seo/posts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSeoPostsQueryOptions = <TData = Awaited<ReturnType<typeof getSeoPosts>>, TError = ErrorType<unknown>>(params?: GetSeoPostsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoPosts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSeoPostsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSeoPosts>>> = ({ signal }) => getSeoPosts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSeoPosts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSeoPostsQueryResult = NonNullable<Awaited<ReturnType<typeof getSeoPosts>>>
+export type GetSeoPostsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List blog posts (any status) for the review queue
+ */
+
+export function useGetSeoPosts<TData = Awaited<ReturnType<typeof getSeoPosts>>, TError = ErrorType<unknown>>(
+ params?: GetSeoPostsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoPosts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSeoPostsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSeoPostUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/seo/posts/${id}`
+}
+
+/**
+ * @summary Get one blog post (with body)
+ */
+export const getSeoPost = async (id: string, options?: RequestInit): Promise<BlogPostResponse> => {
+
+  return customFetch<BlogPostResponse>(getGetSeoPostUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSeoPostQueryKey = (id: string,) => {
+    return [
+    `/api/admin/seo/posts/${id}`
+    ] as const;
+    }
+
+
+export const getGetSeoPostQueryOptions = <TData = Awaited<ReturnType<typeof getSeoPost>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoPost>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSeoPostQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSeoPost>>> = ({ signal }) => getSeoPost(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSeoPost>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSeoPostQueryResult = NonNullable<Awaited<ReturnType<typeof getSeoPost>>>
+export type GetSeoPostQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get one blog post (with body)
+ */
+
+export function useGetSeoPost<TData = Awaited<ReturnType<typeof getSeoPost>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSeoPost>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSeoPostQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateSeoPostUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/seo/posts/${id}`
+}
+
+/**
+ * @summary Edit a draft before publishing
+ */
+export const updateSeoPost = async (id: string,
+    updateBlogPostRequest: UpdateBlogPostRequest, options?: RequestInit): Promise<BlogPostResponse> => {
+
+  return customFetch<BlogPostResponse>(getUpdateSeoPostUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateBlogPostRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateSeoPostMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSeoPost>>, TError,{id: string;data: BodyType<UpdateBlogPostRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSeoPost>>, TError,{id: string;data: BodyType<UpdateBlogPostRequest>}, TContext> => {
+
+const mutationKey = ['updateSeoPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSeoPost>>, {id: string;data: BodyType<UpdateBlogPostRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateSeoPost(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSeoPostMutationResult = NonNullable<Awaited<ReturnType<typeof updateSeoPost>>>
+    export type UpdateSeoPostMutationBody = BodyType<UpdateBlogPostRequest>
+    export type UpdateSeoPostMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Edit a draft before publishing
+ */
+export const useUpdateSeoPost = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSeoPost>>, TError,{id: string;data: BodyType<UpdateBlogPostRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSeoPost>>,
+        TError,
+        {id: string;data: BodyType<UpdateBlogPostRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateSeoPostMutationOptions(options));
+    }
+
+export const getPublishSeoPostUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/seo/posts/${id}/publish`
+}
+
+/**
+ * @summary Approve + publish a post (human approval gate)
+ */
+export const publishSeoPost = async (id: string, options?: RequestInit): Promise<BlogPostResponse> => {
+
+  return customFetch<BlogPostResponse>(getPublishSeoPostUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getPublishSeoPostMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishSeoPost>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishSeoPost>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['publishSeoPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishSeoPost>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  publishSeoPost(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PublishSeoPostMutationResult = NonNullable<Awaited<ReturnType<typeof publishSeoPost>>>
+
+    export type PublishSeoPostMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Approve + publish a post (human approval gate)
+ */
+export const usePublishSeoPost = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishSeoPost>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof publishSeoPost>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getPublishSeoPostMutationOptions(options));
+    }
+
+export const getUnpublishSeoPostUrl = (id: string,) => {
+
+
+
+
+  return `/api/admin/seo/posts/${id}/unpublish`
+}
+
+/**
+ * @summary Unpublish (archive) a post
+ */
+export const unpublishSeoPost = async (id: string, options?: RequestInit): Promise<BlogPostResponse> => {
+
+  return customFetch<BlogPostResponse>(getUnpublishSeoPostUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getUnpublishSeoPostMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unpublishSeoPost>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unpublishSeoPost>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['unpublishSeoPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unpublishSeoPost>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  unpublishSeoPost(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnpublishSeoPostMutationResult = NonNullable<Awaited<ReturnType<typeof unpublishSeoPost>>>
+
+    export type UnpublishSeoPostMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Unpublish (archive) a post
+ */
+export const useUnpublishSeoPost = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unpublishSeoPost>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unpublishSeoPost>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getUnpublishSeoPostMutationOptions(options));
+    }
 
