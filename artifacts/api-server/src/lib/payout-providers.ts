@@ -47,6 +47,12 @@ export class VirtualAccountNotConfiguredError extends Error {
   }
 }
 
+export class KycNotConfiguredError extends Error {
+  constructor(public provider: PayoutProviderKey) {
+    super(`KYC provider "${provider}" is not configured`);
+  }
+}
+
 // ─── Off-ramp (payout) shapes ──────────────────────────────────────────────────
 
 export interface PayoutQuote {
@@ -115,14 +121,35 @@ export interface VirtualAccountRequest {
 export interface VirtualAccountDetails {
   provider: PayoutProviderKey;
   externalId?: string;
-  currency: string;
-  accountType: "ach" | "iban" | "local_bank";
+  currency: string;             // USD | EUR (we only offer USD/EUR accounts)
+  accountType: "ach" | "iban";
   country?: string;
   holderName: string;
   bankName?: string;
   accountNumberMasked?: string; // last4 only
-  routingNumber?: string;       // ACH (or local sort/branch code)
+  routingNumber?: string;       // ACH
   ibanMasked?: string;          // masked IBAN
+}
+
+// ─── KYC / KYB (identity verification) shapes ──────────────────────────────────
+// Most money-rail partners run their own hosted KYC/KYB (Noah, Bridge, Conduit,
+// Yellow Card) — you don't build an identity stack, you point the user at the
+// provider's hosted flow and they webhook the result back. Thunes is a payout
+// network and leaves KYC to the integrating partner.
+
+export interface KycStartRequest {
+  userId: string;
+  accountType: "personal" | "business";
+  fullName: string;
+  email: string;
+  businessName?: string;
+  country?: string;
+}
+
+export interface KycStartResult {
+  provider: PayoutProviderKey;
+  verificationUrl: string;  // the provider's hosted KYC/KYB page
+  externalId?: string;      // provider customer id, to correlate the webhook
 }
 
 export interface MoneyRailProvider {
@@ -146,20 +173,26 @@ export interface MoneyRailProvider {
   quoteDeposit(req: Pick<DepositRequest, "amountLocal" | "sourceCurrency" | "method">): DepositQuote;
   createDeposit(req: DepositRequest): Promise<DepositResult>;
 
-  // Virtual accounts (persistent US ACH / EU IBAN)
+  // Virtual accounts (persistent US ACH / EU IBAN — USD/EUR only)
   /** Can this provider issue a persistent virtual account in the given currency? */
   supportsVirtualAccount(currency: string): boolean;
   /** Issue (or fetch) a virtual account. Throws VirtualAccountNotConfiguredError until keys are set. */
   createVirtualAccount(req: VirtualAccountRequest): Promise<VirtualAccountDetails>;
+
+  // KYC / KYB (identity verification)
+  /** Does this provider run its own hosted KYC/KYB? */
+  supportsKyc(): boolean;
+  /** Start hosted verification; returns the URL to send the user to. Throws KycNotConfiguredError until keys are set. */
+  startKyc(req: KycStartRequest): Promise<KycStartResult>;
 }
 
-/** USD → US ACH, EUR → EU IBAN, any other currency → a local bank account. */
-export function accountTypeForCurrency(currency: string): "ach" | "iban" | "local_bank" {
-  const c = currency?.toUpperCase();
-  if (c === "USD") return "ach";
-  if (c === "EUR") return "iban";
-  return "local_bank";
+/** USD → US ACH, EUR → EU IBAN. (We only offer USD/EUR virtual accounts.) */
+export function accountTypeForCurrency(currency: string): "ach" | "iban" {
+  return currency?.toUpperCase() === "EUR" ? "iban" : "ach";
 }
+
+/** The only currencies we issue virtual accounts in. */
+export const VIRTUAL_ACCOUNT_CURRENCIES = new Set(["USD", "EUR"]);
 
 // Indicative FX rates (stablecoin base). Shared with banking.ts's table; live
 // quotes replace these once a provider key is configured.
@@ -219,8 +252,10 @@ const noahProvider: MoneyRailProvider = {
   supportsDeposit: (c) => NOAH_CURRENCIES.has(c?.toUpperCase()),
   quoteDeposit: (req) => makeDepositQuote("noah", 0.01, req),
   createDeposit: async () => { throw new DepositNotConfiguredError("noah"); },
-  supportsVirtualAccount: (c) => ["USD", "EUR"].includes(c?.toUpperCase()),
+  supportsVirtualAccount: (c) => VIRTUAL_ACCOUNT_CURRENCIES.has(c?.toUpperCase()),
   createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("noah"); },
+  supportsKyc: () => true, // Noah runs hosted KYC (individuals) + KYB (businesses)
+  startKyc: async () => { throw new KycNotConfiguredError("noah"); },
 };
 
 // ─── Bridge (Stripe) — USD/EUR virtual accounts + stablecoin orchestration ─────
@@ -240,8 +275,10 @@ const bridgeProvider: MoneyRailProvider = {
   createDeposit: async () => { throw new DepositNotConfiguredError("bridge"); },
   // Bridge's core product: issue USD ACH / EU IBAN accounts that auto-convert to
   // USDC. No onboarding fee → the preferred default virtual-account issuer.
-  supportsVirtualAccount: (c) => ["USD", "EUR"].includes(c?.toUpperCase()),
+  supportsVirtualAccount: (c) => VIRTUAL_ACCOUNT_CURRENCIES.has(c?.toUpperCase()),
   createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("bridge"); },
+  supportsKyc: () => true, // Bridge runs its own KYC/KYB for account issuance
+  startKyc: async () => { throw new KycNotConfiguredError("bridge"); },
 };
 
 // ─── Conduit — cross-border B2B/marketplace payments (LatAm/Africa/Asia) ────────
@@ -258,9 +295,12 @@ const conduitProvider: MoneyRailProvider = {
   supportsDeposit: (c) => CONDUIT_CURRENCIES.has(c?.toUpperCase()),
   quoteDeposit: (req) => makeDepositQuote("conduit", 0.008, req),
   createDeposit: async () => { throw new DepositNotConfiguredError("conduit"); },
-  // Issues local-currency collection accounts across its corridors (plus USD).
-  supportsVirtualAccount: (c) => CONDUIT_CURRENCIES.has(c?.toUpperCase()),
+  // Can issue local-currency collection accounts, but we only offer USD/EUR
+  // virtual accounts — so it is not a virtual-account issuer here.
+  supportsVirtualAccount: () => false,
   createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("conduit"); },
+  supportsKyc: () => true, // Conduit runs KYB onboarding for its corridors
+  startKyc: async () => { throw new KycNotConfiguredError("conduit"); },
 };
 
 // ─── Yellow Card — pan-African mobile money + bank (on- AND off-ramp) ───────────
@@ -277,9 +317,12 @@ const yellowcardProvider: MoneyRailProvider = {
   supportsDeposit: (c) => YELLOWCARD_CURRENCIES.has(c?.toUpperCase()),
   quoteDeposit: (req) => makeDepositQuote("yellowcard", 0.009, req),
   createDeposit: async () => { throw new DepositNotConfiguredError("yellowcard"); },
-  // Issues local-currency collection accounts across its African corridors.
-  supportsVirtualAccount: (c) => YELLOWCARD_CURRENCIES.has(c?.toUpperCase()),
+  // African corridors are local-currency; we only offer USD/EUR accounts, so
+  // Yellow Card is not a virtual-account issuer here.
+  supportsVirtualAccount: () => false,
   createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("yellowcard"); },
+  supportsKyc: () => true, // Yellow Card runs KYC for its accounts
+  startKyc: async () => { throw new KycNotConfiguredError("yellowcard"); },
 };
 
 // ─── Thunes — very broad global payout network (payout-first) ───────────────────
@@ -300,6 +343,8 @@ const thunesProvider: MoneyRailProvider = {
   createDeposit: async () => { throw new DepositNotConfiguredError("thunes"); },
   supportsVirtualAccount: () => false, // payout network, not an account issuer
   createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("thunes"); },
+  supportsKyc: () => false, // a payout network — KYC is left to the integrating partner
+  startKyc: async () => { throw new KycNotConfiguredError("thunes"); },
 };
 
 // ─── Registry + routing ────────────────────────────────────────────────────────
@@ -315,7 +360,7 @@ const PROVIDERS: Record<PayoutProviderKey, MoneyRailProvider> = {
 /** Static provider facts for the admin panel. */
 export function payoutProviderCatalog(): Array<{
   key: PayoutProviderKey; label: string; configured: boolean; envHint: string;
-  pricingNote: string; supportsDeposits: boolean; supportsVirtualAccounts: boolean;
+  pricingNote: string; supportsDeposits: boolean; supportsVirtualAccounts: boolean; supportsKyc: boolean;
 }> {
   // A provider "supports deposits" in general if it can on-ramp any corridor.
   const anyDeposit = (p: MoneyRailProvider) =>
@@ -323,8 +368,8 @@ export function payoutProviderCatalog(): Array<{
   return Object.values(PROVIDERS).map((p) => ({
     key: p.key, label: p.label, configured: p.isConfigured(),
     envHint: p.envHint, pricingNote: p.pricingNote, supportsDeposits: anyDeposit(p),
-    // USD/EUR (Bridge, Noah) or local-currency accounts (Conduit, Yellow Card).
-    supportsVirtualAccounts: ["USD", "EUR", "KES", "NGN", "BRL"].some((c) => p.supportsVirtualAccount(c)),
+    supportsVirtualAccounts: p.supportsVirtualAccount("USD") || p.supportsVirtualAccount("EUR"),
+    supportsKyc: p.supportsKyc(),
   }));
 }
 
@@ -414,6 +459,27 @@ export async function selectVirtualAccountIssuer(currency: string): Promise<Mone
   const fallback = Object.values(PROVIDERS).find(eligible);
   if (!fallback) {
     logger.info({ currency }, "No configured virtual-account issuer for currency");
+    return null;
+  }
+  return fallback;
+}
+
+/**
+ * Pick the provider that runs identity verification (KYC/KYB). Like the
+ * virtual-account issuer, this honors the admin's designated KYC provider first
+ * (if enabled, configured and it runs KYC), then falls back to any enabled +
+ * configured provider that does. Returns null when none can (honest 503).
+ */
+export async function selectKycProvider(): Promise<MoneyRailProvider | null> {
+  const config = await getPayoutProviderConfig();
+  const eligible = (p: MoneyRailProvider) => config.enabled[p.key] && p.isConfigured() && p.supportsKyc();
+
+  const designated = PROVIDERS[config.kycProvider];
+  if (designated && eligible(designated)) return designated;
+
+  const fallback = Object.values(PROVIDERS).find(eligible);
+  if (!fallback) {
+    logger.info("No configured KYC provider");
     return null;
   }
   return fallback;

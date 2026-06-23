@@ -493,13 +493,20 @@ export interface AddFundsResponse {
   currency: string;
 }
 
+export type BankAccountCurrency = typeof BankAccountCurrency[keyof typeof BankAccountCurrency];
+
+
+export const BankAccountCurrency = {
+  USD: 'USD',
+  EUR: 'EUR',
+} as const;
+
 export type BankAccountAccountType = typeof BankAccountAccountType[keyof typeof BankAccountAccountType];
 
 
 export const BankAccountAccountType = {
   ach: 'ach',
-  sepa: 'sepa',
-  pix: 'pix',
+  iban: 'iban',
 } as const;
 
 export type BankAccountStatus = typeof BankAccountStatus[keyof typeof BankAccountStatus];
@@ -507,20 +514,151 @@ export type BankAccountStatus = typeof BankAccountStatus[keyof typeof BankAccoun
 
 export const BankAccountStatus = {
   active: 'active',
-  pending: 'pending',
-  inactive: 'inactive',
+  closed: 'closed',
 } as const;
 
+/**
+ * A persistent virtual account (USD ACH / EU IBAN). An entry point, not a balance.
+ */
 export interface BankAccount {
   id: string;
-  currency: string;
+  currency: BankAccountCurrency;
   accountType: BankAccountAccountType;
-  accountNumber?: string;
-  routingNumber?: string;
-  iban?: string;
-  bankName: string;
-  availableBalance: number;
+  country?: string | null;
+  holderName?: string | null;
+  bankName?: string | null;
+  accountNumberMasked?: string | null;
+  routingNumber?: string | null;
+  ibanMasked?: string | null;
   status: BankAccountStatus;
+  /** Generic label shown to the user (e.g. "Your USD account") — never provider-branded */
+  label: string;
+  createdAt?: string;
+}
+
+export type OpenAccountRequestCurrency = typeof OpenAccountRequestCurrency[keyof typeof OpenAccountRequestCurrency];
+
+
+export const OpenAccountRequestCurrency = {
+  USD: 'USD',
+  EUR: 'EUR',
+} as const;
+
+export interface OpenAccountRequest {
+  currency: OpenAccountRequestCurrency;
+}
+
+export interface OpenAccountResponse {
+  account: BankAccount;
+  created: boolean;
+}
+
+export interface SeoStatus {
+  gscConfigured: boolean;
+  draftConfigured: boolean;
+  redditEnabled: boolean;
+}
+
+export interface SeoOpportunity {
+  query: string;
+  impressions: number;
+  clicks: number;
+  position: number;
+  score: number;
+  reason: string;
+}
+
+export interface SeoOpportunitiesResponse {
+  configured: boolean;
+  message?: string;
+  opportunities: SeoOpportunity[];
+}
+
+export interface RedditTopic {
+  subreddit: string;
+  title: string;
+  url: string;
+  score: number;
+  numComments: number;
+}
+
+export interface RedditTopicsResponse {
+  enabled: boolean;
+  topics: RedditTopic[];
+}
+
+export interface BlogPostGsc {
+  impressions?: number | null;
+  clicks?: number | null;
+  position?: number | null;
+}
+
+export type BlogPostStatus = typeof BlogPostStatus[keyof typeof BlogPostStatus];
+
+
+export const BlogPostStatus = {
+  draft: 'draft',
+  approved: 'approved',
+  published: 'published',
+  archived: 'archived',
+} as const;
+
+export type BlogPostSource = typeof BlogPostSource[keyof typeof BlogPostSource];
+
+
+export const BlogPostSource = {
+  gsc: 'gsc',
+  manual: 'manual',
+  reddit: 'reddit',
+} as const;
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  metaDescription?: string | null;
+  excerpt?: string | null;
+  keyword?: string | null;
+  status: BlogPostStatus;
+  source: BlogPostSource;
+  model?: string | null;
+  gsc?: BlogPostGsc;
+  publishedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  bodyMarkdown?: string;
+}
+
+export interface BlogPostResponse {
+  post: BlogPost;
+}
+
+export interface BlogPostsResponse {
+  posts: BlogPost[];
+}
+
+export type CreateDraftRequestSource = typeof CreateDraftRequestSource[keyof typeof CreateDraftRequestSource];
+
+
+export const CreateDraftRequestSource = {
+  gsc: 'gsc',
+  manual: 'manual',
+  reddit: 'reddit',
+} as const;
+
+export interface CreateDraftRequest {
+  keyword: string;
+  audienceHint?: string;
+  source?: CreateDraftRequestSource;
+}
+
+export interface UpdateBlogPostRequest {
+  title?: string;
+  metaDescription?: string;
+  excerpt?: string;
+  bodyMarkdown?: string;
+  keyword?: string;
+  slug?: string;
 }
 
 export interface BankingAccountsResponse {
@@ -1107,8 +1245,10 @@ export interface PayoutProviderInfo {
   pricingNote: string;
   /** Whether this provider can on-ramp (deposit) at least one corridor */
   supportsDeposits?: boolean;
-  /** Whether this provider can issue persistent virtual accounts (USD/EUR or local) */
+  /** Whether this provider can issue USD/EUR virtual accounts */
   supportsVirtualAccounts?: boolean;
+  /** Whether this provider runs its own hosted KYC/KYB */
+  supportsKyc?: boolean;
 }
 
 /**
@@ -1139,11 +1279,27 @@ export const PayoutProvidersResponseVirtualAccountIssuer = {
   thunes: 'thunes',
 } as const;
 
+/**
+ * Provider that runs identity verification (KYC/KYB)
+ */
+export type PayoutProvidersResponseKycProvider = typeof PayoutProvidersResponseKycProvider[keyof typeof PayoutProvidersResponseKycProvider];
+
+
+export const PayoutProvidersResponseKycProvider = {
+  noah: 'noah',
+  bridge: 'bridge',
+  conduit: 'conduit',
+  yellowcard: 'yellowcard',
+  thunes: 'thunes',
+} as const;
+
 export interface PayoutProvidersResponse {
   /** Tiebreaker only; routing always picks the best rate for the customer */
   preferredProvider: PayoutProvidersResponsePreferredProvider;
   /** Designated issuer for NEW virtual accounts (sticky per user once issued) */
   virtualAccountIssuer?: PayoutProvidersResponseVirtualAccountIssuer;
+  /** Provider that runs identity verification (KYC/KYB) */
+  kycProvider?: PayoutProvidersResponseKycProvider;
   providers: PayoutProviderInfo[];
 }
 
@@ -1169,6 +1325,17 @@ export const PayoutProvidersUpdateRequestVirtualAccountIssuer = {
   thunes: 'thunes',
 } as const;
 
+export type PayoutProvidersUpdateRequestKycProvider = typeof PayoutProvidersUpdateRequestKycProvider[keyof typeof PayoutProvidersUpdateRequestKycProvider];
+
+
+export const PayoutProvidersUpdateRequestKycProvider = {
+  noah: 'noah',
+  bridge: 'bridge',
+  conduit: 'conduit',
+  yellowcard: 'yellowcard',
+  thunes: 'thunes',
+} as const;
+
 /**
  * Per-provider on/off, e.g. {"noah": false, "yellowcard": true}
  */
@@ -1186,6 +1353,7 @@ export type PayoutProvidersUpdateRequestEnabled = {
 export interface PayoutProvidersUpdateRequest {
   preferredProvider?: PayoutProvidersUpdateRequestPreferredProvider;
   virtualAccountIssuer?: PayoutProvidersUpdateRequestVirtualAccountIssuer;
+  kycProvider?: PayoutProvidersUpdateRequestKycProvider;
   /** Per-provider on/off, e.g. {"noah": false, "yellowcard": true} */
   enabled?: PayoutProvidersUpdateRequestEnabled;
 }
@@ -1424,4 +1592,31 @@ export type TestPayrollWebhook200 = {
   queued?: boolean;
   deliveryId?: string | null;
 };
+
+export type GetSeoRedditTopicsParams = {
+timeframe?: GetSeoRedditTopicsTimeframe;
+};
+
+export type GetSeoRedditTopicsTimeframe = typeof GetSeoRedditTopicsTimeframe[keyof typeof GetSeoRedditTopicsTimeframe];
+
+
+export const GetSeoRedditTopicsTimeframe = {
+  day: 'day',
+  week: 'week',
+  month: 'month',
+} as const;
+
+export type GetSeoPostsParams = {
+status?: GetSeoPostsStatus;
+};
+
+export type GetSeoPostsStatus = typeof GetSeoPostsStatus[keyof typeof GetSeoPostsStatus];
+
+
+export const GetSeoPostsStatus = {
+  draft: 'draft',
+  approved: 'approved',
+  published: 'published',
+  archived: 'archived',
+} as const;
 

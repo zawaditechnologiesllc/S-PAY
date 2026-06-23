@@ -36,6 +36,7 @@ const AdminSettings = lazy(() => import("@/pages/admin/settings"));
 const AdminPayroll = lazy(() => import("@/pages/admin/payroll"));
 const AdminJobs = lazy(() => import("@/pages/admin/jobs"));
 const AdminEnquiries = lazy(() => import("@/pages/admin/enquiries"));
+const AdminSeo = lazy(() => import("@/pages/admin/seo"));
 const About = lazy(() => import("@/pages/about"));
 const HowItWorks = lazy(() => import("@/pages/how-it-works"));
 const ResetPassword = lazy(() => import("@/pages/reset-password"));
@@ -176,6 +177,7 @@ function Router() {
       <Route path="/admin/payroll"><ProtectedRoute component={AdminPayroll} /></Route>
       <Route path="/admin/jobs"><ProtectedRoute component={AdminJobs} /></Route>
       <Route path="/admin/enquiries"><ProtectedRoute component={AdminEnquiries} /></Route>
+      <Route path="/admin/seo"><ProtectedRoute component={AdminSeo} /></Route>
       <Route path="/admin/settings"><ProtectedRoute component={AdminSettings} /></Route>
 
       <Route component={NotFound} />

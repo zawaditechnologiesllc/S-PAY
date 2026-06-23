@@ -36,11 +36,24 @@ GSC Search Analytics ─▶ opportunity ranker ─▶ Claude Haiku draft (ground
 - **Admin API** (`routes/seo.ts`, admin-gated):
   - `GET /admin/seo/status` — integration status.
   - `GET /admin/seo/opportunities` — ranked keywords (honest empty until GSC set).
+  - `GET /admin/seo/reddit-topics` — topic ideas from old.reddit public JSON.
   - `POST /admin/seo/drafts` — generate a Haiku draft for a keyword.
   - `GET/PATCH /admin/seo/posts[/:id]` — review queue + edit.
   - `POST /admin/seo/posts/:id/publish` `/unpublish` — the human approval gate.
+- **Admin UI:** `/admin/seo` ("SEO & Blog", manager+) — status, opportunities,
+  Reddit topics, one-click draft generation, and the **review → approve →
+  publish** queue with a full post editor. This is where publications are
+  authorised.
 - **Public API:** `GET /blog`, `GET /blog/:slug` (returns the post + Article
   JSON-LD).
+
+### Reddit topic mining (old.reddit, no OAuth)
+
+The official Reddit API is heavily gated, so topic mining uses the **public
+old.reddit JSON** endpoints (`old.reddit.com/r/<sub>/top.json`) instead — no
+auth. It stays polite: a descriptive User-Agent, a **capped allowlist of ~50
+project-related subreddits**, a small per-sub limit, and a delay between calls.
+Titles are *idea seeds* for drafts, never published verbatim.
 
 ## Honest gating (nothing fakes data)
 
@@ -59,6 +72,9 @@ It never invents query data or articles; until configured it says so.
 | `GSC_SITE_URL` | The verified GSC property (e.g. `https://spayewallet.com/`) |
 | `ANTHROPIC_API_KEY` | Claude Haiku drafting |
 | `SEO_DRAFT_MODEL` | Optional model override (default `claude-haiku-4-5-20251001`) |
+| `SEO_REDDIT_ENABLED` | Set `false` to disable Reddit mining (default on) |
+| `SEO_REDDIT_SUBREDDITS` | Optional comma-separated override of the ~50 subreddits |
+| `SEO_REDDIT_USER_AGENT` | Optional custom User-Agent for old.reddit requests |
 | `SITE_URL` | Base URL for canonical/JSON-LD (already used elsewhere) |
 
 ## Why Claude Haiku (not Gemini Flash)
@@ -75,9 +91,7 @@ the brand. `SEO_DRAFT_MODEL` lets you swap if you ever want to.
   present; the service-account token exchange + Search Analytics POST is the one
   remaining step (the row shape already matches the API response).
 - **GA4 Data API** ingest (engagement/conversions per landing page).
-- **Reddit question mining** via Reddit's **official API** (within terms) to seed
-  topic ideas — never scraping.
 - **Persisted metrics table** for trend history + an automated re-ranking
   scheduler.
-- **Frontend `/blog` pages + sitemap entries + internal linking** to jobs/landing
-  (the API + JSON-LD are ready; the web pages and sitemap wiring remain).
+- **Sitemap entries + internal linking** for published posts (the admin UI,
+  public `/blog` API, and Article JSON-LD are live; sitemap wiring remains).

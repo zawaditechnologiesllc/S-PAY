@@ -4,7 +4,7 @@ import { requireAnyAdmin, requireManager } from "../lib/admin-roles";
 import {
   fetchSearchAnalytics, isGscConfigured, rankOpportunities,
   generateBlogDraft, isDraftConfigured, DraftNotConfiguredError,
-  slugify, articleJsonLd,
+  fetchRedditTopics, isRedditEnabled, slugify, articleJsonLd,
 } from "../lib/seo";
 import { db, blogPostsTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
@@ -39,18 +39,32 @@ router.get("/admin/seo/opportunities", requireAuth, requireAnyAdmin, async (req,
 
 // Status of the engine's integrations, for the admin panel.
 router.get("/admin/seo/status", requireAuth, requireAnyAdmin, (_req, res) => {
-  res.json({ gscConfigured: isGscConfigured(), draftConfigured: isDraftConfigured() });
+  res.json({ gscConfigured: isGscConfigured(), draftConfigured: isDraftConfigured(), redditEnabled: isRedditEnabled() });
+});
+
+// Topic ideas mined from project-related subreddits (public old.reddit JSON).
+// Titles are inspiration for drafts, not facts to publish.
+router.get("/admin/seo/reddit-topics", requireAuth, requireAnyAdmin, async (req, res) => {
+  try {
+    const timeframe = (["day", "week", "month"].includes(String(req.query.timeframe)) ? req.query.timeframe : "week") as "day" | "week" | "month";
+    const topics = await fetchRedditTopics({ timeframe, perSub: Number(req.query.perSub) || 4 });
+    res.json({ enabled: isRedditEnabled(), topics: topics.slice(0, Number(req.query.limit) || 60) });
+  } catch (err) {
+    req.log.error({ err }, "Reddit topics error");
+    res.status(500).json({ error: "internal_error", message: "Failed to load Reddit topics" });
+  }
 });
 
 // Generate an AI draft (Claude Haiku) for a keyword, grounded in product facts,
 // and store it as a DRAFT for review. Honest 503 until ANTHROPIC_API_KEY is set.
 router.post("/admin/seo/drafts", requireAuth, requireManager, async (req, res) => {
   try {
-    const { keyword, audienceHint } = req.body as { keyword?: string; audienceHint?: string };
+    const { keyword, audienceHint, source } = req.body as { keyword?: string; audienceHint?: string; source?: string };
     if (!keyword?.trim()) {
       res.status(400).json({ error: "validation_error", message: "keyword is required" });
       return;
     }
+    const draftSource = (["gsc", "reddit", "manual"].includes(String(source)) ? source : "gsc") as "gsc" | "reddit" | "manual";
     let draft;
     try {
       draft = await generateBlogDraft(keyword.trim(), audienceHint?.trim());
@@ -75,7 +89,7 @@ router.post("/admin/seo/drafts", requireAuth, requireManager, async (req, res) =
       keyword: keyword.trim(),
       bodyMarkdown: draft.bodyMarkdown,
       status: "draft",
-      source: "gsc",
+      source: draftSource,
       model: draft.model,
     }).returning();
 

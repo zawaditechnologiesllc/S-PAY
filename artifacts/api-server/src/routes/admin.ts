@@ -315,6 +315,7 @@ async function payoutProvidersPayload() {
   return {
     preferredProvider: config.preferredProvider,
     virtualAccountIssuer: config.virtualAccountIssuer,
+    kycProvider: config.kycProvider,
     providers: payoutProviderCatalog().map((p) => ({
       key: p.key,
       label: p.label,
@@ -324,6 +325,7 @@ async function payoutProvidersPayload() {
       pricingNote: p.pricingNote,
       supportsDeposits: p.supportsDeposits,
       supportsVirtualAccounts: p.supportsVirtualAccounts,
+      supportsKyc: p.supportsKyc,
     })),
   };
 }
@@ -339,9 +341,9 @@ router.get("/admin/payout-providers", requireAuth, requireAnyAdmin, async (req, 
 
 router.put("/admin/payout-providers", requireAuth, requireSuperadmin, async (req, res) => {
   try {
-    const { preferredProvider, enabled, virtualAccountIssuer } = req.body as { preferredProvider?: unknown; enabled?: unknown; virtualAccountIssuer?: unknown };
-    if (preferredProvider === undefined && enabled === undefined && virtualAccountIssuer === undefined) {
-      res.status(400).json({ error: "validation_error", message: "Provide preferredProvider, enabled and/or virtualAccountIssuer to update" });
+    const { preferredProvider, enabled, virtualAccountIssuer, kycProvider } = req.body as { preferredProvider?: unknown; enabled?: unknown; virtualAccountIssuer?: unknown; kycProvider?: unknown };
+    if (preferredProvider === undefined && enabled === undefined && virtualAccountIssuer === undefined && kycProvider === undefined) {
+      res.status(400).json({ error: "validation_error", message: "Provide preferredProvider, enabled, virtualAccountIssuer and/or kycProvider to update" });
       return;
     }
     if (preferredProvider !== undefined && !PAYOUT_PROVIDER_KEYS.includes(preferredProvider as PayoutProviderKey)) {
@@ -350,6 +352,10 @@ router.put("/admin/payout-providers", requireAuth, requireSuperadmin, async (req
     }
     if (virtualAccountIssuer !== undefined && !PAYOUT_PROVIDER_KEYS.includes(virtualAccountIssuer as PayoutProviderKey)) {
       res.status(400).json({ error: "validation_error", message: `virtualAccountIssuer must be one of: ${PAYOUT_PROVIDER_KEYS.join(", ")}` });
+      return;
+    }
+    if (kycProvider !== undefined && !PAYOUT_PROVIDER_KEYS.includes(kycProvider as PayoutProviderKey)) {
+      res.status(400).json({ error: "validation_error", message: `kycProvider must be one of: ${PAYOUT_PROVIDER_KEYS.join(", ")}` });
       return;
     }
     const enabledUpdate: Partial<Record<PayoutProviderKey, boolean>> = {};
@@ -374,8 +380,9 @@ router.put("/admin/payout-providers", requireAuth, requireSuperadmin, async (req
       ...(preferredProvider !== undefined ? { preferredProvider: preferredProvider as PayoutProviderKey } : {}),
       ...(enabled !== undefined ? { enabled: enabledUpdate } : {}),
       ...(virtualAccountIssuer !== undefined ? { virtualAccountIssuer: virtualAccountIssuer as PayoutProviderKey } : {}),
+      ...(kycProvider !== undefined ? { kycProvider: kycProvider as PayoutProviderKey } : {}),
     });
-    req.log.warn({ preferredProvider, enabled: enabledUpdate, virtualAccountIssuer, admin: req.user!.email }, "Payout provider switches changed");
+    req.log.warn({ preferredProvider, enabled: enabledUpdate, virtualAccountIssuer, kycProvider, admin: req.user!.email }, "Payout provider switches changed");
     res.json(await payoutProvidersPayload());
   } catch (err) {
     req.log.error({ err }, "Payout providers update error");

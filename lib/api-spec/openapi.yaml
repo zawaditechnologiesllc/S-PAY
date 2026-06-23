@@ -500,6 +500,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BankingAccountsResponse"
+    post:
+      operationId: openVirtualAccount
+      tags: [banking]
+      summary: Open (or fetch) a USD/EUR virtual account
+      description: KYC-gated and sticky — one active account per currency. 503 until an issuer is configured.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenAccountRequest"
+      responses:
+        "200":
+          description: Existing account returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenAccountResponse"
+        "201":
+          description: Account opened
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenAccountResponse"
 
   /banking/incoming-payments:
     get:
@@ -1646,6 +1672,170 @@ paths:
               schema:
                 $ref: "#/components/schemas/WebhookDeliveryListResponse"
 
+  /admin/seo/status:
+    get:
+      operationId: getSeoStatus
+      tags: [seo]
+      summary: SEO engine integration status
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeoStatus"
+
+  /admin/seo/opportunities:
+    get:
+      operationId: getSeoOpportunities
+      tags: [seo]
+      summary: Ranked keyword opportunities from Search Console
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Opportunities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeoOpportunitiesResponse"
+
+  /admin/seo/reddit-topics:
+    get:
+      operationId: getSeoRedditTopics
+      tags: [seo]
+      summary: Topic ideas mined from project subreddits (public old.reddit JSON)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: timeframe
+          in: query
+          schema: { type: string, enum: [day, week, month], default: week }
+      responses:
+        "200":
+          description: Reddit topics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedditTopicsResponse"
+
+  /admin/seo/drafts:
+    post:
+      operationId: createSeoDraft
+      tags: [seo]
+      summary: Generate an AI draft for a keyword (grounded in product facts)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDraftRequest"
+      responses:
+        "201":
+          description: Draft created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPostResponse"
+
+  /admin/seo/posts:
+    get:
+      operationId: getSeoPosts
+      tags: [seo]
+      summary: List blog posts (any status) for the review queue
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [draft, approved, published, archived] }
+      responses:
+        "200":
+          description: Posts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPostsResponse"
+
+  /admin/seo/posts/{id}:
+    get:
+      operationId: getSeoPost
+      tags: [seo]
+      summary: Get one blog post (with body)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPostResponse"
+    patch:
+      operationId: updateSeoPost
+      tags: [seo]
+      summary: Edit a draft before publishing
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBlogPostRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPostResponse"
+
+  /admin/seo/posts/{id}/publish:
+    post:
+      operationId: publishSeoPost
+      tags: [seo]
+      summary: Approve + publish a post (human approval gate)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPostResponse"
+
+  /admin/seo/posts/{id}/unpublish:
+    post:
+      operationId: unpublishSeoPost
+      tags: [seo]
+      summary: Unpublish (archive) a post
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogPostResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2272,34 +2462,177 @@ components:
 
     BankAccount:
       type: object
+      description: A persistent virtual account (USD ACH / EU IBAN). An entry point, not a balance.
       properties:
         id:
           type: string
         currency:
           type: string
+          enum: [USD, EUR]
         accountType:
           type: string
-          enum: [ach, sepa, pix]
-        accountNumber:
+          enum: [ach, iban]
+        country:
           type: string
-        routingNumber:
+          nullable: true
+        holderName:
           type: string
-        iban:
-          type: string
+          nullable: true
         bankName:
           type: string
-        availableBalance:
-          type: number
+          nullable: true
+        accountNumberMasked:
+          type: string
+          nullable: true
+        routingNumber:
+          type: string
+          nullable: true
+        ibanMasked:
+          type: string
+          nullable: true
         status:
           type: string
-          enum: [active, pending, inactive]
+          enum: [active, closed]
+        label:
+          type: string
+          description: Generic label shown to the user (e.g. "Your USD account") — never provider-branded
+        createdAt:
+          type: string
       required:
         - id
         - currency
         - accountType
-        - bankName
-        - availableBalance
         - status
+        - label
+
+    OpenAccountRequest:
+      type: object
+      properties:
+        currency:
+          type: string
+          enum: [USD, EUR]
+      required:
+        - currency
+
+    OpenAccountResponse:
+      type: object
+      properties:
+        account:
+          $ref: "#/components/schemas/BankAccount"
+        created:
+          type: boolean
+      required:
+        - account
+        - created
+
+    SeoStatus:
+      type: object
+      properties:
+        gscConfigured:
+          type: boolean
+        draftConfigured:
+          type: boolean
+        redditEnabled:
+          type: boolean
+      required: [gscConfigured, draftConfigured, redditEnabled]
+
+    SeoOpportunity:
+      type: object
+      properties:
+        query: { type: string }
+        impressions: { type: integer }
+        clicks: { type: integer }
+        position: { type: number }
+        score: { type: number }
+        reason: { type: string }
+      required: [query, impressions, clicks, position, score, reason]
+
+    SeoOpportunitiesResponse:
+      type: object
+      properties:
+        configured: { type: boolean }
+        message: { type: string }
+        opportunities:
+          type: array
+          items: { $ref: "#/components/schemas/SeoOpportunity" }
+      required: [configured, opportunities]
+
+    RedditTopic:
+      type: object
+      properties:
+        subreddit: { type: string }
+        title: { type: string }
+        url: { type: string }
+        score: { type: integer }
+        numComments: { type: integer }
+      required: [subreddit, title, url, score, numComments]
+
+    RedditTopicsResponse:
+      type: object
+      properties:
+        enabled: { type: boolean }
+        topics:
+          type: array
+          items: { $ref: "#/components/schemas/RedditTopic" }
+      required: [enabled, topics]
+
+    BlogPostGsc:
+      type: object
+      properties:
+        impressions: { type: integer, nullable: true }
+        clicks: { type: integer, nullable: true }
+        position: { type: number, nullable: true }
+
+    BlogPost:
+      type: object
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        title: { type: string }
+        metaDescription: { type: string, nullable: true }
+        excerpt: { type: string, nullable: true }
+        keyword: { type: string, nullable: true }
+        status: { type: string, enum: [draft, approved, published, archived] }
+        source: { type: string, enum: [gsc, manual, reddit] }
+        model: { type: string, nullable: true }
+        gsc: { $ref: "#/components/schemas/BlogPostGsc" }
+        publishedAt: { type: string, nullable: true }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        bodyMarkdown: { type: string }
+      required: [id, slug, title, status, source, createdAt, updatedAt]
+
+    BlogPostResponse:
+      type: object
+      properties:
+        post: { $ref: "#/components/schemas/BlogPost" }
+      required: [post]
+
+    BlogPostsResponse:
+      type: object
+      properties:
+        posts:
+          type: array
+          items: { $ref: "#/components/schemas/BlogPost" }
+      required: [posts]
+
+    CreateDraftRequest:
+      type: object
+      properties:
+        keyword: { type: string }
+        audienceHint: { type: string }
+        source: { type: string, enum: [gsc, manual, reddit] }
+      required: [keyword]
+
+    UpdateBlogPostRequest:
+      type: object
+      properties:
+        title: { type: string }
+        metaDescription: { type: string }
+        excerpt: { type: string }
+        bodyMarkdown: { type: string }
+        keyword: { type: string }
+        slug: { type: string }
 
     BankingAccountsResponse:
       type: object
@@ -3015,7 +3348,10 @@ components:
           description: Whether this provider can on-ramp (deposit) at least one corridor
         supportsVirtualAccounts:
           type: boolean
-          description: Whether this provider can issue persistent virtual accounts (USD/EUR or local)
+          description: Whether this provider can issue USD/EUR virtual accounts
+        supportsKyc:
+          type: boolean
+          description: Whether this provider runs its own hosted KYC/KYB
       required:
         - key
         - label
@@ -3035,6 +3371,10 @@ components:
           type: string
           enum: [noah, bridge, conduit, yellowcard, thunes]
           description: Designated issuer for NEW virtual accounts (sticky per user once issued)
+        kycProvider:
+          type: string
+          enum: [noah, bridge, conduit, yellowcard, thunes]
+          description: Provider that runs identity verification (KYC/KYB)
         providers:
           type: array
           items:
@@ -3051,6 +3391,9 @@ components:
           type: string
           enum: [noah, bridge, conduit, yellowcard, thunes]
         virtualAccountIssuer:
+          type: string
+          enum: [noah, bridge, conduit, yellowcard, thunes]
+        kycProvider:
           type: string
           enum: [noah, bridge, conduit, yellowcard, thunes]
         enabled:

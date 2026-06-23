@@ -144,12 +144,16 @@ export interface PayoutProviderConfig {
    *  transactional routing, a virtual account is a sticky persistent identifier,
    *  so the admin chooses one issuer; existing accounts keep whoever issued them. */
   virtualAccountIssuer: PayoutProviderKey;
+  /** Provider that runs identity verification (KYC/KYB). Most partners run their
+   *  own hosted flow; the admin chooses which one S-PAY sends users to. */
+  kycProvider: PayoutProviderKey;
 }
 
 const DEFAULT_PAYOUT_PROVIDERS: PayoutProviderConfig = {
   preferredProvider: "noah",
   enabled: { noah: true, bridge: true, conduit: true, yellowcard: true, thunes: true },
   virtualAccountIssuer: "bridge", // no onboarding fee for USD/EUR accounts
+  kycProvider: "noah",            // established KYC/KYB partner
 };
 
 const PAYOUT_PROVIDERS_KEY = "payout_providers";
@@ -162,10 +166,14 @@ export async function getPayoutProviderConfig(): Promise<PayoutProviderConfig> {
   const issuer = PAYOUT_PROVIDER_KEYS.includes(stored.virtualAccountIssuer as PayoutProviderKey)
     ? (stored.virtualAccountIssuer as PayoutProviderKey)
     : DEFAULT_PAYOUT_PROVIDERS.virtualAccountIssuer;
+  const kyc = PAYOUT_PROVIDER_KEYS.includes(stored.kycProvider as PayoutProviderKey)
+    ? (stored.kycProvider as PayoutProviderKey)
+    : DEFAULT_PAYOUT_PROVIDERS.kycProvider;
   return {
     preferredProvider: preferred,
     enabled: { ...DEFAULT_PAYOUT_PROVIDERS.enabled, ...(stored.enabled ?? {}) },
     virtualAccountIssuer: issuer,
+    kycProvider: kyc,
   };
 }
 
@@ -173,12 +181,14 @@ export async function setPayoutProviderConfig(update: {
   preferredProvider?: PayoutProviderKey;
   enabled?: Partial<Record<PayoutProviderKey, boolean>>;
   virtualAccountIssuer?: PayoutProviderKey;
+  kycProvider?: PayoutProviderKey;
 }): Promise<PayoutProviderConfig> {
   const current = await getPayoutProviderConfig();
   const next: PayoutProviderConfig = {
     preferredProvider: update.preferredProvider ?? current.preferredProvider,
     enabled: { ...current.enabled, ...(update.enabled ?? {}) },
     virtualAccountIssuer: update.virtualAccountIssuer ?? current.virtualAccountIssuer,
+    kycProvider: update.kycProvider ?? current.kycProvider,
   };
   await setSetting(PAYOUT_PROVIDERS_KEY, next);
   return next;
