@@ -12,6 +12,7 @@ import { QRModal } from "@/components/qr-modal";
 import {
   ScanLine, ArrowRightLeft, Plus, Banknote,
   CheckCircle2, Smartphone, Wallet2, Mail, Lock, ShieldAlert, ExternalLink, CameraOff, QrCode,
+  Camera, Image as ImageIcon,
 } from "lucide-react";
 
 /**
@@ -27,18 +28,39 @@ function apiMessage(err: unknown, fallback: string): string {
   return data?.message ?? fallback;
 }
 
+type SendMode = "phone" | "email" | "spay-id" | "address";
+
 const ADDRESS_RE = /0x[0-9a-fA-F]{40}/;
+const SPAYID_RE = /spay_[a-z0-9]+/i;
+
+/**
+ * Decide what a scanned/decoded QR contains and how to route it. We accept BOTH
+ * kinds of S-PAY receive code and pick the right transfer mode:
+ *   • an S-PAY ID (`spay_…`) — what our own "get paid" QR encodes → S-PAY ID mode
+ *   • a Celo/EVM address (`0x…`) — external wallets & exchanges → Address mode
+ * The string may be the bare value or wrapped (a URI/URL); we extract either.
+ * Returns null when it's neither, so the caller can say "that's not an S-PAY code".
+ */
+function parseScanned(raw: string): { mode: SendMode; value: string } | null {
+  if (!raw) return null;
+  const text = raw.trim();
+  const spay = text.match(SPAYID_RE);
+  if (spay) return { mode: "spay-id", value: spay[0] };
+  const addr = text.match(ADDRESS_RE);
+  if (addr) return { mode: "address", value: addr[0] };
+  return null;
+}
 
 export function QuickActions() {
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState<null | "scan" | "transfer">(null);
-  const [prefillAddress, setPrefillAddress] = useState("");
+  const [prefill, setPrefill] = useState<{ mode: SendMode; value: string } | null>(null);
 
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
         <QuickAction icon={<ScanLine size={22} />} label="Scan" bgColor="#4DC9EE" onClick={() => setOpen("scan")} />
-        <QuickAction icon={<ArrowRightLeft size={22} />} label="Transfer" bgColor="#F59E0B" onClick={() => { setPrefillAddress(""); setOpen("transfer"); }} />
+        <QuickAction icon={<ArrowRightLeft size={22} />} label="Transfer" bgColor="#F59E0B" onClick={() => { setPrefill(null); setOpen("transfer"); }} />
         <QuickAction icon={<Plus size={24} strokeWidth={2.5} />} label="Recharge" bgColor="#22C55E" onClick={() => setLocation("/deposit")} />
         <QuickAction icon={<Banknote size={22} />} label="Withdraw" bgColor="#2E8FD6" onClick={() => setLocation("/banking/withdraw")} />
       </div>
@@ -46,9 +68,9 @@ export function QuickActions() {
       <ScanDialog
         open={open === "scan"}
         onClose={() => setOpen(null)}
-        onAddress={(addr) => { setPrefillAddress(addr); setOpen("transfer"); }}
+        onResult={(r) => { setPrefill(r); setOpen("transfer"); }}
       />
-      <TransferDialog open={open === "transfer"} onClose={() => setOpen(null)} initialAddress={prefillAddress} />
+      <TransferDialog open={open === "transfer"} onClose={() => setOpen(null)} initial={prefill} />
     </>
   );
 }
@@ -71,9 +93,7 @@ function QuickAction({ icon, label, bgColor, onClick }: {
 
 // ─── Transfer ─────────────────────────────────────────────────────────────────
 
-type SendMode = "phone" | "email" | "spay-id" | "address";
-
-function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onClose: () => void; initialAddress?: string }) {
+function TransferDialog({ open, onClose, initial }: { open: boolean; onClose: () => void; initial?: { mode: SendMode; value: string } | null }) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -91,10 +111,10 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
   useEffect(() => {
     if (open) {
       setResult(null); setAmount(""); setNote(""); setPin(""); setNeedsPinSetup(false);
-      if (initialAddress) { setMode("address"); setRecipient(initialAddress); }
+      if (initial) { setMode(initial.mode); setRecipient(initial.value); }
       else { setMode("phone"); setRecipient(""); }
     }
-  }, [open, initialAddress]);
+  }, [open, initial]);
 
   const recipientField =
     mode === "phone" ? { recipientPhone: recipient.trim() } :
@@ -227,12 +247,31 @@ function TransferDialog({ open, onClose, initialAddress }: { open: boolean; onCl
 
 // ─── Scan ─────────────────────────────────────────────────────────────────────
 
-function ScanDialog({ open, onClose, onAddress }: { open: boolean; onClose: () => void; onAddress: (addr: string) => void }) {
+function ScanDialog({ open, onClose, onResult }: { open: boolean; onClose: () => void; onResult: (r: { mode: SendMode; value: string }) => void }) {
+  const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [view, setView] = useState<"choose" | "camera">("choose");
   const [cameraError, setCameraError] = useState(false);
 
+  // Always reopen on the chooser — never auto-start the camera. Picking "camera"
+  // is the explicit user action that triggers the browser permission prompt.
   useEffect(() => {
-    if (!open) return;
+    if (open) { setView("choose"); setCameraError(false); }
+  }, [open]);
+
+  // Parse a decoded QR and, if it's a valid S-PAY ID or wallet address, hand it
+  // to Transfer in the matching mode. Returns false when it's neither.
+  const handleDecoded = (raw: string): boolean => {
+    const r = parseScanned(raw);
+    if (!r) return false;
+    onResult(r);
+    return true;
+  };
+
+  // Live camera scanning — only while the user is on the camera view.
+  useEffect(() => {
+    if (!open || view !== "camera") return;
     let stream: MediaStream | null = null;
     let raf = 0;
     let cancelled = false;
@@ -247,11 +286,7 @@ function ScanDialog({ open, onClose, onAddress }: { open: boolean; onClose: () =
         ctx.drawImage(video, 0, 0);
         const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(img.data, img.width, img.height);
-        const match = code?.data.match(ADDRESS_RE);
-        if (match) {
-          onAddress(match[0]); // hands the address to Transfer, prefilled
-          return;
-        }
+        if (code && handleDecoded(code.data)) return;
       }
       if (!cancelled) raf = requestAnimationFrame(tick);
     };
@@ -274,27 +309,82 @@ function ScanDialog({ open, onClose, onAddress }: { open: boolean; onClose: () =
       stream?.getTracks().forEach((t) => t.stop());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, view]);
+
+  // Decode a QR from a chosen image (downscaled for speed).
+  const onPickImage = (file: File | undefined) => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const max = 1600;
+      const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.max(1, Math.round(img.naturalWidth * scale));
+      const h = Math.max(1, Math.round(img.naturalHeight * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      URL.revokeObjectURL(url);
+      if (!ctx) { toast({ title: "Couldn't read that image", variant: "destructive" }); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      const data = ctx.getImageData(0, 0, w, h);
+      const code = jsQR(data.data, data.width, data.height);
+      if (!code || !handleDecoded(code.data)) {
+        toast({ title: "No S-PAY code found", description: "That image didn't contain a readable S-PAY ID or wallet QR.", variant: "destructive" });
+      }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); toast({ title: "Couldn't open that image", variant: "destructive" }); };
+    img.src = url;
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Scan to pay</DialogTitle>
-          <DialogDescription>Point your camera at an S-PAY receive code (the recipient finds theirs under “Recharge”).</DialogDescription>
+          <DialogDescription>
+            Scan a friend's <strong>S-PAY ID</strong> code (theirs is under “Recharge”) or any Celo wallet QR — we'll open Transfer with the recipient filled in.
+          </DialogDescription>
         </DialogHeader>
-        {cameraError ? (
+
+        <input ref={fileRef} type="file" accept="image/*" className="hidden"
+          onChange={(e) => { onPickImage(e.target.files?.[0]); e.target.value = ""; }} />
+
+        {view === "choose" ? (
+          <div className="grid gap-3 py-1">
+            <button onClick={() => setView("camera")}
+              className="flex items-center gap-3 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-[#4DC9EE] hover:bg-[#4DC9EE]/5 transition-colors text-left">
+              <div className="w-11 h-11 rounded-xl bg-[#4DC9EE]/15 text-[#4DC9EE] flex items-center justify-center flex-shrink-0"><Camera size={22} /></div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Scan with camera</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">We'll ask for camera permission.</p>
+              </div>
+            </button>
+            <button onClick={() => fileRef.current?.click()}
+              className="flex items-center gap-3 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 hover:border-[#4DC9EE] hover:bg-[#4DC9EE]/5 transition-colors text-left">
+              <div className="w-11 h-11 rounded-xl bg-[#22C55E]/15 text-[#22C55E] flex items-center justify-center flex-shrink-0"><ImageIcon size={22} /></div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Upload from gallery</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Pick a saved QR screenshot or photo.</p>
+              </div>
+            </button>
+          </div>
+        ) : cameraError ? (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <CameraOff size={40} className="text-gray-300" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Camera unavailable or permission denied. You can paste the recipient's address in <strong>Transfer</strong> instead.
-            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Camera unavailable or permission denied.</p>
+            <Button variant="outline" onClick={() => fileRef.current?.click()}>Upload from gallery instead</Button>
           </div>
         ) : (
-          <div className="relative rounded-2xl overflow-hidden bg-black aspect-square">
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
-            <div className="absolute inset-8 border-2 border-[#4DC9EE] rounded-2xl pointer-events-none" />
+          <div className="space-y-3">
+            <div className="relative rounded-2xl overflow-hidden bg-black aspect-square">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+              <div className="absolute inset-8 border-2 border-[#4DC9EE] rounded-2xl pointer-events-none" />
+            </div>
+            <button onClick={() => fileRef.current?.click()} className="w-full text-xs font-semibold text-[#4DC9EE] hover:underline">
+              Or upload from gallery
+            </button>
           </div>
         )}
       </DialogContent>
