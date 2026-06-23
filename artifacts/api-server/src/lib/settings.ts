@@ -122,20 +122,23 @@ export async function setWalletProviderConfig(update: {
   return next;
 }
 
-// ── Payout provider switches ──────────────────────────────────────────────────
-// Which payout rail settles worker cash-outs / withdrawals, plus per-provider
-// kill switches — toggled live from /admin/settings, same shape as the wallet
-// providers. Lets S-PAY run several rails side-by-side and route by corridor,
-// so it's never locked to a single partner (e.g. one charging onboarding fees).
+// ── Money-rail provider switches (deposits + payouts) ──────────────────────────
+// Which rails handle deposits (on-ramp) and cash-outs (off-ramp), plus
+// per-provider kill switches — toggled live from /admin/settings. Routing always
+// picks the rail giving the CUSTOMER the best rate for the corridor (the provider
+// is never shown to the user); the admin only turns providers on/off. This lets
+// S-PAY run several rails side-by-side and never be locked to a single partner
+// (e.g. one charging onboarding fees).
 
 export type PayoutProviderKey = "noah" | "bridge" | "conduit" | "yellowcard" | "thunes";
 export const PAYOUT_PROVIDER_KEYS: readonly PayoutProviderKey[] =
   ["noah", "bridge", "conduit", "yellowcard", "thunes"] as const;
 
 export interface PayoutProviderConfig {
-  /** Preferred provider when more than one can serve a corridor. */
+  /** Tiebreaker only: which provider wins when two rails price a corridor
+   *  identically. Primary routing is always best-rate-for-the-customer. */
   preferredProvider: PayoutProviderKey;
-  /** Per-provider on/off. OFF = never selected for a payout. */
+  /** Per-provider on/off. OFF = never selected for a deposit OR a payout. */
   enabled: Record<PayoutProviderKey, boolean>;
 }
 
