@@ -78,22 +78,49 @@ GSC Search Analytics ─▶ opportunity ranker ─▶ Gemini 2.5 Flash draft (gr
 - **Public API:** `GET /blog`, `GET /blog/:slug` (returns the post + Article
   JSON-LD).
 
-### Reddit topic mining (old.reddit, no OAuth)
+### Reddit topic mining (~100 subreddits)
 
-The official Reddit API is heavily gated, so topic mining uses the **public
-old.reddit JSON** endpoints (`old.reddit.com/r/<sub>/top.json`) instead — no
-auth. It stays polite: a descriptive User-Agent, a **capped allowlist of ~50
-project-related subreddits**, a small per-sub limit, and a delay between calls.
-Titles are *idea seeds* for drafts, never published verbatim.
+Topic mining crawls a **capped allowlist of ~100 niche subreddits** (remote work,
+freelancing/gig, online income, personal finance, payments/fintech,
+stablecoins/crypto, the dev communities that earn remotely, our corridor
+countries, expats, and marketing/SEO). It reads `top.json` per subreddit with
+**bounded concurrency** and caches results briefly. Titles are *idea seeds* for
+drafts, never published verbatim.
+
+**Reddit blocks datacenter IPs**, so the public JSON returns nothing from a plain
+server. Two ways to make it work — pick either (no need for both):
+
+1. **Proxy (no Reddit app — recommended when API access is slow to get).** Set
+   `SEO_REDDIT_PROXY_URL` to a residential/rotating proxy
+   (`http://user:pass@gateway:port`; comma-separate several to rotate). Requests
+   to `www.reddit.com` / `old.reddit.com` then look like ordinary traffic and
+   succeed. This avoids Reddit's *commercial Data API* approval (which can take
+   months) entirely.
+2. **Official OAuth.** Create an app at `reddit.com/prefs/apps` (type
+   "script"/"web app" — instant) and set `REDDIT_CLIENT_ID` +
+   `REDDIT_CLIENT_SECRET`; the engine uses `oauth.reddit.com`.
+
+If neither is set, `/admin/seo/status` shows Reddit as not-connected **with the
+reason**, and the topics panel explains exactly what to set.
 
 ## Honest gating (nothing fakes data)
 
 | Integration | Off (default) | On |
 |---|---|---|
 | **Search Console** | `opportunities` returns `configured:false` + empty | set `GSC_SERVICE_ACCOUNT_JSON` + `GSC_SITE_URL` |
+| **Analytics (GA4)** | `analytics` returns `configured:false` + empty | set `GA4_PROPERTY_ID` (+ a service account) |
+| **Reddit topics** | public JSON (often 403-blocked) | set `REDDIT_CLIENT_ID` + `REDDIT_CLIENT_SECRET` for the official API |
 | **AI drafting** | `POST /admin/seo/drafts` → honest `503` | set `GEMINI_API_KEY` |
 
 It never invents query data or articles; until configured it says so.
+
+> **`/admin/seo/status` reports a LIVE connection**, not just whether an env var
+> is present. If the service account is set but can't authenticate (bad key,
+> property not verified for that account, base64/newline mangling), the status
+> shows *not connected* **with the reason** — so "everything is set but it says
+> not connected" is diagnosable instead of silent. The service-account JSON may
+> be raw JSON or base64, and escaped `\n` in the PEM private key is repaired
+> automatically.
 
 ## Env vars
 
@@ -105,9 +132,14 @@ It never invents query data or articles; until configured it says so.
 | `GA4_SERVICE_ACCOUNT_JSON` | Service account for the GA4 Data API (falls back to `GSC_SERVICE_ACCOUNT_JSON`) |
 | `GEMINI_API_KEY` | Google Gemini API key (AI Studio) — Gemini 2.5 Flash drafting |
 | `SEO_DRAFT_MODEL` | Optional model override (default `gemini-2.5-flash`) |
+| `SEO_REDDIT_PROXY_URL` | Residential/rotating proxy for Reddit's public JSON — the no-app path past datacenter-IP 403s. One or more (comma-separated) `http://user:pass@host:port`. |
+| `REDDIT_CLIENT_ID` | Reddit app client id — enables the official OAuth API (reddit.com/prefs/apps, instant to create). |
+| `REDDIT_CLIENT_SECRET` | Reddit app client secret (pairs with `REDDIT_CLIENT_ID`) |
 | `SEO_REDDIT_ENABLED` | Set `false` to disable Reddit mining (default on) |
-| `SEO_REDDIT_SUBREDDITS` | Optional comma-separated override of the ~50 subreddits |
-| `SEO_REDDIT_USER_AGENT` | Optional custom User-Agent for old.reddit requests |
+| `SEO_REDDIT_SUBREDDITS` | Optional comma-separated override of the ~100 subreddits (capped at 100) |
+| `SEO_REDDIT_CONCURRENCY` | Parallel subreddit fetches (default 5, max 12) |
+| `SEO_REDDIT_CACHE_TTL_SEC` | How long to cache Reddit results (default 900s; 0 disables) |
+| `SEO_REDDIT_USER_AGENT` | Optional custom User-Agent for Reddit requests |
 | `SITE_URL` | Base URL for canonical/JSON-LD (already used elsewhere) |
 
 ## Why Gemini 2.5 Flash
@@ -123,12 +155,19 @@ Gemini model id) without code changes.
 **Setup:** create a key at [Google AI Studio](https://aistudio.google.com/apikey),
 set `GEMINI_API_KEY` on the API server, and drafting switches on immediately.
 
+## What's wired live
+
+- **Search Console** — `fetchSearchAnalytics` signs a service-account JWT,
+  exchanges it for an access token, and POSTs to the Search Analytics API
+  (`dimensions:["query"]`), feeding the opportunity ranker with real query data.
+- **GA4 Data API** — `fetchGa4LandingPages` runs a `runReport` for top landing
+  pages (sessions / engagement / conversions). Reuses the GSC service account
+  unless `GA4_SERVICE_ACCOUNT_JSON` is set.
+- **Reddit** — official OAuth (`oauth.reddit.com`) when `REDDIT_CLIENT_ID` /
+  `REDDIT_CLIENT_SECRET` are set, with a public-JSON fallback.
+
 ## Remaining (Phase 2 — labelled honestly, not built)
 
-- **Wire the GSC API call** — `fetchSearchAnalytics` returns `[]` when creds are
-  present; the service-account token exchange + Search Analytics POST is the one
-  remaining step (the row shape already matches the API response).
-- **GA4 Data API** ingest (engagement/conversions per landing page).
 - **Persisted metrics table** for trend history + an automated re-ranking
   scheduler.
 - **Internal linking** between published posts (the admin UI, public `/blog` API,

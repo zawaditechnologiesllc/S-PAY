@@ -144,6 +144,119 @@ test("articleJsonLd falls back to updatedAt when never published, and excerpt wh
   assert.equal(ld.description, "the excerpt");
 });
 
+// ─── parseServiceAccount (credential robustness) ────────────────────────────────
+
+import { generateKeyPairSync } from "node:crypto";
+import jwt from "jsonwebtoken";
+
+const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const PEM = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+
+test("parseServiceAccount accepts raw JSON and restores escaped newlines in the key", () => {
+  // Simulate an env-mangled key where real newlines became literal "\n".
+  const raw = JSON.stringify({ client_email: "sa@x.iam", private_key: PEM.replace(/\n/g, "\\n") });
+  const sa = seo.parseServiceAccount(raw);
+  assert.ok(sa, "should parse");
+  assert.ok(sa.private_key.includes("\n") && !sa.private_key.includes("\\n"), "newlines restored");
+  // The restored key must actually be usable by the RS256 signer.
+  const token = jwt.sign({ scope: "test" }, sa.private_key, { algorithm: "RS256", issuer: sa.client_email, audience: "https://oauth2.googleapis.com/token", expiresIn: 60 });
+  assert.equal(typeof token, "string");
+});
+
+test("parseServiceAccount accepts base64-encoded JSON", () => {
+  const json = JSON.stringify({ client_email: "sa@x.iam", private_key: PEM });
+  const sa = seo.parseServiceAccount(Buffer.from(json, "utf8").toString("base64"));
+  assert.ok(sa);
+  assert.equal(sa.client_email, "sa@x.iam");
+});
+
+test("parseServiceAccount returns null for missing/invalid/incomplete creds", () => {
+  assert.equal(seo.parseServiceAccount(undefined), null);
+  assert.equal(seo.parseServiceAccount(""), null);
+  assert.equal(seo.parseServiceAccount("not json"), null);
+  assert.equal(seo.parseServiceAccount(JSON.stringify({ client_email: "x" })), null); // no private_key
+});
+
+// ─── API response mappers (pure) ────────────────────────────────────────────────
+
+test("mapSearchAnalyticsRows maps GSC rows and drops empty queries", () => {
+  const rows = seo.mapSearchAnalyticsRows([
+    { keys: ["get paid online"], impressions: 120, clicks: 4, ctr: 0.033, position: 7.2 },
+    { keys: [""], impressions: 9, clicks: 0, ctr: 0, position: 50 },
+  ]);
+  assert.equal(rows.length, 1);
+  assert.deepEqual(rows[0], { query: "get paid online", impressions: 120, clicks: 4, ctr: 0.033, position: 7.2 });
+});
+
+test("mapSearchAnalyticsRows tolerates non-array / missing fields", () => {
+  assert.deepEqual(seo.mapSearchAnalyticsRows(undefined), []);
+  assert.deepEqual(seo.mapSearchAnalyticsRows(null), []);
+});
+
+test("mapGa4Rows maps landing-page rows and drops empty pages", () => {
+  const rows = seo.mapGa4Rows([
+    { dimensionValues: [{ value: "/blog/x" }], metricValues: [{ value: "500" }, { value: "0.62" }, { value: "12" }] },
+    { dimensionValues: [{ value: "" }], metricValues: [{ value: "1" }, { value: "0" }, { value: "0" }] },
+  ]);
+  assert.equal(rows.length, 1);
+  assert.deepEqual(rows[0], { page: "/blog/x", sessions: 500, engagementRate: 0.62, conversions: 12 });
+});
+
+test("parseRedditListing extracts non-stickied posts with absolute URLs", () => {
+  const topics = seo.parseRedditListing("freelance", {
+    data: { children: [
+      { data: { title: "How I get paid", permalink: "/r/freelance/abc", score: 88, num_comments: 12 } },
+      { data: { title: "Pinned", stickied: true, score: 999 } },
+      { data: { score: 5 } }, // no title → skipped
+    ] },
+  });
+  assert.equal(topics.length, 1);
+  assert.equal(topics[0].title, "How I get paid");
+  assert.equal(topics[0].url, "https://www.reddit.com/r/freelance/abc");
+  assert.equal(topics[0].score, 88);
+});
+
+// ─── parseProxyConfig (Reddit proxy plumbing) ───────────────────────────────────
+
+test("parseProxyConfig parses a full proxy URL with credentials", () => {
+  const p = seo.parseProxyConfig("http://user:p%40ss@gw.example.com:7777");
+  assert.deepEqual(p, { host: "gw.example.com", port: 7777, protocol: "http", auth: { username: "user", password: "p@ss" } });
+});
+
+test("parseProxyConfig accepts a bare host:port (defaults to http)", () => {
+  const p = seo.parseProxyConfig("gw.example.com:8080");
+  assert.equal(p.host, "gw.example.com");
+  assert.equal(p.port, 8080);
+  assert.equal(p.protocol, "http");
+  assert.equal(p.auth, undefined);
+});
+
+test("parseProxyConfig defaults the port by scheme and returns null on junk", () => {
+  assert.equal(seo.parseProxyConfig("https://proxy.example.com").port, 443);
+  assert.equal(seo.parseProxyConfig(""), null);
+  assert.equal(seo.parseProxyConfig(undefined), null);
+});
+
+// ─── redditSubreddits (the ~100-sub allowlist) ──────────────────────────────────
+
+test("redditSubreddits returns the de-duped, capped default niche list", () => {
+  const subs = seo.redditSubreddits();
+  assert.ok(subs.length >= 90 && subs.length <= 100, `expected ~100 subs, got ${subs.length}`);
+  const lower = subs.map((s) => s.toLowerCase());
+  assert.equal(new Set(lower).size, lower.length, "no duplicates");
+  for (const core of ["kenya", "nigeria", "freelance", "cryptocurrency", "stablecoins", "celo", "payoneer"]) {
+    assert.ok(lower.includes(core), `expected core sub r/${core}`);
+  }
+});
+
+test("redditSubreddits honours SEO_REDDIT_SUBREDDITS override and the cap", () => {
+  const prev = process.env.SEO_REDDIT_SUBREDDITS;
+  process.env.SEO_REDDIT_SUBREDDITS = Array.from({ length: 150 }, (_, i) => `sub${i}`).join(",");
+  const subs = seo.redditSubreddits();
+  assert.equal(subs.length, 100, "capped at 100");
+  if (prev === undefined) delete process.env.SEO_REDDIT_SUBREDDITS; else process.env.SEO_REDDIT_SUBREDDITS = prev;
+});
+
 // ─── combinedResearch (honest gating, offline) ──────────────────────────────────
 
 test("combinedResearch is honest and empty when GSC is unset and Reddit is disabled", async () => {
