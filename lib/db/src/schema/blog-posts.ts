@@ -23,7 +23,7 @@ export const blogPostsTable = pgTable("blog_posts", {
   bodyMarkdown: text("body_markdown").notNull(),
   status: blogPostStatusEnum("status").default("draft").notNull(),
   source: blogPostSourceEnum("source").default("gsc").notNull(),
-  model: text("model"),                        // which AI model drafted it (e.g. claude-haiku-4-5)
+  model: text("model"),                        // which AI model drafted it (e.g. gemini-2.5-flash)
   reviewedByAdminId: text("reviewed_by_admin_id"), // admin who approved/published
   // GSC snapshot at generation time — drives the feedback loop.
   gscImpressions: integer("gsc_impressions"),

@@ -48,3 +48,7 @@ Thumbs.db
 .cache/
 .local/
 .claude/
+
+# Temp esbuild bundle produced by the SEO unit tests (always cleaned up, but
+# ignored in case a crashed run leaves it behind)
+.seo-test-bundle.mjs

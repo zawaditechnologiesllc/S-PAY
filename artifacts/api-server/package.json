@@ -8,6 +8,8 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test test/seo.unit.mjs",
+    "test:seo": "node --test test/seo.unit.mjs",
     "test:payroll": "pnpm run build && node test/payroll.e2e.mjs"
   },
   "dependencies": {

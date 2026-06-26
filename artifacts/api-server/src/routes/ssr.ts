@@ -5,7 +5,8 @@ import { db, blogPostsTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
 
 // Minimal, safe Markdown → HTML for blog bodies. Escapes all HTML first, then
-// only emits a known tag set; links are restricted to http(s)/relative — so the
+// only emits a known tag set; links are restricted to http(s) or same-origin
+// relative paths (protocol-relative "//host" links are rejected) — so the
 // AI-generated body can never inject script/styles/handlers.
 function mdToHtml(md: string): string {
   const escAll = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -14,7 +15,7 @@ function mdToHtml(md: string): string {
       .replace(/`([^`]+)`/g, "<code>$1</code>")
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
       .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/[^\s)]*)\)/g, '<a href="$2" rel="noopener">$1</a>');
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/(?!\/)[^\s)]*)\)/g, '<a href="$2" rel="noopener">$1</a>');
   const lines = md.replace(/\r\n/g, "\n").split("\n");
   const out: string[] = [];
   let list: "ul" | "ol" | null = null;

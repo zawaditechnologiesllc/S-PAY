@@ -131,5 +131,15 @@ set `GEMINI_API_KEY` on the API server, and drafting switches on immediately.
 - **GA4 Data API** ingest (engagement/conversions per landing page).
 - **Persisted metrics table** for trend history + an automated re-ranking
   scheduler.
-- **Sitemap entries + internal linking** for published posts (the admin UI,
-  public `/blog` API, and Article JSON-LD are live; sitemap wiring remains).
+- **Internal linking** between published posts (the admin UI, public `/blog` API,
+  Article JSON-LD, bot SSR, and **sitemap entries are all live now** — published
+  posts are emitted in `/api/sitemap.xml`; richer cross-post linking remains).
+
+## Tests
+
+Pure, network-free logic is unit-tested in `artifacts/api-server/test/seo.unit.mjs`
+(`pnpm --filter @workspace/api-server test`): the opportunity ranker, `slugify`,
+`deriveAudience`, `articleJsonLd`, the honest-gating contracts (`combinedResearch`
+empty until configured, `generateBlogDraft` throwing until `GEMINI_API_KEY` is
+set), and the security-critical `mdToHtml` sanitizer (escapes raw HTML, rejects
+`javascript:` and protocol-relative `//host` links, allows https + same-origin).
