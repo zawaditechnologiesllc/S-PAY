@@ -554,10 +554,17 @@ export interface OpenAccountResponse {
 }
 
 export interface SeoStatus {
+  /** True only when the Search Console service account can actually authenticate (live check). */
   gscConfigured: boolean;
+  /** Why GSC is not connected, when gscConfigured is false. */
+  gscReason?: string;
+  /** True only when the GA4 service account can actually authenticate (live check). */
   ga4Configured?: boolean;
+  ga4Reason?: string;
   draftConfigured: boolean;
   redditEnabled: boolean;
+  /** True when REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET are set (official Reddit API). */
+  redditOAuthConfigured?: boolean;
 }
 
 export interface Ga4LandingPage {
@@ -598,6 +605,10 @@ export interface RedditTopic {
 
 export interface RedditTopicsResponse {
   enabled: boolean;
+  /** True when using the official Reddit API (OAuth app configured). */
+  oauth?: boolean;
+  /** Guidance shown when no topics could be fetched. */
+  message?: string;
   topics: RedditTopic[];
 }
 

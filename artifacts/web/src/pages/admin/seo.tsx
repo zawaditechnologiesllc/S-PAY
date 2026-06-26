@@ -13,9 +13,11 @@ import {
 import { CheckCircle2, XCircle, Send, RefreshCw, Archive, ExternalLink, TrendingUp, MessageSquare, Wand2, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-function StatusPill({ label, ok }: { label: string; ok: boolean }) {
+function StatusPill({ label, ok, reason }: { label: string; ok: boolean; reason?: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full ${ok ? "text-green-700 bg-green-50" : "text-gray-500 bg-gray-100"}`}>
+    <span
+      title={!ok && reason ? reason : undefined}
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full ${ok ? "text-green-700 bg-green-50" : "text-gray-500 bg-gray-100"} ${!ok && reason ? "cursor-help" : ""}`}>
       {ok ? <CheckCircle2 size={11} /> : <XCircle size={11} />} {label}
     </span>
   );
@@ -81,12 +83,19 @@ export default function AdminSeo() {
       <div className="space-y-6 max-w-5xl">
         {/* Status */}
         <div className="flex flex-wrap items-center gap-2">
-          <StatusPill label="Search Console" ok={!!status?.gscConfigured} />
-          <StatusPill label="Analytics (GA4)" ok={!!status?.ga4Configured} />
+          <StatusPill label="Search Console" ok={!!status?.gscConfigured} reason={status?.gscReason} />
+          <StatusPill label="Analytics (GA4)" ok={!!status?.ga4Configured} reason={status?.ga4Reason} />
           <StatusPill label="AI drafting (Gemini)" ok={!!status?.draftConfigured} />
-          <StatusPill label="Reddit topics" ok={!!status?.redditEnabled} />
+          <StatusPill label={status?.redditOAuthConfigured ? "Reddit (API)" : "Reddit topics"} ok={!!status?.redditEnabled} />
           <p className="text-xs text-gray-400 ml-1">Research picks the keyword + audience. Drafts are AI-written, grounded in product facts. Nothing publishes until you approve it.</p>
         </div>
+        {(status?.gscReason || status?.ga4Reason) && (
+          <p className="text-[11px] text-amber-600 -mt-3">
+            {status?.gscReason ? `Search Console: ${status.gscReason}` : ""}
+            {status?.gscReason && status?.ga4Reason ? " · " : ""}
+            {status?.ga4Reason ? `Analytics: ${status.ga4Reason}` : ""}
+          </p>
+        )}
 
         {/* Auto-draft — research chooses everything */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -159,7 +168,7 @@ export default function AdminSeo() {
             {!showReddit ? (
               <p className="text-xs text-gray-400">Mines ~50 project subreddits via public old.reddit JSON. Click Load.</p>
             ) : (reddit?.topics ?? []).length === 0 ? (
-              <p className="text-xs text-gray-400">{redditFetching ? "Fetching…" : "No topics returned."}</p>
+              <p className="text-xs text-gray-400">{redditFetching ? "Fetching…" : (reddit?.message ?? "No topics returned.")}</p>
             ) : (
               <ul className="space-y-1.5 max-h-72 overflow-y-auto">
                 {reddit!.topics.map((t, i) => (

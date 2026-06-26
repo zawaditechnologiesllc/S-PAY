@@ -1,4 +1,5 @@
 import axios from "axios";
+import jwt from "jsonwebtoken";
 import { logger } from "./logger";
 
 /**
@@ -11,20 +12,101 @@ import { logger } from "./logger";
  * impressions back into the next ranking pass.
  *
  * Honest by construction:
- *  - GSC ingest returns null until GSC credentials are configured (never fake
- *    query data).
+ *  - GSC/GA4 ingest returns null until credentials are configured (never fake
+ *    data) and throws GoogleApiError when configured-but-unreachable, so the
+ *    admin sees a real reason rather than a silent empty list.
  *  - Draft generation throws DraftNotConfiguredError until GEMINI_API_KEY is
  *    set (never a faked article).
  *  - Nothing auto-publishes — a human approves every post.
  *
  * Data sources:
- *  - GSC Search Analytics (official API) for ranking opportunities.
- *  - Reddit topic mining via the public old.reddit JSON endpoints (no OAuth — the
- *    official API is heavily gated). We stay polite: a descriptive User-Agent, a
- *    capped allowlist of ~50 project-related subreddits, a small per-sub limit,
- *    and a short delay between requests.
+ *  - GSC Search Analytics (official API, service-account JWT) for ranking
+ *    opportunities; GA4 Data API for the content-performance feedback signal.
+ *  - Reddit topic mining via the official OAuth API (oauth.reddit.com) when a
+ *    Reddit app is configured, falling back to public JSON. We stay polite: a
+ *    descriptive User-Agent, a capped allowlist of ~50 project-related
+ *    subreddits, a small per-sub limit, and a short delay between requests.
  *  - Never scrape Google search results — that breaks terms and gets blocked.
  */
+
+// ─── Google service-account auth (shared by Search Console + GA4) ───────────────
+// Both APIs use the same OAuth2 service-account flow: sign a JWT with the SA
+// private key, exchange it for an access token, then call the API with a Bearer
+// token. Tokens last ~1h so we cache them per (account, scope-set).
+
+export class GoogleApiError extends Error {
+  constructor(message: string) { super(message); this.name = "GoogleApiError"; }
+}
+
+interface ServiceAccount { client_email: string; private_key: string; token_uri?: string }
+
+/**
+ * Parse a service-account credential from an env var. Accepts raw JSON OR a
+ * base64-encoded JSON blob (platforms often mangle multi-line JSON, so operators
+ * frequently base64 it). Restores escaped "\n" in the PEM private key — the #1
+ * reason "the key is set but auth fails". Returns null if it can't yield usable
+ * credentials, so callers honestly report "not connected".
+ */
+export function parseServiceAccount(raw: string | undefined | null): ServiceAccount | null {
+  if (!raw) return null;
+  let text = raw.trim();
+  if (!text.startsWith("{")) {
+    // Likely base64 (or base64 of JSON). Try to decode; ignore if it isn't.
+    try {
+      const decoded = Buffer.from(text, "base64").toString("utf8").trim();
+      if (decoded.startsWith("{")) text = decoded;
+    } catch { /* not base64 — fall through and let JSON.parse fail */ }
+  }
+  try {
+    const sa = JSON.parse(text) as Partial<ServiceAccount>;
+    if (!sa.client_email || !sa.private_key) return null;
+    // Env stores commonly escape newlines in the PEM; restore real newlines so
+    // the RS256 signer accepts the key.
+    const privateKey = String(sa.private_key).replace(/\\n/g, "\n");
+    return { client_email: sa.client_email, private_key: privateKey, token_uri: sa.token_uri };
+  } catch {
+    return null;
+  }
+}
+
+const googleTokenCache = new Map<string, { token: string; exp: number }>();
+
+async function getGoogleAccessToken(sa: ServiceAccount, scopes: string[]): Promise<string> {
+  const cacheKey = `${sa.client_email}|${scopes.join(" ")}`;
+  const now = Math.floor(Date.now() / 1000);
+  const cached = googleTokenCache.get(cacheKey);
+  if (cached && cached.exp - 60 > now) return cached.token;
+
+  const tokenUri = sa.token_uri || "https://oauth2.googleapis.com/token";
+  let assertion: string;
+  try {
+    assertion = jwt.sign({ scope: scopes.join(" ") }, sa.private_key, {
+      algorithm: "RS256",
+      issuer: sa.client_email,
+      audience: tokenUri,
+      expiresIn: 3600,
+    });
+  } catch (err) {
+    throw new GoogleApiError(`Could not sign the service-account JWT — check the private key. (${String(err)})`);
+  }
+
+  let res;
+  try {
+    res = await axios.post(
+      tokenUri,
+      new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }).toString(),
+      { timeout: 15000, headers: { "content-type": "application/x-www-form-urlencoded" } },
+    );
+  } catch (err) {
+    const detail = axios.isAxiosError(err) ? JSON.stringify(err.response?.data ?? err.code) : String(err);
+    throw new GoogleApiError(`Google token exchange failed: ${detail}`);
+  }
+  const token = res.data?.access_token as string | undefined;
+  if (!token) throw new GoogleApiError("Google token endpoint returned no access_token");
+  const expiresIn = Number(res.data?.expires_in ?? 3600);
+  googleTokenCache.set(cacheKey, { token, exp: now + expiresIn });
+  return token;
+}
 
 // ─── Google Search Console ingest ───────────────────────────────────────────────
 
@@ -36,28 +118,78 @@ export interface SearchAnalyticsRow {
   position: number;   // average position (1 = top)
 }
 
+const GSC_SCOPES = ["https://www.googleapis.com/auth/webmasters.readonly"];
+
 export function isGscConfigured(): boolean {
-  // A service-account JSON (or token) + the verified property URL.
-  return Boolean(process.env.GSC_SERVICE_ACCOUNT_JSON && process.env.GSC_SITE_URL);
+  // Usable service-account credentials (parse-checked) + the verified property URL.
+  return Boolean(parseServiceAccount(process.env.GSC_SERVICE_ACCOUNT_JSON) && process.env.GSC_SITE_URL);
+}
+
+/** Map a raw Search Analytics API response into our row shape (pure, testable). */
+export function mapSearchAnalyticsRows(apiRows: unknown): SearchAnalyticsRow[] {
+  const rows = Array.isArray(apiRows) ? apiRows : [];
+  return rows
+    .map((r): SearchAnalyticsRow => {
+      const row = r as { keys?: unknown[]; impressions?: unknown; clicks?: unknown; ctr?: unknown; position?: unknown };
+      return {
+        query: String(row.keys?.[0] ?? "").trim(),
+        impressions: Number(row.impressions ?? 0),
+        clicks: Number(row.clicks ?? 0),
+        ctr: Number(row.ctr ?? 0),
+        position: Number(row.position ?? 0),
+      };
+    })
+    .filter((r) => r.query.length > 0);
 }
 
 /**
  * Pull the last `days` of Search Analytics rows for the configured property.
- * Returns null when GSC isn't configured — callers surface an honest
- * "connect Search Console" state rather than inventing data.
- *
- * NOTE (wiring task): with creds present, exchange the service account for an
- * access token and POST to
- *   https://www.googleapis.com/webmasters/v3/sites/{siteUrl}/searchAnalytics/query
- * with dimensions:["query"]. The shape returned here matches that response so
- * the ranker and routes need no change when this is wired.
+ * Returns null when GSC isn't configured (honest "connect Search Console"),
+ * throws GoogleApiError when configured but the API call fails (so callers can
+ * show a real error instead of a silent empty list), and never fabricates rows.
  */
-export async function fetchSearchAnalytics(_days = 28): Promise<SearchAnalyticsRow[] | null> {
-  if (!isGscConfigured()) return null;
-  // Credentials are present but the Google API call is the remaining wiring step
-  // (service-account token exchange). Until then we do NOT fabricate rows.
-  logger.info("GSC configured — Search Analytics fetch not yet wired (returns empty, never fake)");
-  return [];
+export async function fetchSearchAnalytics(days = 28): Promise<SearchAnalyticsRow[] | null> {
+  const sa = parseServiceAccount(process.env.GSC_SERVICE_ACCOUNT_JSON);
+  const siteUrl = process.env.GSC_SITE_URL;
+  if (!sa || !siteUrl) return null;
+
+  const token = await getGoogleAccessToken(sa, GSC_SCOPES);
+  const end = new Date();
+  const start = new Date(end.getTime() - days * 86_400_000);
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+
+  let res;
+  try {
+    res = await axios.post(
+      `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
+      { startDate: fmt(start), endDate: fmt(end), dimensions: ["query"], rowLimit: 1000, dataState: "all" },
+      { timeout: 30000, headers: { authorization: `Bearer ${token}`, "content-type": "application/json" } },
+    );
+  } catch (err) {
+    const detail = axios.isAxiosError(err) ? JSON.stringify(err.response?.data ?? err.code) : String(err);
+    logger.error({ siteUrl, detail }, "GSC Search Analytics query failed");
+    throw new GoogleApiError(`Search Console query failed: ${detail}`);
+  }
+  return mapSearchAnalyticsRows(res.data?.rows);
+}
+
+/**
+ * Live connectivity check for the admin status panel: distinguishes "creds not
+ * set" from "creds set but invalid/property not verified" from "connected".
+ * Cheap — token acquisition is cached.
+ */
+export async function checkGscConnection(): Promise<{ configured: boolean; ok: boolean; reason?: string }> {
+  const sa = parseServiceAccount(process.env.GSC_SERVICE_ACCOUNT_JSON);
+  const siteUrl = process.env.GSC_SITE_URL;
+  if (!sa || !siteUrl) {
+    return { configured: false, ok: false, reason: !siteUrl ? "GSC_SITE_URL is not set" : "GSC_SERVICE_ACCOUNT_JSON is missing or invalid" };
+  }
+  try {
+    await getGoogleAccessToken(sa, GSC_SCOPES);
+    return { configured: true, ok: true };
+  } catch (err) {
+    return { configured: true, ok: false, reason: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 // ─── Google Analytics (GA4) — the feedback signal ───────────────────────────────
@@ -73,25 +205,79 @@ export interface Ga4LandingPage {
   conversions: number;
 }
 
+const GA4_SCOPES = ["https://www.googleapis.com/auth/analytics.readonly"];
+
+function ga4ServiceAccount(): ServiceAccount | null {
+  // GA4 can reuse the GSC service account if a dedicated one isn't provided.
+  return parseServiceAccount(process.env.GA4_SERVICE_ACCOUNT_JSON) ?? parseServiceAccount(process.env.GSC_SERVICE_ACCOUNT_JSON);
+}
+
 export function isGa4Configured(): boolean {
-  return Boolean(process.env.GA4_PROPERTY_ID && (process.env.GA4_SERVICE_ACCOUNT_JSON || process.env.GSC_SERVICE_ACCOUNT_JSON));
+  return Boolean(process.env.GA4_PROPERTY_ID && ga4ServiceAccount());
+}
+
+/** Map a raw GA4 runReport response into our landing-page shape (pure, testable). */
+export function mapGa4Rows(apiRows: unknown): Ga4LandingPage[] {
+  const rows = Array.isArray(apiRows) ? apiRows : [];
+  return rows
+    .map((r): Ga4LandingPage => {
+      const row = r as { dimensionValues?: Array<{ value?: unknown }>; metricValues?: Array<{ value?: unknown }> };
+      return {
+        page: String(row.dimensionValues?.[0]?.value ?? "").trim(),
+        sessions: Number(row.metricValues?.[0]?.value ?? 0),
+        engagementRate: Number(row.metricValues?.[1]?.value ?? 0),
+        conversions: Number(row.metricValues?.[2]?.value ?? 0),
+      };
+    })
+    .filter((r) => r.page.length > 0);
 }
 
 /**
- * Pull the last `days` of top landing pages from GA4. Returns null when GA4 isn't
- * configured — callers surface an honest "connect Analytics" state.
- *
- * NOTE (wiring task): with creds present, exchange the service account for an
- * access token and POST to the GA4 Data API
- *   https://analyticsdata.googleapis.com/v1beta/properties/{GA4_PROPERTY_ID}:runReport
- * with dimensions:["landingPagePlusQueryString"] and
- * metrics:["sessions","engagementRate","conversions"]. The shape returned here
- * matches that response so the routes need no change when this is wired.
+ * Pull the last `days` of top landing pages from the GA4 Data API. Returns null
+ * when GA4 isn't configured (honest "connect Analytics"), throws GoogleApiError
+ * when configured but the call fails, and never fabricates data.
  */
-export async function fetchGa4LandingPages(_days = 28): Promise<Ga4LandingPage[] | null> {
-  if (!isGa4Configured()) return null;
-  logger.info("GA4 configured — Data API fetch not yet wired (returns empty, never fake)");
-  return [];
+export async function fetchGa4LandingPages(days = 28): Promise<Ga4LandingPage[] | null> {
+  const sa = ga4ServiceAccount();
+  const propertyId = process.env.GA4_PROPERTY_ID;
+  if (!sa || !propertyId) return null;
+
+  const token = await getGoogleAccessToken(sa, GA4_SCOPES);
+  const id = propertyId.replace(/^properties\//, "");
+  let res;
+  try {
+    res = await axios.post(
+      `https://analyticsdata.googleapis.com/v1beta/properties/${encodeURIComponent(id)}:runReport`,
+      {
+        dateRanges: [{ startDate: `${days}daysAgo`, endDate: "today" }],
+        dimensions: [{ name: "landingPagePlusQueryString" }],
+        metrics: [{ name: "sessions" }, { name: "engagementRate" }, { name: "conversions" }],
+        orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+        limit: 100,
+      },
+      { timeout: 30000, headers: { authorization: `Bearer ${token}`, "content-type": "application/json" } },
+    );
+  } catch (err) {
+    const detail = axios.isAxiosError(err) ? JSON.stringify(err.response?.data ?? err.code) : String(err);
+    logger.error({ propertyId: id, detail }, "GA4 runReport failed");
+    throw new GoogleApiError(`Analytics query failed: ${detail}`);
+  }
+  return mapGa4Rows(res.data?.rows);
+}
+
+/** Live GA4 connectivity check for the admin status panel. */
+export async function checkGa4Connection(): Promise<{ configured: boolean; ok: boolean; reason?: string }> {
+  const sa = ga4ServiceAccount();
+  const propertyId = process.env.GA4_PROPERTY_ID;
+  if (!sa || !propertyId) {
+    return { configured: false, ok: false, reason: !propertyId ? "GA4_PROPERTY_ID is not set" : "No GA4/GSC service account is configured" };
+  }
+  try {
+    await getGoogleAccessToken(sa, GA4_SCOPES);
+    return { configured: true, ok: true };
+  } catch (err) {
+    return { configured: true, ok: false, reason: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 // ─── Opportunity ranker (pure, testable) ────────────────────────────────────────
@@ -158,11 +344,51 @@ const DEFAULT_SUBREDDITS = [
   "india", "brazil", "philippines", "Uganda", "Tanzania", "SEO", "content_marketing",
 ];
 
+// Reddit requires a unique, descriptive User-Agent. A generic/browser UA is a
+// common reason requests get 403'd, so keep this specific and overridable.
 const REDDIT_UA = process.env.SEO_REDDIT_USER_AGENT
   ?? "web:spay-seo-research:v1 (by /u/spay-team)";
 
 export function isRedditEnabled(): boolean {
   return process.env.SEO_REDDIT_ENABLED !== "false";
+}
+
+/**
+ * Reddit now 403s most unauthenticated requests (especially from datacenter
+ * IPs), which is why the public-JSON-only approach returns nothing in
+ * production. When a Reddit app's client id + secret are set we use the official
+ * OAuth "application-only" (client_credentials) flow against oauth.reddit.com,
+ * which is reliable. Create an app at https://www.reddit.com/prefs/apps
+ * (type: "web app" / "script") and set REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET.
+ */
+export function isRedditOAuthConfigured(): boolean {
+  return Boolean(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET);
+}
+
+let redditTokenCache: { token: string; exp: number } | null = null;
+
+async function getRedditToken(): Promise<string | null> {
+  if (!isRedditOAuthConfigured()) return null;
+  const now = Math.floor(Date.now() / 1000);
+  if (redditTokenCache && redditTokenCache.exp - 60 > now) return redditTokenCache.token;
+  try {
+    const res = await axios.post(
+      "https://www.reddit.com/api/v1/access_token",
+      new URLSearchParams({ grant_type: "client_credentials" }).toString(),
+      {
+        timeout: 15000,
+        auth: { username: process.env.REDDIT_CLIENT_ID as string, password: process.env.REDDIT_CLIENT_SECRET as string },
+        headers: { "User-Agent": REDDIT_UA, "content-type": "application/x-www-form-urlencoded" },
+      },
+    );
+    const token = res.data?.access_token as string | undefined;
+    if (!token) return null;
+    redditTokenCache = { token, exp: now + Number(res.data?.expires_in ?? 3600) };
+    return token;
+  } catch (err) {
+    logger.warn({ err: axios.isAxiosError(err) ? err.response?.status : String(err) }, "Reddit OAuth token request failed");
+    return null;
+  }
 }
 
 export function redditSubreddits(): string[] {
@@ -179,12 +405,32 @@ export interface RedditTopic {
   numComments: number;
 }
 
+/** Extract our topic shape from a Reddit listing payload (pure, testable). */
+export function parseRedditListing(sub: string, data: unknown): RedditTopic[] {
+  const children = (data as { data?: { children?: unknown[] } })?.data?.children ?? [];
+  const out: RedditTopic[] = [];
+  for (const child of children) {
+    const d = (child as { data?: Record<string, unknown> })?.data ?? {};
+    if (d.stickied || !d.title) continue;
+    out.push({
+      subreddit: sub,
+      title: String(d.title),
+      url: d.permalink ? `https://www.reddit.com${String(d.permalink)}` : String(d.url ?? ""),
+      score: Number(d.score ?? 0),
+      numComments: Number(d.num_comments ?? 0),
+    });
+  }
+  return out;
+}
+
 /**
- * Collect top posts from the allowlisted subreddits via old.reddit's public JSON
- * (e.g. https://old.reddit.com/r/<sub>/top.json). No OAuth. Polite by design:
- * capped subs, small per-sub limit, descriptive UA, a short delay between calls.
- * Failures per subreddit are skipped, never thrown — partial results are fine.
- * These titles are topic ideas for drafts, not facts to publish verbatim.
+ * Collect top posts from the allowlisted subreddits. Prefers the authenticated
+ * oauth.reddit.com API when a Reddit app is configured (reliable), and otherwise
+ * falls back to the public JSON endpoints (www.reddit.com, then old.reddit.com)
+ * which Reddit increasingly blocks. Polite by design: capped subs, small per-sub
+ * limit, a unique UA, and a short delay between calls. Per-subreddit failures are
+ * skipped, never thrown — partial results are fine. Titles are topic ideas for
+ * drafts, not facts to publish verbatim.
  */
 export async function fetchRedditTopics(opts?: { perSub?: number; timeframe?: "day" | "week" | "month" }): Promise<RedditTopic[]> {
   if (!isRedditEnabled()) return [];
@@ -192,28 +438,46 @@ export async function fetchRedditTopics(opts?: { perSub?: number; timeframe?: "d
   const timeframe = opts?.timeframe ?? "week";
   const out: RedditTopic[] = [];
 
+  const token = await getRedditToken();
+  // Authenticated host first (reliable), then public fallbacks.
+  const hosts = token
+    ? [`https://oauth.reddit.com`]
+    : [`https://www.reddit.com`, `https://old.reddit.com`];
+  const authHeader = token ? { authorization: `Bearer ${token}` } : {};
+
+  let failures = 0;
   for (const sub of redditSubreddits()) {
-    try {
-      const res = await axios.get(`https://old.reddit.com/r/${encodeURIComponent(sub)}/top.json`, {
-        params: { t: timeframe, limit: perSub },
-        timeout: 10000,
-        headers: { "User-Agent": REDDIT_UA, Accept: "application/json" },
-      });
-      for (const child of res.data?.data?.children ?? []) {
-        const d = child?.data ?? {};
-        if (d.stickied || !d.title) continue;
-        out.push({
-          subreddit: sub,
-          title: String(d.title),
-          url: d.permalink ? `https://www.reddit.com${d.permalink}` : (d.url ?? ""),
-          score: Number(d.score ?? 0),
-          numComments: Number(d.num_comments ?? 0),
+    let got = false;
+    for (const host of hosts) {
+      try {
+        const res = await axios.get(`${host}/r/${encodeURIComponent(sub)}/top.json`, {
+          params: { t: timeframe, limit: perSub, raw_json: 1 },
+          timeout: 10000,
+          headers: { "User-Agent": REDDIT_UA, Accept: "application/json", ...authHeader },
         });
+        // A 403/HTML block page can still arrive as 200 with non-JSON — guard it.
+        if (typeof res.data === "object" && res.data) {
+          out.push(...parseRedditListing(sub, res.data));
+          got = true;
+          break;
+        }
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status && err.response.status !== 403) {
+          logger.warn({ sub, host, status: err.response.status }, "Reddit topic fetch failed");
+        }
       }
-    } catch (err) {
-      logger.warn({ sub, err: axios.isAxiosError(err) ? err.response?.status : String(err) }, "Reddit topic fetch failed (skipped)");
     }
-    await new Promise((r) => setTimeout(r, 350)); // be polite between subreddits
+    if (!got) failures++;
+    await new Promise((r) => setTimeout(r, token ? 150 : 350)); // be polite between subreddits
+  }
+
+  if (failures > 0 && out.length === 0) {
+    logger.warn(
+      { failures, oauth: isRedditOAuthConfigured() },
+      isRedditOAuthConfigured()
+        ? "Reddit returned no topics even with OAuth — check the app credentials/type at reddit.com/prefs/apps"
+        : "Reddit returned no topics — public JSON is likely 403-blocked; set REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET to use the official API",
+    );
   }
   return out.sort((a, b) => b.score - a.score);
 }
@@ -251,8 +515,15 @@ function overlaps(a: string, b: string): boolean {
  * strong score boost — those are the highest-confidence blogs to write.
  */
 export async function combinedResearch(limit = 20): Promise<{ candidates: BlogCandidate[]; gscConfigured: boolean; redditEnabled: boolean }> {
-  const gscRows = await fetchSearchAnalytics();
-  const gsc = gscRows ? rankOpportunities(gscRows, 50) : [];
+  // A GSC API failure must not sink the whole research call — fall back to
+  // Reddit-led results and still report GSC as configured.
+  let gsc: Opportunity[] = [];
+  try {
+    const gscRows = await fetchSearchAnalytics();
+    gsc = gscRows ? rankOpportunities(gscRows, 50) : [];
+  } catch (err) {
+    logger.warn({ err: err instanceof Error ? err.message : String(err) }, "combinedResearch: GSC fetch failed, continuing with Reddit only");
+  }
   const reddit = await fetchRedditTopics({ perSub: 4 });
 
   const gMax = Math.max(...gsc.map((o) => o.score), 1);
@@ -287,7 +558,7 @@ export async function combinedResearch(limit = 20): Promise<{ candidates: BlogCa
   }
 
   const candidates = [...byKey.values()].sort((a, b) => b.score - a.score).slice(0, limit);
-  return { candidates, gscConfigured: gscRows !== null, redditEnabled: isRedditEnabled() };
+  return { candidates, gscConfigured: isGscConfigured(), redditEnabled: isRedditEnabled() };
 }
 
 // ─── Gemini draft generation (grounded) ─────────────────────────────────────────

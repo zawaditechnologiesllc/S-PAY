@@ -2612,12 +2612,22 @@ components:
       properties:
         gscConfigured:
           type: boolean
+          description: True only when the Search Console service account can actually authenticate (live check).
+        gscReason:
+          type: string
+          description: Why GSC is not connected, when gscConfigured is false.
         ga4Configured:
           type: boolean
+          description: True only when the GA4 service account can actually authenticate (live check).
+        ga4Reason:
+          type: string
         draftConfigured:
           type: boolean
         redditEnabled:
           type: boolean
+        redditOAuthConfigured:
+          type: boolean
+          description: True when REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET are set (official Reddit API).
       required: [gscConfigured, draftConfigured, redditEnabled]
 
     Ga4LandingPage:
@@ -2674,6 +2684,8 @@ components:
       type: object
       properties:
         enabled: { type: boolean }
+        oauth: { type: boolean, description: True when using the official Reddit API (OAuth app configured). }
+        message: { type: string, description: Guidance shown when no topics could be fetched. }
         topics:
           type: array
           items: { $ref: "#/components/schemas/RedditTopic" }

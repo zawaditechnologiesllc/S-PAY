@@ -2,10 +2,11 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { requireAnyAdmin, requireManager } from "../lib/admin-roles";
 import {
-  fetchSearchAnalytics, isGscConfigured, rankOpportunities,
-  fetchGa4LandingPages, isGa4Configured,
-  generateBlogDraft, isDraftConfigured, DraftNotConfiguredError,
-  fetchRedditTopics, isRedditEnabled, combinedResearch, deriveAudience, slugify, articleJsonLd,
+  fetchSearchAnalytics, isGscConfigured, rankOpportunities, checkGscConnection,
+  fetchGa4LandingPages, isGa4Configured, checkGa4Connection,
+  generateBlogDraft, isDraftConfigured, DraftNotConfiguredError, GoogleApiError,
+  fetchRedditTopics, isRedditEnabled, isRedditOAuthConfigured,
+  combinedResearch, deriveAudience, slugify, articleJsonLd,
 } from "../lib/seo";
 import { db, blogPostsTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
@@ -72,18 +73,32 @@ router.get("/admin/seo/opportunities", requireAuth, requireAnyAdmin, async (req,
     }
     res.json({ configured: true, opportunities: rankOpportunities(rows, Number(req.query.limit) || 20) });
   } catch (err) {
+    // Creds are set but the live call failed (invalid key, property not verified
+    // for the service account, etc.) — tell the admin instead of a blank 500.
+    if (err instanceof GoogleApiError) {
+      res.json({ configured: true, opportunities: [], message: `Search Console connection error: ${err.message}` });
+      return;
+    }
     req.log.error({ err }, "SEO opportunities error");
     res.status(500).json({ error: "internal_error", message: "Failed to load SEO opportunities" });
   }
 });
 
 // Status of the engine's integrations, for the admin panel.
-router.get("/admin/seo/status", requireAuth, requireAnyAdmin, (_req, res) => {
+router.get("/admin/seo/status", requireAuth, requireAnyAdmin, async (_req, res) => {
+  // Real connectivity checks (not just env presence) so "connected" means the
+  // service account can actually authenticate — token acquisition is cached.
+  const [gsc, ga4] = await Promise.all([checkGscConnection(), checkGa4Connection()]);
   res.json({
-    gscConfigured: isGscConfigured(),
-    ga4Configured: isGa4Configured(),
+    // gscConfigured/ga4Configured reflect a LIVE connection now, with a reason
+    // when creds are present but the connection fails.
+    gscConfigured: gsc.ok,
+    gscReason: gsc.ok ? undefined : gsc.reason,
+    ga4Configured: ga4.ok,
+    ga4Reason: ga4.ok ? undefined : ga4.reason,
     draftConfigured: isDraftConfigured(),
     redditEnabled: isRedditEnabled(),
+    redditOAuthConfigured: isRedditOAuthConfigured(),
   });
 });
 
@@ -102,6 +117,10 @@ router.get("/admin/seo/analytics", requireAuth, requireAnyAdmin, async (req, res
     }
     res.json({ configured: true, pages: rows.slice(0, Number(req.query.limit) || 25) });
   } catch (err) {
+    if (err instanceof GoogleApiError) {
+      res.json({ configured: true, pages: [], message: `Analytics connection error: ${err.message}` });
+      return;
+    }
     req.log.error({ err }, "SEO analytics error");
     res.status(500).json({ error: "internal_error", message: "Failed to load analytics" });
   }
@@ -113,7 +132,10 @@ router.get("/admin/seo/reddit-topics", requireAuth, requireAnyAdmin, async (req,
   try {
     const timeframe = (["day", "week", "month"].includes(String(req.query.timeframe)) ? req.query.timeframe : "week") as "day" | "week" | "month";
     const topics = await fetchRedditTopics({ timeframe, perSub: Number(req.query.perSub) || 4 });
-    res.json({ enabled: isRedditEnabled(), topics: topics.slice(0, Number(req.query.limit) || 60) });
+    const message = topics.length === 0 && isRedditEnabled() && !isRedditOAuthConfigured()
+      ? "Reddit returned no topics — its public endpoints are likely blocking requests. Set REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET (create an app at reddit.com/prefs/apps) to use the official API."
+      : undefined;
+    res.json({ enabled: isRedditEnabled(), oauth: isRedditOAuthConfigured(), topics: topics.slice(0, Number(req.query.limit) || 60), message });
   } catch (err) {
     req.log.error({ err }, "Reddit topics error");
     res.status(500).json({ error: "internal_error", message: "Failed to load Reddit topics" });

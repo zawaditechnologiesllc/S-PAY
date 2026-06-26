@@ -1634,10 +1634,13 @@ export const ListPayrollWebhookDeliveriesResponse = zod.object({
  * @summary SEO engine integration status
  */
 export const GetSeoStatusResponse = zod.object({
-  "gscConfigured": zod.boolean(),
-  "ga4Configured": zod.boolean().optional(),
+  "gscConfigured": zod.boolean().describe('True only when the Search Console service account can actually authenticate (live check).'),
+  "gscReason": zod.string().optional().describe('Why GSC is not connected, when gscConfigured is false.'),
+  "ga4Configured": zod.boolean().optional().describe('True only when the GA4 service account can actually authenticate (live check).'),
+  "ga4Reason": zod.string().optional(),
   "draftConfigured": zod.boolean(),
-  "redditEnabled": zod.boolean()
+  "redditEnabled": zod.boolean(),
+  "redditOAuthConfigured": zod.boolean().optional().describe('True when REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET are set (official Reddit API).')
 })
 
 
@@ -1684,6 +1687,8 @@ export const GetSeoRedditTopicsQueryParams = zod.object({
 
 export const GetSeoRedditTopicsResponse = zod.object({
   "enabled": zod.boolean(),
+  "oauth": zod.boolean().optional().describe('True when using the official Reddit API (OAuth app configured).'),
+  "message": zod.string().optional().describe('Guidance shown when no topics could be fetched.'),
   "topics": zod.array(zod.object({
   "subreddit": zod.string(),
   "title": zod.string(),
