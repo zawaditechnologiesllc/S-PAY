@@ -196,20 +196,31 @@ router.get("/admin/seo/posts/:id", requireAuth, requireAnyAdmin, async (req, res
 
 // Edit a draft before publishing (human-in-the-loop).
 router.patch("/admin/seo/posts/:id", requireAuth, requireManager, async (req, res) => {
-  const { title, metaDescription, excerpt, bodyMarkdown, keyword, slug } = req.body as Record<string, unknown>;
-  const [existing] = await db.select().from(blogPostsTable).where(eq(blogPostsTable.id, req.params.id as string)).limit(1);
-  if (!existing) { res.status(404).json({ error: "not_found", message: "Post not found" }); return; }
+  try {
+    const { title, metaDescription, excerpt, bodyMarkdown, keyword, slug } = req.body as Record<string, unknown>;
+    const [existing] = await db.select().from(blogPostsTable).where(eq(blogPostsTable.id, req.params.id as string)).limit(1);
+    if (!existing) { res.status(404).json({ error: "not_found", message: "Post not found" }); return; }
 
-  const [updated] = await db.update(blogPostsTable).set({
-    title: typeof title === "string" && title.trim() ? title.trim() : existing.title,
-    metaDescription: typeof metaDescription === "string" ? metaDescription.trim() || null : existing.metaDescription,
-    excerpt: typeof excerpt === "string" ? excerpt.trim() || null : existing.excerpt,
-    bodyMarkdown: typeof bodyMarkdown === "string" && bodyMarkdown.trim() ? bodyMarkdown : existing.bodyMarkdown,
-    keyword: typeof keyword === "string" ? keyword.trim() || null : existing.keyword,
-    slug: typeof slug === "string" && slug.trim() ? slugify(slug) : existing.slug,
-    updatedAt: new Date(),
-  }).where(eq(blogPostsTable.id, existing.id)).returning();
-  res.json({ post: serializePost(updated, true) });
+    const [updated] = await db.update(blogPostsTable).set({
+      title: typeof title === "string" && title.trim() ? title.trim() : existing.title,
+      metaDescription: typeof metaDescription === "string" ? metaDescription.trim() || null : existing.metaDescription,
+      excerpt: typeof excerpt === "string" ? excerpt.trim() || null : existing.excerpt,
+      bodyMarkdown: typeof bodyMarkdown === "string" && bodyMarkdown.trim() ? bodyMarkdown : existing.bodyMarkdown,
+      keyword: typeof keyword === "string" ? keyword.trim() || null : existing.keyword,
+      slug: typeof slug === "string" && slug.trim() ? slugify(slug) : existing.slug,
+      updatedAt: new Date(),
+    }).where(eq(blogPostsTable.id, existing.id)).returning();
+    res.json({ post: serializePost(updated, true) });
+  } catch (err) {
+    // The slug is uniquely indexed — an edit that collides with another post's
+    // slug is a clean 409, not an opaque 500.
+    if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "23505") {
+      res.status(409).json({ error: "slug_taken", message: "That slug is already used by another post — pick a different one." });
+      return;
+    }
+    req.log.error({ err }, "SEO post update error");
+    res.status(500).json({ error: "internal_error", message: "Could not save the post" });
+  }
 });
 
 // Approve + publish. The human approval gate — only published posts are public.

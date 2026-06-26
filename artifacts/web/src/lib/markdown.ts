@@ -1,6 +1,7 @@
 /**
  * Minimal, safe Markdown → HTML for blog bodies. All HTML is escaped first, then
- * only a known tag set is emitted; links are restricted to http(s)/relative — so
+ * only a known tag set is emitted; links are restricted to http(s) or
+ * same-origin relative paths (protocol-relative "//host" links are rejected) — so
  * AI-generated content can never inject scripts, styles, or event handlers. The
  * result is safe to pass to dangerouslySetInnerHTML. (Mirrors the server-side
  * renderer in routes/ssr.ts so SSR and SPA output match.)
@@ -12,7 +13,7 @@ export function mdToHtml(md: string): string {
       .replace(/`([^`]+)`/g, "<code>$1</code>")
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
       .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/[^\s)]*)\)/g, '<a href="$2" rel="noopener">$1</a>');
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/(?!\/)[^\s)]*)\)/g, '<a href="$2" rel="noopener">$1</a>');
   const lines = (md ?? "").replace(/\r\n/g, "\n").split("\n");
   const out: string[] = [];
   let list: "ul" | "ol" | null = null;
