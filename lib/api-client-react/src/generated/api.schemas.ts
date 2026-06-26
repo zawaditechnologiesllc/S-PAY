@@ -565,6 +565,8 @@ export interface SeoStatus {
   redditEnabled: boolean;
   /** True when REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET are set (official Reddit API). */
   redditOAuthConfigured?: boolean;
+  /** True when SEO_REDDIT_PROXY_URL is set (proxied public-JSON path, no Reddit app needed). */
+  redditProxyConfigured?: boolean;
 }
 
 export interface Ga4LandingPage {
@@ -607,6 +609,8 @@ export interface RedditTopicsResponse {
   enabled: boolean;
   /** True when using the official Reddit API (OAuth app configured). */
   oauth?: boolean;
+  /** True when public-JSON requests are routed through a configured proxy. */
+  proxy?: boolean;
   /** Guidance shown when no topics could be fetched. */
   message?: string;
   topics: RedditTopic[];

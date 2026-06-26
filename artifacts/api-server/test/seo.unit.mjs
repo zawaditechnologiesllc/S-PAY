@@ -216,6 +216,47 @@ test("parseRedditListing extracts non-stickied posts with absolute URLs", () => 
   assert.equal(topics[0].score, 88);
 });
 
+// ─── parseProxyConfig (Reddit proxy plumbing) ───────────────────────────────────
+
+test("parseProxyConfig parses a full proxy URL with credentials", () => {
+  const p = seo.parseProxyConfig("http://user:p%40ss@gw.example.com:7777");
+  assert.deepEqual(p, { host: "gw.example.com", port: 7777, protocol: "http", auth: { username: "user", password: "p@ss" } });
+});
+
+test("parseProxyConfig accepts a bare host:port (defaults to http)", () => {
+  const p = seo.parseProxyConfig("gw.example.com:8080");
+  assert.equal(p.host, "gw.example.com");
+  assert.equal(p.port, 8080);
+  assert.equal(p.protocol, "http");
+  assert.equal(p.auth, undefined);
+});
+
+test("parseProxyConfig defaults the port by scheme and returns null on junk", () => {
+  assert.equal(seo.parseProxyConfig("https://proxy.example.com").port, 443);
+  assert.equal(seo.parseProxyConfig(""), null);
+  assert.equal(seo.parseProxyConfig(undefined), null);
+});
+
+// ─── redditSubreddits (the ~100-sub allowlist) ──────────────────────────────────
+
+test("redditSubreddits returns the de-duped, capped default niche list", () => {
+  const subs = seo.redditSubreddits();
+  assert.ok(subs.length >= 90 && subs.length <= 100, `expected ~100 subs, got ${subs.length}`);
+  const lower = subs.map((s) => s.toLowerCase());
+  assert.equal(new Set(lower).size, lower.length, "no duplicates");
+  for (const core of ["kenya", "nigeria", "freelance", "cryptocurrency", "stablecoins", "celo", "payoneer"]) {
+    assert.ok(lower.includes(core), `expected core sub r/${core}`);
+  }
+});
+
+test("redditSubreddits honours SEO_REDDIT_SUBREDDITS override and the cap", () => {
+  const prev = process.env.SEO_REDDIT_SUBREDDITS;
+  process.env.SEO_REDDIT_SUBREDDITS = Array.from({ length: 150 }, (_, i) => `sub${i}`).join(",");
+  const subs = seo.redditSubreddits();
+  assert.equal(subs.length, 100, "capped at 100");
+  if (prev === undefined) delete process.env.SEO_REDDIT_SUBREDDITS; else process.env.SEO_REDDIT_SUBREDDITS = prev;
+});
+
 // ─── combinedResearch (honest gating, offline) ──────────────────────────────────
 
 test("combinedResearch is honest and empty when GSC is unset and Reddit is disabled", async () => {

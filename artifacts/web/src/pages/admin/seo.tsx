@@ -86,7 +86,11 @@ export default function AdminSeo() {
           <StatusPill label="Search Console" ok={!!status?.gscConfigured} reason={status?.gscReason} />
           <StatusPill label="Analytics (GA4)" ok={!!status?.ga4Configured} reason={status?.ga4Reason} />
           <StatusPill label="AI drafting (Gemini)" ok={!!status?.draftConfigured} />
-          <StatusPill label={status?.redditOAuthConfigured ? "Reddit (API)" : "Reddit topics"} ok={!!status?.redditEnabled} />
+          <StatusPill
+            label={status?.redditOAuthConfigured ? "Reddit (API)" : status?.redditProxyConfigured ? "Reddit (proxy)" : "Reddit topics"}
+            ok={!!status?.redditEnabled && (!!status?.redditOAuthConfigured || !!status?.redditProxyConfigured)}
+            reason={status?.redditEnabled && !status?.redditOAuthConfigured && !status?.redditProxyConfigured ? "Public Reddit JSON is usually IP-blocked from servers. Set SEO_REDDIT_PROXY_URL (residential/rotating proxy) or REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET." : undefined}
+          />
           <p className="text-xs text-gray-400 ml-1">Research picks the keyword + audience. Drafts are AI-written, grounded in product facts. Nothing publishes until you approve it.</p>
         </div>
         {(status?.gscReason || status?.ga4Reason) && (

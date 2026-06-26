@@ -327,39 +327,116 @@ export function rankOpportunities(rows: SearchAnalyticsRow[], limit = 20): Oppor
     .slice(0, limit);
 }
 
-// ─── Reddit topic mining (public old.reddit JSON — no OAuth) ────────────────────
+// ─── Reddit topic mining (proxied public JSON, or official OAuth) ───────────────
 
-// ~50 subreddits relevant to S-PAY: remote work / freelancing, payments &
-// fintech, stablecoins/Celo, and our key corridor countries. Override with
+// ~100 subreddits across S-PAY's niche: remote work / freelancing / the gig
+// economy, online income & business, personal finance, payments & fintech,
+// stablecoins/crypto, the dev communities that earn remotely, our key corridor
+// countries, expats/migration, and marketing/SEO. Override the whole set with
 // SEO_REDDIT_SUBREDDITS (comma-separated) to retarget without a deploy.
 const DEFAULT_SUBREDDITS = [
-  "remotework", "digitalnomad", "freelance", "WorkOnline", "forhire", "Upwork",
-  "Fiverr", "freelanceWriters", "juststart", "sidehustle", "passive_income",
-  "Entrepreneur", "smallbusiness", "kickstarter", "ecommerce", "SaaS",
+  // Remote work / freelancing / gig economy
+  "remotework", "digitalnomad", "digitalnomadjobs", "freelance", "freelanceWriters",
+  "WorkOnline", "forhire", "slavelabour", "Upwork", "Fiverr", "WorkFromHome",
+  "overemployed", "beermoney", "beermoneyglobal", "juststart", "sidehustle",
+  "SideHustleIdeas", "gigwork",
+  // Online income & business
+  "passive_income", "Entrepreneur", "EntrepreneurRideAlong", "smallbusiness",
+  "kickstarter", "ecommerce", "dropship", "FulfillmentByAmazon", "AmazonSeller",
+  "SaaS", "indiehackers", "startups", "growmybusiness", "Affiliatemarketing",
+  "Blogging", "Etsy", "printondemand",
+  // Personal finance
   "personalfinance", "povertyfinance", "Frugal", "FinancialPlanning",
+  "financialindependence", "MiddleClassFinance", "eupersonalfinance",
+  "UKPersonalFinance", "churning",
+  // Payments / fintech / crypto / stablecoins
   "fintech", "CryptoCurrency", "stablecoins", "Celo", "ethfinance", "defi",
-  "Bitcoin", "ethereum", "CryptoTechnology", "Payoneer", "wise", "Banking",
-  "expats", "IWantOut", "cscareerquestions", "developersIndia", "webdev",
-  "programming", "PinoyProgrammer", "Kenya", "Nigeria", "ghana", "southafrica",
-  "india", "brazil", "philippines", "Uganda", "Tanzania", "SEO", "content_marketing",
+  "Bitcoin", "ethereum", "CryptoTechnology", "BitcoinBeginners", "CryptoMarkets",
+  "Stellar", "solana", "0xPolygon", "XRP", "Payoneer", "wise", "Banking",
+  "paypal", "Revolut", "CashApp", "Remitly",
+  // Dev / skills that earn remotely
+  "cscareerquestions", "developersIndia", "webdev", "programming",
+  "PinoyProgrammer", "learnprogramming", "ExperiencedDevs", "web_design",
+  "graphic_design", "TranslationStudies",
+  // Corridor countries / regions
+  "Kenya", "Nigeria", "ghana", "southafrica", "india", "brazil", "philippines",
+  "Uganda", "Tanzania", "Zambia", "Zimbabwe", "Rwanda", "ethiopia", "Egypt",
+  "Pakistan", "bangladesh", "indonesia", "vietnam", "mexico", "Colombia",
+  "argentina", "peru", "LatinAmerica", "Africa",
+  // Expats / migration
+  "expats", "IWantOut", "AmerExit",
+  // Marketing / SEO (audience + our own content craft)
+  "SEO", "bigseo", "content_marketing", "marketing", "DigitalMarketing",
 ];
 
-// Reddit requires a unique, descriptive User-Agent. A generic/browser UA is a
-// common reason requests get 403'd, so keep this specific and overridable.
-const REDDIT_UA = process.env.SEO_REDDIT_USER_AGENT
-  ?? "web:spay-seo-research:v1 (by /u/spay-team)";
+const REDDIT_SUB_CAP = 100;
+
+// Reddit's OAuth API wants a unique, descriptive User-Agent; the public JSON
+// endpoints behave best with a normal browser UA. SEO_REDDIT_USER_AGENT
+// overrides both.
+const REDDIT_UA_OVERRIDE = process.env.SEO_REDDIT_USER_AGENT;
+const REDDIT_OAUTH_UA = REDDIT_UA_OVERRIDE ?? "web:spay-seo-research:v1 (by /u/spay-team)";
+const REDDIT_PUBLIC_UA = REDDIT_UA_OVERRIDE
+  ?? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 export function isRedditEnabled(): boolean {
   return process.env.SEO_REDDIT_ENABLED !== "false";
 }
 
+// ── Proxy support (the no-app-approval path) ────────────────────────────────────
+// Reddit 403s requests from datacenter IPs, so the public JSON returns nothing
+// from a normal server. Routing those requests through a residential/rotating
+// HTTP(S) proxy makes them look like ordinary traffic and they succeed — no
+// Reddit app or API approval needed (which can take months). Set
+// SEO_REDDIT_PROXY_URL to one or more (comma-separated) proxy URLs, e.g.
+//   http://user:pass@gateway.provider.com:7777
+// Multiple proxies are rotated per request. Many residential gateways already
+// rotate the exit IP on every connection, so a single URL is usually enough.
+
+export interface ProxyConfig { host: string; port: number; protocol: string; auth?: { username: string; password: string } }
+
+/** Parse a proxy URL ("http://user:pass@host:port" or "host:port") into axios's
+ *  proxy shape. Returns null if it can't yield a usable host. Pure/testable. */
+export function parseProxyConfig(raw: string | undefined | null): ProxyConfig | null {
+  if (!raw) return null;
+  let s = raw.trim();
+  if (!s) return null;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) s = `http://${s}`; // allow bare host:port
+  let u: URL;
+  try { u = new URL(s); } catch { return null; }
+  if (!u.hostname) return null;
+  const protocol = (u.protocol || "http:").replace(/:$/, "");
+  const port = u.port ? Number(u.port) : (protocol === "https" ? 443 : 80);
+  if (!Number.isFinite(port)) return null;
+  const cfg: ProxyConfig = { host: u.hostname, port, protocol };
+  if (u.username || u.password) {
+    cfg.auth = { username: decodeURIComponent(u.username), password: decodeURIComponent(u.password) };
+  }
+  return cfg;
+}
+
+export function redditProxies(): ProxyConfig[] {
+  const raw = process.env.SEO_REDDIT_PROXY_URL;
+  if (!raw) return [];
+  return raw.split(",").map((s) => parseProxyConfig(s)).filter((p): p is ProxyConfig => p !== null);
+}
+
+export function isRedditProxyConfigured(): boolean {
+  return redditProxies().length > 0;
+}
+
+/** A proxy for this request (random across the configured pool), or undefined. */
+function pickProxy(): ProxyConfig | undefined {
+  const pool = redditProxies();
+  return pool.length ? pool[Math.floor(Math.random() * pool.length)] : undefined;
+}
+
 /**
- * Reddit now 403s most unauthenticated requests (especially from datacenter
- * IPs), which is why the public-JSON-only approach returns nothing in
- * production. When a Reddit app's client id + secret are set we use the official
- * OAuth "application-only" (client_credentials) flow against oauth.reddit.com,
- * which is reliable. Create an app at https://www.reddit.com/prefs/apps
- * (type: "web app" / "script") and set REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET.
+ * When a Reddit app's client id + secret are set we use the official OAuth
+ * "application-only" (client_credentials) flow against oauth.reddit.com. Create
+ * an app at https://www.reddit.com/prefs/apps (type "script"/"web app") — that
+ * is instant; only Reddit's *commercial Data API* program needs approval, which
+ * the proxy path above avoids entirely.
  */
 export function isRedditOAuthConfigured(): boolean {
   return Boolean(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET);
@@ -371,6 +448,7 @@ async function getRedditToken(): Promise<string | null> {
   if (!isRedditOAuthConfigured()) return null;
   const now = Math.floor(Date.now() / 1000);
   if (redditTokenCache && redditTokenCache.exp - 60 > now) return redditTokenCache.token;
+  const proxy = pickProxy();
   try {
     const res = await axios.post(
       "https://www.reddit.com/api/v1/access_token",
@@ -378,7 +456,8 @@ async function getRedditToken(): Promise<string | null> {
       {
         timeout: 15000,
         auth: { username: process.env.REDDIT_CLIENT_ID as string, password: process.env.REDDIT_CLIENT_SECRET as string },
-        headers: { "User-Agent": REDDIT_UA, "content-type": "application/x-www-form-urlencoded" },
+        headers: { "User-Agent": REDDIT_OAUTH_UA, "content-type": "application/x-www-form-urlencoded" },
+        ...(proxy ? { proxy } : {}),
       },
     );
     const token = res.data?.access_token as string | undefined;
@@ -394,7 +473,29 @@ async function getRedditToken(): Promise<string | null> {
 export function redditSubreddits(): string[] {
   const env = process.env.SEO_REDDIT_SUBREDDITS;
   const list = env ? env.split(",").map((s) => s.trim()).filter(Boolean) : DEFAULT_SUBREDDITS;
-  return list.slice(0, 50); // hard cap — never hammer Reddit
+  // De-dupe (case-insensitive) and cap so we never hammer Reddit.
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const s of list) {
+    const k = s.toLowerCase();
+    if (!seen.has(k)) { seen.add(k); out.push(s); }
+  }
+  return out.slice(0, REDDIT_SUB_CAP);
+}
+
+// Bounded-concurrency map — keeps 100 subreddits fast without flooding Reddit.
+async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const idx = next++;
+      if (idx >= items.length) return;
+      results[idx] = await fn(items[idx]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
+  return results;
 }
 
 export interface RedditTopic {
@@ -423,63 +524,75 @@ export function parseRedditListing(sub: string, data: unknown): RedditTopic[] {
   return out;
 }
 
+// Short-TTL cache so loading the admin panel (and combinedResearch) repeatedly
+// doesn't re-crawl ~100 subreddits every time. Keyed by timeframe+perSub.
+const redditCache = new Map<string, { data: RedditTopic[]; exp: number }>();
+
 /**
- * Collect top posts from the allowlisted subreddits. Prefers the authenticated
- * oauth.reddit.com API when a Reddit app is configured (reliable), and otherwise
- * falls back to the public JSON endpoints (www.reddit.com, then old.reddit.com)
- * which Reddit increasingly blocks. Polite by design: capped subs, small per-sub
- * limit, a unique UA, and a short delay between calls. Per-subreddit failures are
- * skipped, never thrown — partial results are fine. Titles are topic ideas for
- * drafts, not facts to publish verbatim.
+ * Collect top posts from the ~100 allowlisted subreddits. Order of preference:
+ *  1. official oauth.reddit.com when a Reddit app is configured;
+ *  2. public JSON (www.reddit.com → old.reddit.com) routed through a configured
+ *     proxy — the no-app path that beats Reddit's datacenter-IP 403s.
+ * Bounded concurrency keeps 100 subs fast; results are cached briefly. A 403/HTML
+ * block page (which can arrive as a 200 with non-JSON) is guarded. Per-subreddit
+ * failures are skipped, never thrown — partial results are fine. Titles are topic
+ * ideas for drafts, not facts to publish verbatim.
  */
-export async function fetchRedditTopics(opts?: { perSub?: number; timeframe?: "day" | "week" | "month" }): Promise<RedditTopic[]> {
+export async function fetchRedditTopics(opts?: { perSub?: number; timeframe?: "day" | "week" | "month"; force?: boolean }): Promise<RedditTopic[]> {
   if (!isRedditEnabled()) return [];
   const perSub = Math.min(Math.max(opts?.perSub ?? 4, 1), 10);
   const timeframe = opts?.timeframe ?? "week";
-  const out: RedditTopic[] = [];
+
+  const cacheKey = `${timeframe}:${perSub}`;
+  const ttlMs = Math.max(0, Number(process.env.SEO_REDDIT_CACHE_TTL_SEC ?? 900)) * 1000;
+  const nowMs = Date.now();
+  if (!opts?.force && ttlMs > 0) {
+    const cached = redditCache.get(cacheKey);
+    if (cached && cached.exp > nowMs && cached.data.length > 0) return cached.data;
+  }
 
   const token = await getRedditToken();
-  // Authenticated host first (reliable), then public fallbacks.
-  const hosts = token
-    ? [`https://oauth.reddit.com`]
-    : [`https://www.reddit.com`, `https://old.reddit.com`];
+  const hosts = token ? ["https://oauth.reddit.com"] : ["https://www.reddit.com", "https://old.reddit.com"];
+  const ua = token ? REDDIT_OAUTH_UA : REDDIT_PUBLIC_UA;
   const authHeader = token ? { authorization: `Bearer ${token}` } : {};
+  const subs = redditSubreddits();
+  const concurrency = Math.min(Math.max(Number(process.env.SEO_REDDIT_CONCURRENCY ?? 5), 1), 12);
 
   let failures = 0;
-  for (const sub of redditSubreddits()) {
-    let got = false;
+  const fetchSub = async (sub: string): Promise<RedditTopic[]> => {
     for (const host of hosts) {
+      const proxy = pickProxy(); // rotate per request
       try {
         const res = await axios.get(`${host}/r/${encodeURIComponent(sub)}/top.json`, {
           params: { t: timeframe, limit: perSub, raw_json: 1 },
-          timeout: 10000,
-          headers: { "User-Agent": REDDIT_UA, Accept: "application/json", ...authHeader },
+          timeout: 12000,
+          headers: { "User-Agent": ua, Accept: "application/json", ...authHeader },
+          ...(proxy ? { proxy } : {}),
         });
-        // A 403/HTML block page can still arrive as 200 with non-JSON — guard it.
-        if (typeof res.data === "object" && res.data) {
-          out.push(...parseRedditListing(sub, res.data));
-          got = true;
-          break;
-        }
+        if (res.data && typeof res.data === "object") return parseRedditListing(sub, res.data);
       } catch (err) {
+        // 403 is the expected "blocked" case — only log the unexpected ones.
         if (axios.isAxiosError(err) && err.response?.status && err.response.status !== 403) {
           logger.warn({ sub, host, status: err.response.status }, "Reddit topic fetch failed");
         }
       }
     }
-    if (!got) failures++;
-    await new Promise((r) => setTimeout(r, token ? 150 : 350)); // be polite between subreddits
-  }
+    failures++;
+    return [];
+  };
+
+  const out = (await mapPool(subs, concurrency, fetchSub)).flat().sort((a, b) => b.score - a.score);
 
   if (failures > 0 && out.length === 0) {
     logger.warn(
-      { failures, oauth: isRedditOAuthConfigured() },
-      isRedditOAuthConfigured()
-        ? "Reddit returned no topics even with OAuth — check the app credentials/type at reddit.com/prefs/apps"
-        : "Reddit returned no topics — public JSON is likely 403-blocked; set REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET to use the official API",
+      { failures, oauth: isRedditOAuthConfigured(), proxy: isRedditProxyConfigured() },
+      isRedditOAuthConfigured() || isRedditProxyConfigured()
+        ? "Reddit returned no topics — check the proxy/OAuth credentials (the proxy may be blocked or out of quota)"
+        : "Reddit returned no topics — public JSON is 403-blocked from this server. Set SEO_REDDIT_PROXY_URL (a residential/rotating proxy) or REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET",
     );
   }
-  return out.sort((a, b) => b.score - a.score);
+  if (ttlMs > 0 && out.length > 0) redditCache.set(cacheKey, { data: out, exp: nowMs + ttlMs });
+  return out;
 }
 
 // ─── Combined research: Google + Reddit working together ────────────────────────

@@ -5,7 +5,7 @@ import {
   fetchSearchAnalytics, isGscConfigured, rankOpportunities, checkGscConnection,
   fetchGa4LandingPages, isGa4Configured, checkGa4Connection,
   generateBlogDraft, isDraftConfigured, DraftNotConfiguredError, GoogleApiError,
-  fetchRedditTopics, isRedditEnabled, isRedditOAuthConfigured,
+  fetchRedditTopics, isRedditEnabled, isRedditOAuthConfigured, isRedditProxyConfigured,
   combinedResearch, deriveAudience, slugify, articleJsonLd,
 } from "../lib/seo";
 import { db, blogPostsTable } from "@workspace/db";
@@ -99,6 +99,7 @@ router.get("/admin/seo/status", requireAuth, requireAnyAdmin, async (_req, res) 
     draftConfigured: isDraftConfigured(),
     redditEnabled: isRedditEnabled(),
     redditOAuthConfigured: isRedditOAuthConfigured(),
+    redditProxyConfigured: isRedditProxyConfigured(),
   });
 });
 
@@ -132,10 +133,16 @@ router.get("/admin/seo/reddit-topics", requireAuth, requireAnyAdmin, async (req,
   try {
     const timeframe = (["day", "week", "month"].includes(String(req.query.timeframe)) ? req.query.timeframe : "week") as "day" | "week" | "month";
     const topics = await fetchRedditTopics({ timeframe, perSub: Number(req.query.perSub) || 4 });
-    const message = topics.length === 0 && isRedditEnabled() && !isRedditOAuthConfigured()
-      ? "Reddit returned no topics — its public endpoints are likely blocking requests. Set REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET (create an app at reddit.com/prefs/apps) to use the official API."
+    const message = topics.length === 0 && isRedditEnabled() && !isRedditOAuthConfigured() && !isRedditProxyConfigured()
+      ? "Reddit returned no topics — its public endpoints block this server's IP. Set SEO_REDDIT_PROXY_URL (a residential/rotating proxy) to collect from all subreddits without a Reddit app, or set REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET for the official API."
       : undefined;
-    res.json({ enabled: isRedditEnabled(), oauth: isRedditOAuthConfigured(), topics: topics.slice(0, Number(req.query.limit) || 60), message });
+    res.json({
+      enabled: isRedditEnabled(),
+      oauth: isRedditOAuthConfigured(),
+      proxy: isRedditProxyConfigured(),
+      topics: topics.slice(0, Number(req.query.limit) || 60),
+      message,
+    });
   } catch (err) {
     req.log.error({ err }, "Reddit topics error");
     res.status(500).json({ error: "internal_error", message: "Failed to load Reddit topics" });

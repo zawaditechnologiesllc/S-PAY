@@ -1640,7 +1640,8 @@ export const GetSeoStatusResponse = zod.object({
   "ga4Reason": zod.string().optional(),
   "draftConfigured": zod.boolean(),
   "redditEnabled": zod.boolean(),
-  "redditOAuthConfigured": zod.boolean().optional().describe('True when REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET are set (official Reddit API).')
+  "redditOAuthConfigured": zod.boolean().optional().describe('True when REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET are set (official Reddit API).'),
+  "redditProxyConfigured": zod.boolean().optional().describe('True when SEO_REDDIT_PROXY_URL is set (proxied public-JSON path, no Reddit app needed).')
 })
 
 
@@ -1688,6 +1689,7 @@ export const GetSeoRedditTopicsQueryParams = zod.object({
 export const GetSeoRedditTopicsResponse = zod.object({
   "enabled": zod.boolean(),
   "oauth": zod.boolean().optional().describe('True when using the official Reddit API (OAuth app configured).'),
+  "proxy": zod.boolean().optional().describe('True when public-JSON requests are routed through a configured proxy.'),
   "message": zod.string().optional().describe('Guidance shown when no topics could be fetched.'),
   "topics": zod.array(zod.object({
   "subreddit": zod.string(),

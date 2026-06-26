@@ -2628,6 +2628,9 @@ components:
         redditOAuthConfigured:
           type: boolean
           description: True when REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET are set (official Reddit API).
+        redditProxyConfigured:
+          type: boolean
+          description: True when SEO_REDDIT_PROXY_URL is set (proxied public-JSON path, no Reddit app needed).
       required: [gscConfigured, draftConfigured, redditEnabled]
 
     Ga4LandingPage:
@@ -2685,6 +2688,7 @@ components:
       properties:
         enabled: { type: boolean }
         oauth: { type: boolean, description: True when using the official Reddit API (OAuth app configured). }
+        proxy: { type: boolean, description: True when public-JSON requests are routed through a configured proxy. }
         message: { type: string, description: Guidance shown when no topics could be fetched. }
         topics:
           type: array
