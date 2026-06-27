@@ -7,6 +7,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { OfflineBanner } from "@/components/offline-banner";
 import { queryClient } from "@/lib/query-client";
 import { getToken } from "@/lib/auth";
+import { prefetchRoutesIdle, prefetchRoute, USER_CORE_ROUTES } from "@/lib/route-prefetch";
 
 // Eager: the landing page (home / LCP), the maintenance gate (rendered before
 // the router), and the tiny 404 fallback. Everything else is code-split so the
@@ -134,6 +135,14 @@ function Router() {
       setLocation("/dashboard");
     }
   }, [token, location, setLocation]);
+
+  // Warm app routes ahead of the first click: returning users (token present)
+  // get the core set on idle; on the login page we eagerly warm the dashboard so
+  // the hop right after sign-in is instant.
+  useEffect(() => {
+    if (token) prefetchRoutesIdle(USER_CORE_ROUTES);
+    else if (location === "/login") prefetchRoute("/dashboard");
+  }, [token, location]);
 
   if (maintenance.enabled && !location.startsWith("/admin") && location !== "/login" && location !== "/auth/callback") {
     return <Maintenance message={maintenance.message} />;

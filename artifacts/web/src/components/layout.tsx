@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import {
   Wallet, Landmark, CreditCard, Briefcase,
@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { clearToken } from "@/lib/auth";
+import { prefetchRoutesIdle, linkPrefetchHandlers, USER_CORE_ROUTES, PAYROLL_ROUTES } from "@/lib/route-prefetch";
 import { BackButton } from "@/components/back-button";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { ThemeToggle } from "@/components/theme";
@@ -16,6 +17,13 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
   const [, setLocation] = useLocation();
   const [qrOpen, setQrOpen] = useState(false);
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), staleTime: 60_000 } });
+
+  // Warm the routes this account can reach so the next tap is instant. Idle-timed
+  // so it never competes with the page the user is currently on.
+  useEffect(() => {
+    prefetchRoutesIdle(USER_CORE_ROUTES);
+    if (me?.accountType === "business") prefetchRoutesIdle(PAYROLL_ROUTES);
+  }, [me?.accountType]);
 
   const handleSignOut = () => {
     clearToken();
@@ -61,13 +69,13 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
         {/* Bottom actions */}
         <div className="px-3 py-4 border-t border-white/10 space-y-0.5">
           <Link href="/how-it-works">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-colors text-sm cursor-pointer">
+            <div {...linkPrefetchHandlers("/how-it-works")} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-colors text-sm cursor-pointer">
               <HelpCircle size={18} />
               <span>How it works</span>
             </div>
           </Link>
           <Link href="/support">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-colors text-sm cursor-pointer">
+            <div {...linkPrefetchHandlers("/support")} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:bg-white/10 hover:text-white transition-colors text-sm cursor-pointer">
               <HelpCircle size={18} />
               <span>Help &amp; Support</span>
             </div>
@@ -162,6 +170,7 @@ function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; l
   return (
     <Link href={href}>
       <div
+        {...linkPrefetchHandlers(href)}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors text-sm ${
           active
             ? "bg-[#4DC9EE]/20 text-[#4DC9EE] font-semibold"
@@ -180,6 +189,7 @@ function MobileNavLink({ href, icon, label }: { href: string; icon: React.ReactN
   return (
     <Link href={href}>
       <div
+        {...linkPrefetchHandlers(href)}
         className={`flex flex-col items-center gap-0.5 px-3 py-2 min-w-[52px] cursor-pointer transition-colors ${
           active ? "text-[#4DC9EE]" : "text-gray-400"
         }`}

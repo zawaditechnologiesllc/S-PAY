@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, ArrowLeftRight, LogOut,
   Shield, Bell, ChevronRight, Settings, Menu, X, Briefcase, Inbox, Banknote, PenLine,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
+import { prefetchRoutesIdle, linkPrefetchHandlers, ADMIN_ROUTES } from "@/lib/route-prefetch";
 import { useGetAdminTeam, getGetAdminTeamQueryKey } from "@workspace/api-client-react";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
@@ -37,7 +38,7 @@ function NavItem({ href, icon, label, onClick }: { href: string; icon: React.Rea
   const [active] = useRoute(href === "/admin" ? "/admin" : `${href}*`);
   return (
     <Link href={href} onClick={onClick}>
-      <div className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all font-medium text-sm ${
+      <div {...linkPrefetchHandlers(href)} className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all font-medium text-sm ${
         active
           ? "bg-[#4DC9EE]/20 text-[#4DC9EE] font-semibold"
           : "text-white/70 hover:bg-white/10 hover:text-white"
@@ -103,6 +104,9 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
 export function AdminLayout({ children, title }: { children: React.ReactNode; title?: string }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const myRole = useMyAdminRole();
+
+  // Warm every admin route on idle so switching panels is instant.
+  useEffect(() => { prefetchRoutesIdle(ADMIN_ROUTES); }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-800/60 flex">
