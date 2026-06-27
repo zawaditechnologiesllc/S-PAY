@@ -1884,13 +1884,21 @@ paths:
     post:
       operationId: publishSeoPost
       tags: [seo]
-      summary: Approve + publish a post (human approval gate)
+      summary: Approve + publish a post (human approval gate, runs the SEO cross-check)
       security: [{ bearerAuth: [] }]
       parameters:
         - name: id
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force: { type: boolean, description: Publish even if the SEO cross-check has error-severity failures. }
       responses:
         "200":
           description: Published
@@ -1898,6 +1906,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BlogPostResponse"
+        "422":
+          description: SEO cross-check failed (publish blocked unless force=true)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
+                  message: { type: string }
+                  audit: { $ref: "#/components/schemas/SeoAudit" }
 
   /admin/seo/posts/{id}/unpublish:
     post:
@@ -2673,6 +2691,11 @@ components:
           items: { $ref: "#/components/schemas/SeoOpportunity" }
       required: [configured, opportunities]
 
+    RedditIntent:
+      type: string
+      enum: [complaint, question, comparison, discussion]
+      description: The kind of need a post expresses — complaints/questions are the best blog targets.
+
     RedditTopic:
       type: object
       properties:
@@ -2681,7 +2704,33 @@ components:
         url: { type: string }
         score: { type: integer }
         numComments: { type: integer }
+        intent: { $ref: "#/components/schemas/RedditIntent" }
+        painScore: { type: number, description: 0..1 — how strongly this reads as a real pain point. }
+        snippet: { type: string, description: First line of the post body, when present. }
       required: [subreddit, title, url, score, numComments]
+
+    SeoCheck:
+      type: object
+      properties:
+        id: { type: string }
+        label: { type: string }
+        ok: { type: boolean }
+        severity: { type: string, enum: [error, warn] }
+        detail: { type: string }
+      required: [id, label, ok, severity]
+
+    SeoAudit:
+      type: object
+      description: Cross-check of a draft against the Google 2026 SEO rules.
+      properties:
+        score: { type: integer, description: 0..100 weighted quality score. }
+        pass: { type: boolean, description: True when no error-severity rule fails (publishable). }
+        errors: { type: integer }
+        warnings: { type: integer }
+        checks:
+          type: array
+          items: { $ref: "#/components/schemas/SeoCheck" }
+      required: [score, pass, errors, warnings, checks]
 
     RedditTopicsResponse:
       type: object
@@ -2719,6 +2768,7 @@ components:
         createdAt: { type: string }
         updatedAt: { type: string }
         bodyMarkdown: { type: string }
+        audit: { $ref: "#/components/schemas/SeoAudit" }
       required: [id, slug, title, status, source, createdAt, updatedAt]
 
     BlogPostResponse:
@@ -2750,6 +2800,8 @@ components:
         score: { type: number }
         reason: { type: string }
         subreddit: { type: string }
+        intent: { $ref: "#/components/schemas/RedditIntent" }
+        painPoint: { type: string, description: The verbatim complaint/question the blog should solve. }
       required: [keyword, source, score, reason]
 
     SeoResearchResponse:
@@ -2769,6 +2821,8 @@ components:
         keyword: { type: string }
         source: { type: string, enum: [gsc, reddit] }
         subreddit: { type: string, description: For reddit-sourced keywords; used to derive the audience }
+        painPoint: { type: string, description: The verbatim complaint/question the post should address and resolve. }
+        intent: { $ref: "#/components/schemas/RedditIntent" }
       required: [keyword]
 
     AutoDraftResponse:

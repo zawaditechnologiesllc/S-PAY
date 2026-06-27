@@ -94,6 +94,8 @@ import type {
   PayoutProvidersUpdateRequest,
   PayrollSummary,
   PlatformStatus,
+  PublishSeoPost422,
+  PublishSeoPostBody,
   RedditTopicsResponse,
   RegisterRequest,
   ResetPasswordBody,
@@ -6893,25 +6895,27 @@ export const getPublishSeoPostUrl = (id: string,) => {
 }
 
 /**
- * @summary Approve + publish a post (human approval gate)
+ * @summary Approve + publish a post (human approval gate, runs the SEO cross-check)
  */
-export const publishSeoPost = async (id: string, options?: RequestInit): Promise<BlogPostResponse> => {
+export const publishSeoPost = async (id: string,
+    publishSeoPostBody?: PublishSeoPostBody, options?: RequestInit): Promise<BlogPostResponse> => {
 
   return customFetch<BlogPostResponse>(getPublishSeoPostUrl(id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      publishSeoPostBody,)
   }
 );}
 
 
 
 
-export const getPublishSeoPostMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishSeoPost>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof publishSeoPost>>, TError,{id: string}, TContext> => {
+export const getPublishSeoPostMutationOptions = <TError = ErrorType<PublishSeoPost422>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishSeoPost>>, TError,{id: string;data?: BodyType<PublishSeoPostBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishSeoPost>>, TError,{id: string;data?: BodyType<PublishSeoPostBody>}, TContext> => {
 
 const mutationKey = ['publishSeoPost'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -6923,10 +6927,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishSeoPost>>, {id: string}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishSeoPost>>, {id: string;data?: BodyType<PublishSeoPostBody>}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  publishSeoPost(id,requestOptions)
+          return  publishSeoPost(id,data,requestOptions)
         }
 
 
@@ -6937,18 +6941,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type PublishSeoPostMutationResult = NonNullable<Awaited<ReturnType<typeof publishSeoPost>>>
-
-    export type PublishSeoPostMutationError = ErrorType<unknown>
+    export type PublishSeoPostMutationBody = BodyType<PublishSeoPostBody> | undefined
+    export type PublishSeoPostMutationError = ErrorType<PublishSeoPost422>
 
     /**
- * @summary Approve + publish a post (human approval gate)
+ * @summary Approve + publish a post (human approval gate, runs the SEO cross-check)
  */
-export const usePublishSeoPost = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishSeoPost>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const usePublishSeoPost = <TError = ErrorType<PublishSeoPost422>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishSeoPost>>, TError,{id: string;data?: BodyType<PublishSeoPostBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof publishSeoPost>>,
         TError,
-        {id: string},
+        {id: string;data?: BodyType<PublishSeoPostBody>},
         TContext
       > => {
       return useMutation(getPublishSeoPostMutationOptions(options));

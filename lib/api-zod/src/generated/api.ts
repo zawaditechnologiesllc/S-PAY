@@ -1696,7 +1696,10 @@ export const GetSeoRedditTopicsResponse = zod.object({
   "title": zod.string(),
   "url": zod.string(),
   "score": zod.number(),
-  "numComments": zod.number()
+  "numComments": zod.number(),
+  "intent": zod.enum(['complaint', 'question', 'comparison', 'discussion']).optional().describe('The kind of need a post expresses — complaints\/questions are the best blog targets.'),
+  "painScore": zod.number().optional().describe('0..1 — how strongly this reads as a real pain point.'),
+  "snippet": zod.string().optional().describe('First line of the post body')
 }))
 })
 
@@ -1707,7 +1710,9 @@ export const GetSeoRedditTopicsResponse = zod.object({
 export const CreateSeoDraftBody = zod.object({
   "keyword": zod.string(),
   "source": zod.enum(['gsc', 'reddit']).optional(),
-  "subreddit": zod.string().optional().describe('For reddit-sourced keywords; used to derive the audience')
+  "subreddit": zod.string().optional().describe('For reddit-sourced keywords; used to derive the audience'),
+  "painPoint": zod.string().optional().describe('The verbatim complaint\/question the post should address and resolve.'),
+  "intent": zod.enum(['complaint', 'question', 'comparison', 'discussion']).optional().describe('The kind of need a post expresses — complaints\/questions are the best blog targets.')
 }).describe('Draft from a RESEARCHED keyword (a GSC opportunity or Reddit topic). Audience is derived server-side from the context — no manual audience.')
 
 
@@ -1722,7 +1727,9 @@ export const GetSeoResearchResponse = zod.object({
   "source": zod.enum(['gsc', 'reddit', 'both']),
   "score": zod.number(),
   "reason": zod.string(),
-  "subreddit": zod.string().optional()
+  "subreddit": zod.string().optional(),
+  "intent": zod.enum(['complaint', 'question', 'comparison', 'discussion']).optional().describe('The kind of need a post expresses — complaints\/questions are the best blog targets.'),
+  "painPoint": zod.string().optional().describe('The verbatim complaint\/question the blog should solve.')
 }))
 })
 
@@ -1757,7 +1764,20 @@ export const GetBlogPostsResponse = zod.object({
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
-  "bodyMarkdown": zod.string().optional()
+  "bodyMarkdown": zod.string().optional(),
+  "audit": zod.object({
+  "score": zod.number().describe('0..100 weighted quality score.'),
+  "pass": zod.boolean().describe('True when no error-severity rule fails (publishable).'),
+  "errors": zod.number(),
+  "warnings": zod.number(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "ok": zod.boolean(),
+  "severity": zod.enum(['error', 'warn']),
+  "detail": zod.string().optional()
+}))
+}).optional().describe('Cross-check of a draft against the Google 2026 SEO rules.')
 }))
 })
 
@@ -1788,7 +1808,20 @@ export const GetBlogPostResponse = zod.object({
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
-  "bodyMarkdown": zod.string().optional()
+  "bodyMarkdown": zod.string().optional(),
+  "audit": zod.object({
+  "score": zod.number().describe('0..100 weighted quality score.'),
+  "pass": zod.boolean().describe('True when no error-severity rule fails (publishable).'),
+  "errors": zod.number(),
+  "warnings": zod.number(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "ok": zod.boolean(),
+  "severity": zod.enum(['error', 'warn']),
+  "detail": zod.string().optional()
+}))
+}).optional().describe('Cross-check of a draft against the Google 2026 SEO rules.')
 }),
   "jsonLd": zod.record(zod.string(), zod.unknown()).optional().describe('Article JSON-LD to embed in the page head')
 })
@@ -1820,7 +1853,20 @@ export const GetSeoPostsResponse = zod.object({
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
-  "bodyMarkdown": zod.string().optional()
+  "bodyMarkdown": zod.string().optional(),
+  "audit": zod.object({
+  "score": zod.number().describe('0..100 weighted quality score.'),
+  "pass": zod.boolean().describe('True when no error-severity rule fails (publishable).'),
+  "errors": zod.number(),
+  "warnings": zod.number(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "ok": zod.boolean(),
+  "severity": zod.enum(['error', 'warn']),
+  "detail": zod.string().optional()
+}))
+}).optional().describe('Cross-check of a draft against the Google 2026 SEO rules.')
 }))
 })
 
@@ -1851,7 +1897,20 @@ export const GetSeoPostResponse = zod.object({
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
-  "bodyMarkdown": zod.string().optional()
+  "bodyMarkdown": zod.string().optional(),
+  "audit": zod.object({
+  "score": zod.number().describe('0..100 weighted quality score.'),
+  "pass": zod.boolean().describe('True when no error-severity rule fails (publishable).'),
+  "errors": zod.number(),
+  "warnings": zod.number(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "ok": zod.boolean(),
+  "severity": zod.enum(['error', 'warn']),
+  "detail": zod.string().optional()
+}))
+}).optional().describe('Cross-check of a draft against the Google 2026 SEO rules.')
 })
 })
 
@@ -1891,16 +1950,33 @@ export const UpdateSeoPostResponse = zod.object({
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
-  "bodyMarkdown": zod.string().optional()
+  "bodyMarkdown": zod.string().optional(),
+  "audit": zod.object({
+  "score": zod.number().describe('0..100 weighted quality score.'),
+  "pass": zod.boolean().describe('True when no error-severity rule fails (publishable).'),
+  "errors": zod.number(),
+  "warnings": zod.number(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "ok": zod.boolean(),
+  "severity": zod.enum(['error', 'warn']),
+  "detail": zod.string().optional()
+}))
+}).optional().describe('Cross-check of a draft against the Google 2026 SEO rules.')
 })
 })
 
 
 /**
- * @summary Approve + publish a post (human approval gate)
+ * @summary Approve + publish a post (human approval gate, runs the SEO cross-check)
  */
 export const PublishSeoPostParams = zod.object({
   "id": zod.coerce.string()
+})
+
+export const PublishSeoPostBody = zod.object({
+  "force": zod.boolean().optional().describe('Publish even if the SEO cross-check has error-severity failures.')
 })
 
 export const PublishSeoPostResponse = zod.object({
@@ -1922,7 +1998,20 @@ export const PublishSeoPostResponse = zod.object({
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
-  "bodyMarkdown": zod.string().optional()
+  "bodyMarkdown": zod.string().optional(),
+  "audit": zod.object({
+  "score": zod.number().describe('0..100 weighted quality score.'),
+  "pass": zod.boolean().describe('True when no error-severity rule fails (publishable).'),
+  "errors": zod.number(),
+  "warnings": zod.number(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "ok": zod.boolean(),
+  "severity": zod.enum(['error', 'warn']),
+  "detail": zod.string().optional()
+}))
+}).optional().describe('Cross-check of a draft against the Google 2026 SEO rules.')
 })
 })
 
@@ -1953,6 +2042,19 @@ export const UnpublishSeoPostResponse = zod.object({
   "publishedAt": zod.string().nullish(),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
-  "bodyMarkdown": zod.string().optional()
+  "bodyMarkdown": zod.string().optional(),
+  "audit": zod.object({
+  "score": zod.number().describe('0..100 weighted quality score.'),
+  "pass": zod.boolean().describe('True when no error-severity rule fails (publishable).'),
+  "errors": zod.number(),
+  "warnings": zod.number(),
+  "checks": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "ok": zod.boolean(),
+  "severity": zod.enum(['error', 'warn']),
+  "detail": zod.string().optional()
+}))
+}).optional().describe('Cross-check of a draft against the Google 2026 SEO rules.')
 })
 })

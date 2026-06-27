@@ -257,6 +257,71 @@ test("redditSubreddits honours SEO_REDDIT_SUBREDDITS override and the cap", () =
   if (prev === undefined) delete process.env.SEO_REDDIT_SUBREDDITS; else process.env.SEO_REDDIT_SUBREDDITS = prev;
 });
 
+// ─── classifyIntent (pain-point detection) ──────────────────────────────────────
+
+test("classifyIntent flags complaints with the highest pain score", () => {
+  for (const s of ["Wise charged me crazy fees again", "My account got frozen", "Payoneer is a scam avoid it", "transfer stuck for 5 days"]) {
+    const r = seo.classifyIntent(s);
+    assert.equal(r.intent, "complaint", `expected complaint for: ${s}`);
+    assert.equal(r.painScore, 1);
+  }
+});
+
+test("classifyIntent detects comparisons and questions over plain discussion", () => {
+  assert.equal(seo.classifyIntent("Wise vs Payoneer for freelancers").intent, "comparison");
+  assert.equal(seo.classifyIntent("alternatives to PayPal in Kenya").intent, "comparison");
+  assert.equal(seo.classifyIntent("How do I get paid from Upwork in Nigeria?").intent, "question");
+  assert.equal(seo.classifyIntent("Sharing my remote work setup").intent, "discussion");
+});
+
+// ─── normalizeArticleBody (single-H1 fix) ───────────────────────────────────────
+
+test("normalizeArticleBody demotes body H1s to H2 (title is the page H1)", () => {
+  const out = seo.normalizeArticleBody("# Big title\n\nIntro.\n\n## Section\n\n### Sub\n\nText # not a heading");
+  assert.ok(!/^#\s/m.test(out), "no H1 lines remain");
+  assert.ok(out.includes("## Big title"), "H1 demoted to H2");
+  assert.ok(out.includes("## Section") && out.includes("### Sub"), "existing H2/H3 untouched");
+  assert.ok(out.includes("Text # not a heading"), "inline # left alone");
+});
+
+// ─── auditDraft (SEO cross-check) ───────────────────────────────────────────────
+
+const GOOD_BODY = [
+  "## Key takeaways", "- Get paid globally", "- Cash out locally",
+  "## The problem", "Freelancers lose money to fees. ".repeat(60),
+  "## How to fix it", "Open a free S-PAY account and get paid. See the [jobs board](/jobs).",
+  "## FAQ", "### Is it free?", "Yes.", "### Which countries?", "Many — varies by country.",
+].join("\n\n");
+
+test("auditDraft passes a compliant draft", () => {
+  const a = seo.auditDraft({
+    title: "Get paid globally as a freelancer",
+    metaDescription: "How freelancers get paid globally and cash out locally with low fees.",
+    excerpt: "A practical guide for freelancers.",
+    bodyMarkdown: GOOD_BODY,
+    keyword: "get paid globally",
+  });
+  assert.equal(a.pass, true, JSON.stringify(a.checks.filter((c) => !c.ok)));
+  assert.ok(a.score >= 85);
+  assert.equal(a.errors, 0);
+});
+
+test("auditDraft blocks an over-long title, a body H1, and a missing CTA", () => {
+  const a = seo.auditDraft({
+    title: "This is an extremely long blog title that clearly exceeds the sixty character SEO limit",
+    metaDescription: "",
+    bodyMarkdown: "# Duplicate H1\n\nThin content with no call to action.",
+    keyword: "x",
+  });
+  assert.equal(a.pass, false);
+  const failed = new Set(a.checks.filter((c) => !c.ok).map((c) => c.id));
+  assert.ok(failed.has("title_len"), "title length should fail");
+  assert.ok(failed.has("single_h1"), "body H1 should fail");
+  assert.ok(failed.has("meta_present"), "missing meta should fail");
+  assert.ok(failed.has("cta"), "missing CTA should fail");
+  assert.ok(a.errors >= 3);
+});
+
 // ─── combinedResearch (honest gating, offline) ──────────────────────────────────
 
 test("combinedResearch is honest and empty when GSC is unset and Reddit is disabled", async () => {
