@@ -4,22 +4,35 @@
 > that compounds organic acquisition — the lowest-CAC channel S-PAY has. Built
 > honest-by-construction: no scraping, no fake data, nothing auto-published.
 
+> **The 12-month, 100M-organic-views plan lives in
+> [SEO-GROWTH-STRATEGY.md](./SEO-GROWTH-STRATEGY.md)** — read it for how this
+> engine + the programmatic jobs board pursue that goal honestly.
+
 ## The loop
 
 ```
-GSC Search Analytics ─▶ opportunity ranker ─▶ Gemini 2.5 Flash draft (grounded)
+GSC demand ┐                              ┌▶ SEO cross-check (auditDraft) ─▶ block/allow
+           ├▶ combinedResearch ─▶ pain-   │
+Reddit pain┘   (fuse + rank)     point ─▶ Gemini draft (grounded, solves the pain)
         ▲                                              │
         │                                              ▼
-   feedback (impressions) ◀── published /blog ◀── admin review + approve
+   GA4 feedback ◀──────── published /blog ◀── admin review + approve (+ cross-check)
 ```
 
-1. **Ingest** real query performance from Google Search Console (official API).
-2. **Rank** "striking-distance" opportunities — queries where we already rank
-   ~#5–20 and a content push can win page 1 (`rankOpportunities`, a pure,
-   testable function) — plus topic ideas mined from Reddit.
-3. **Draft** a post with **Gemini 2.5 Flash** (`gemini-2.5-flash`, free tier),
-   strictly **grounded in true product facts** so it can't invent features,
-   rates, or earnings claims.
+1. **Ingest demand AND pain.** Google Search Console gives real query demand;
+   Reddit (~100 niche subs) gives **complaints and unanswered questions**.
+2. **Rank.** "Striking-distance" GSC opportunities (`rankOpportunities`, pure +
+   testable) are fused with Reddit pain points (`classifyIntent` labels each post
+   complaint/question/comparison; `combinedResearch` blends upvotes with the pain
+   signal so real problems rank above generic chatter).
+3. **Draft to the pain.** **Gemini 2.5 Flash** (`gemini-2.5-flash`, free tier),
+   strictly **grounded in true product facts**, is briefed with the verbatim pain
+   point so the post **names the reader's problem and walks them to a solution**
+   (honestly positioning S-PAY where it genuinely helps) — never inventing
+   features, rates, or earnings claims.
+3a. **Cross-check before publish.** `auditDraft` scores every post against the
+   2026 SEO rules; **error-severity failures block publishing** (human can
+   override). This is the quality gate that keeps content compliant at scale.
 
 > **Research chooses the keyword AND the audience — the admin never types
 > either.** Each opportunity/topic has a one-click **Draft**, plus an
@@ -83,25 +96,31 @@ GSC Search Analytics ─▶ opportunity ranker ─▶ Gemini 2.5 Flash draft (gr
 Topic mining crawls a **capped allowlist of ~100 niche subreddits** (remote work,
 freelancing/gig, online income, personal finance, payments/fintech,
 stablecoins/crypto, the dev communities that earn remotely, our corridor
-countries, expats, and marketing/SEO). It reads `top.json` per subreddit with
-**bounded concurrency** and caches results briefly. Titles are *idea seeds* for
-drafts, never published verbatim.
+countries, expats, and marketing/SEO). It reads each subreddit's `top.json` —
+**old.reddit first** — classifies the intent of every post (complaint / question
+/ comparison) and extracts pain points. Bounded concurrency keeps ~100 subs fast;
+a 429 is retried once after `Retry-After`; results are cached briefly. Titles are
+*idea seeds* for drafts, never published verbatim.
 
-**Reddit blocks datacenter IPs**, so the public JSON returns nothing from a plain
-server. Two ways to make it work — pick either (no need for both):
+**No location proxies required.** Two location-neutral ways to read Reddit:
 
-1. **Proxy (no Reddit app — recommended when API access is slow to get).** Set
-   `SEO_REDDIT_PROXY_URL` to a residential/rotating proxy
-   (`http://user:pass@gateway:port`; comma-separate several to rotate). Requests
-   to `www.reddit.com` / `old.reddit.com` then look like ordinary traffic and
-   succeed. This avoids Reddit's *commercial Data API* approval (which can take
-   months) entirely.
-2. **Official OAuth.** Create an app at `reddit.com/prefs/apps` (type
-   "script"/"web app" — instant) and set `REDDIT_CLIENT_ID` +
-   `REDDIT_CLIENT_SECRET`; the engine uses `oauth.reddit.com`.
+1. **old.reddit public JSON (default, zero config).** Works whenever **this
+   server's own IP isn't blocked** by Reddit — no app, no proxy, no location
+   change. Requests go to `old.reddit.com` (then `www.reddit.com`) with a browser
+   User-Agent and a gentle request rate.
+2. **Official OAuth (recommended for reliability).** Create an app at
+   `reddit.com/prefs/apps` (type "script"/"web app" — **instant**, this is *not*
+   the months-long commercial Data API program) and set `REDDIT_CLIENT_ID` +
+   `REDDIT_CLIENT_SECRET`. The engine then uses `oauth.reddit.com`, which returns
+   the **same JSON** and **works from a datacenter without changing location**.
 
-If neither is set, `/admin/seo/status` shows Reddit as not-connected **with the
-reason**, and the topics panel explains exactly what to set.
+> A proxy (`SEO_REDDIT_PROXY_URL`) remains supported but is **entirely optional**
+> and is *not* required — use it only if your host IP is blocked and you'd rather
+> not add an OAuth app. It need not be a location/residential proxy; any clean
+> egress works.
+
+If Reddit returns nothing, `/admin/seo/status` shows the reason and the topics
+panel explains exactly what to set (it recommends the OAuth app).
 
 ## Honest gating (nothing fakes data)
 
@@ -109,8 +128,9 @@ reason**, and the topics panel explains exactly what to set.
 |---|---|---|
 | **Search Console** | `opportunities` returns `configured:false` + empty | set `GSC_SERVICE_ACCOUNT_JSON` + `GSC_SITE_URL` |
 | **Analytics (GA4)** | `analytics` returns `configured:false` + empty | set `GA4_PROPERTY_ID` (+ a service account) |
-| **Reddit topics** | public JSON (often 403-blocked) | set `REDDIT_CLIENT_ID` + `REDDIT_CLIENT_SECRET` for the official API |
+| **Reddit topics** | old.reddit public JSON (works if the server IP isn't blocked) | set `REDDIT_CLIENT_ID` + `REDDIT_CLIENT_SECRET` for the official API (location-neutral) |
 | **AI drafting** | `POST /admin/seo/drafts` → honest `503` | set `GEMINI_API_KEY` |
+| **SEO cross-check** | always on — `auditDraft` blocks publishing posts that fail a required rule (human-overridable) | — |
 
 It never invents query data or articles; until configured it says so.
 
@@ -132,14 +152,14 @@ It never invents query data or articles; until configured it says so.
 | `GA4_SERVICE_ACCOUNT_JSON` | Service account for the GA4 Data API (falls back to `GSC_SERVICE_ACCOUNT_JSON`) |
 | `GEMINI_API_KEY` | Google Gemini API key (AI Studio) — Gemini 2.5 Flash drafting |
 | `SEO_DRAFT_MODEL` | Optional model override (default `gemini-2.5-flash`) |
-| `SEO_REDDIT_PROXY_URL` | Residential/rotating proxy for Reddit's public JSON — the no-app path past datacenter-IP 403s. One or more (comma-separated) `http://user:pass@host:port`. |
-| `REDDIT_CLIENT_ID` | Reddit app client id — enables the official OAuth API (reddit.com/prefs/apps, instant to create). |
+| `REDDIT_CLIENT_ID` | **Recommended.** Reddit app client id — official OAuth API (reddit.com/prefs/apps, instant). Location-neutral; works from a datacenter. |
 | `REDDIT_CLIENT_SECRET` | Reddit app client secret (pairs with `REDDIT_CLIENT_ID`) |
 | `SEO_REDDIT_ENABLED` | Set `false` to disable Reddit mining (default on) |
 | `SEO_REDDIT_SUBREDDITS` | Optional comma-separated override of the ~100 subreddits (capped at 100) |
-| `SEO_REDDIT_CONCURRENCY` | Parallel subreddit fetches (default 5, max 12) |
+| `SEO_REDDIT_CONCURRENCY` | Parallel subreddit fetches (default 5 with OAuth/proxy, 2 unauthenticated; max 12) |
 | `SEO_REDDIT_CACHE_TTL_SEC` | How long to cache Reddit results (default 900s; 0 disables) |
 | `SEO_REDDIT_USER_AGENT` | Optional custom User-Agent for Reddit requests |
+| `SEO_REDDIT_PROXY_URL` | **Optional, not required, not a location proxy.** Only if your host IP is blocked and you'd rather not add an OAuth app — any clean HTTP(S) proxy `http://user:pass@host:port` (comma-separate to rotate). |
 | `SITE_URL` | Base URL for canonical/JSON-LD (already used elsewhere) |
 
 ## Why Gemini 2.5 Flash
@@ -177,8 +197,16 @@ set `GEMINI_API_KEY` on the API server, and drafting switches on immediately.
 ## Tests
 
 Pure, network-free logic is unit-tested in `artifacts/api-server/test/seo.unit.mjs`
-(`pnpm --filter @workspace/api-server test`): the opportunity ranker, `slugify`,
-`deriveAudience`, `articleJsonLd`, the honest-gating contracts (`combinedResearch`
-empty until configured, `generateBlogDraft` throwing until `GEMINI_API_KEY` is
-set), and the security-critical `mdToHtml` sanitizer (escapes raw HTML, rejects
-`javascript:` and protocol-relative `//host` links, allows https + same-origin).
+(`pnpm --filter @workspace/api-server test`, 37 tests): the opportunity ranker,
+`slugify`, `deriveAudience`, `articleJsonLd`, `parseServiceAccount` /
+`parseProxyConfig` / the GSC+GA4 row mappers, `redditSubreddits` (dedupe/cap), and:
+
+- **`classifyIntent`** — complaint / question / comparison / discussion detection
+  (the pain-point signal).
+- **`normalizeArticleBody`** — demotes body H1s to H2 so the page has a single H1.
+- **`auditDraft`** — the SEO cross-check: a compliant draft passes; an over-long
+  title + duplicate body H1 + missing meta/CTA is blocked with the failing checks.
+- the honest-gating contracts (`combinedResearch` empty until configured,
+  `generateBlogDraft` throwing until `GEMINI_API_KEY` is set), and the
+  security-critical `mdToHtml` sanitizer (escapes raw HTML, rejects `javascript:`
+  and protocol-relative `//host` links, allows https + same-origin).

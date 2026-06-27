@@ -597,12 +597,59 @@ export interface SeoOpportunitiesResponse {
   opportunities: SeoOpportunity[];
 }
 
+/**
+ * The kind of need a post expresses — complaints/questions are the best blog targets.
+ */
+export type RedditIntent = typeof RedditIntent[keyof typeof RedditIntent];
+
+
+export const RedditIntent = {
+  complaint: 'complaint',
+  question: 'question',
+  comparison: 'comparison',
+  discussion: 'discussion',
+} as const;
+
 export interface RedditTopic {
   subreddit: string;
   title: string;
   url: string;
   score: number;
   numComments: number;
+  intent?: RedditIntent;
+  /** 0..1 — how strongly this reads as a real pain point. */
+  painScore?: number;
+  /** First line of the post body */
+  snippet?: string;
+}
+
+export type SeoCheckSeverity = typeof SeoCheckSeverity[keyof typeof SeoCheckSeverity];
+
+
+export const SeoCheckSeverity = {
+  error: 'error',
+  warn: 'warn',
+} as const;
+
+export interface SeoCheck {
+  id: string;
+  label: string;
+  ok: boolean;
+  severity: SeoCheckSeverity;
+  detail?: string;
+}
+
+/**
+ * Cross-check of a draft against the Google 2026 SEO rules.
+ */
+export interface SeoAudit {
+  /** 0..100 weighted quality score. */
+  score: number;
+  /** True when no error-severity rule fails (publishable). */
+  pass: boolean;
+  errors: number;
+  warnings: number;
+  checks: SeoCheck[];
 }
 
 export interface RedditTopicsResponse {
@@ -656,6 +703,7 @@ export interface BlogPost {
   createdAt: string;
   updatedAt: string;
   bodyMarkdown?: string;
+  audit?: SeoAudit;
 }
 
 export interface BlogPostResponse {
@@ -692,6 +740,9 @@ export interface BlogCandidate {
   score: number;
   reason: string;
   subreddit?: string;
+  intent?: RedditIntent;
+  /** The verbatim complaint/question the blog should solve. */
+  painPoint?: string;
 }
 
 export interface SeoResearchResponse {
@@ -716,6 +767,9 @@ export interface CreateDraftRequest {
   source?: CreateDraftRequestSource;
   /** For reddit-sourced keywords; used to derive the audience */
   subreddit?: string;
+  /** The verbatim complaint/question the post should address and resolve. */
+  painPoint?: string;
+  intent?: RedditIntent;
 }
 
 export type AutoDraftResponseSource = typeof AutoDraftResponseSource[keyof typeof AutoDraftResponseSource];
@@ -1704,4 +1758,15 @@ export const GetSeoPostsStatus = {
   published: 'published',
   archived: 'archived',
 } as const;
+
+export type PublishSeoPostBody = {
+  /** Publish even if the SEO cross-check has error-severity failures. */
+  force?: boolean;
+};
+
+export type PublishSeoPost422 = {
+  error?: string;
+  message?: string;
+  audit?: SeoAudit;
+};
 

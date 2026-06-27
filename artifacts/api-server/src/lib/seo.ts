@@ -498,12 +498,36 @@ async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise
   return results;
 }
 
+// ── Pain-point detection ────────────────────────────────────────────────────────
+// The most valuable blog targets are *complaints* and *unanswered questions* —
+// a real person stating a problem we can solve. We classify each Reddit post's
+// intent so research can prioritise pain points (a complaint about high transfer
+// fees is a better blog brief than a generic discussion thread).
+
+export type RedditIntent = "complaint" | "question" | "comparison" | "discussion";
+
+const COMPLAINT_RE = /\b(fees?|expensive|overcharg|charg(ed|es|ing)|scam|fraud|stuck|frozen|froze|blocked|locked|ban(ned)?|reject(ed|ing)?|declin(e|ed|ing)|on\s+hold|withheld|delay(ed|s|ing)?|too\s+slow|so\s+slow|late|lost|missing|disappear|hate|worst|terrible|awful|nightmare|rip[\s-]?off|can'?t|cannot|won'?t|wont|problem|issue|trouble|struggl|unable|fail(ed|s|ing)?|not\s+working|stopped\s+working|avoid)\b/i;
+const COMPARISON_RE = /\b(vs\.?|versus|alternatives?\s+to|better\s+than|compared?\s+to|which\s+is\s+better)\b/i;
+const QUESTION_RE = /\?|^\s*(how|why|what|where|when|which|who|can|could|should|is|are|do|does|did|will|would|any(one|body)?|has\s+anyone|best\s+way)\b/i;
+
+/** Classify the searcher/poster intent of a piece of text (pure, testable). */
+export function classifyIntent(text: string): { intent: RedditIntent; painScore: number } {
+  const t = (text ?? "").trim();
+  if (COMPLAINT_RE.test(t)) return { intent: "complaint", painScore: 1 };       // strongest pain
+  if (COMPARISON_RE.test(t)) return { intent: "comparison", painScore: 0.7 };    // "X vs Y / alternative to X"
+  if (QUESTION_RE.test(t)) return { intent: "question", painScore: 0.6 };        // unanswered need
+  return { intent: "discussion", painScore: 0.25 };
+}
+
 export interface RedditTopic {
   subreddit: string;
   title: string;
   url: string;          // link to the discussion
   score: number;
   numComments: number;
+  intent: RedditIntent;
+  painScore: number;    // 0..1 — how strongly this reads as a real pain point
+  snippet?: string;     // first line of the post body, when present (extra context)
 }
 
 /** Extract our topic shape from a Reddit listing payload (pure, testable). */
@@ -513,12 +537,18 @@ export function parseRedditListing(sub: string, data: unknown): RedditTopic[] {
   for (const child of children) {
     const d = (child as { data?: Record<string, unknown> })?.data ?? {};
     if (d.stickied || !d.title) continue;
+    const title = String(d.title);
+    const selftext = typeof d.selftext === "string" ? d.selftext.replace(/\s+/g, " ").trim() : "";
+    const { intent, painScore } = classifyIntent(`${title} ${selftext.slice(0, 300)}`);
     out.push({
       subreddit: sub,
-      title: String(d.title),
+      title,
       url: d.permalink ? `https://www.reddit.com${String(d.permalink)}` : String(d.url ?? ""),
       score: Number(d.score ?? 0),
       numComments: Number(d.num_comments ?? 0),
+      intent,
+      painScore,
+      snippet: selftext ? selftext.slice(0, 200) : undefined,
     });
   }
   return out;
@@ -528,15 +558,20 @@ export function parseRedditListing(sub: string, data: unknown): RedditTopic[] {
 // doesn't re-crawl ~100 subreddits every time. Keyed by timeframe+perSub.
 const redditCache = new Map<string, { data: RedditTopic[]; exp: number }>();
 
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 /**
  * Collect top posts from the ~100 allowlisted subreddits. Order of preference:
- *  1. official oauth.reddit.com when a Reddit app is configured;
- *  2. public JSON (www.reddit.com → old.reddit.com) routed through a configured
- *     proxy — the no-app path that beats Reddit's datacenter-IP 403s.
- * Bounded concurrency keeps 100 subs fast; results are cached briefly. A 403/HTML
+ *  1. official oauth.reddit.com when a Reddit app is configured — the reliable
+ *     path that works from a datacenter server and DOES NOT change location;
+ *  2. otherwise the public JSON straight from old.reddit.com (then www.reddit.com),
+ *     no proxy required — this works whenever the server's own IP isn't blocked.
+ * A configured proxy (SEO_REDDIT_PROXY_URL) is used only if present; it is fully
+ * optional and never required. Bounded concurrency keeps 100 subs fast (and a
+ * gentler default when unauthenticated to avoid Reddit's tight rate limits); a
+ * 429 is retried once after Retry-After; results are cached briefly. A 403/HTML
  * block page (which can arrive as a 200 with non-JSON) is guarded. Per-subreddit
- * failures are skipped, never thrown — partial results are fine. Titles are topic
- * ideas for drafts, not facts to publish verbatim.
+ * failures are skipped, never thrown. Titles are topic ideas, not facts.
  */
 export async function fetchRedditTopics(opts?: { perSub?: number; timeframe?: "day" | "week" | "month"; force?: boolean }): Promise<RedditTopic[]> {
   if (!isRedditEnabled()) return [];
@@ -552,28 +587,42 @@ export async function fetchRedditTopics(opts?: { perSub?: number; timeframe?: "d
   }
 
   const token = await getRedditToken();
-  const hosts = token ? ["https://oauth.reddit.com"] : ["https://www.reddit.com", "https://old.reddit.com"];
+  // Old Reddit first on the public path (the user's preferred source); the JSON
+  // shape is identical on every host.
+  const hosts = token ? ["https://oauth.reddit.com"] : ["https://old.reddit.com", "https://www.reddit.com"];
   const ua = token ? REDDIT_OAUTH_UA : REDDIT_PUBLIC_UA;
   const authHeader = token ? { authorization: `Bearer ${token}` } : {};
   const subs = redditSubreddits();
-  const concurrency = Math.min(Math.max(Number(process.env.SEO_REDDIT_CONCURRENCY ?? 5), 1), 12);
+  // Authenticated/proxied requests can run wide; unauthenticated public requests
+  // go gently so we don't trip Reddit's per-IP rate limit.
+  const defaultConcurrency = token || isRedditProxyConfigured() ? 5 : 2;
+  const concurrency = Math.min(Math.max(Number(process.env.SEO_REDDIT_CONCURRENCY ?? defaultConcurrency), 1), 12);
 
   let failures = 0;
   const fetchSub = async (sub: string): Promise<RedditTopic[]> => {
     for (const host of hosts) {
-      const proxy = pickProxy(); // rotate per request
-      try {
-        const res = await axios.get(`${host}/r/${encodeURIComponent(sub)}/top.json`, {
-          params: { t: timeframe, limit: perSub, raw_json: 1 },
-          timeout: 12000,
-          headers: { "User-Agent": ua, Accept: "application/json", ...authHeader },
-          ...(proxy ? { proxy } : {}),
-        });
-        if (res.data && typeof res.data === "object") return parseRedditListing(sub, res.data);
-      } catch (err) {
-        // 403 is the expected "blocked" case — only log the unexpected ones.
-        if (axios.isAxiosError(err) && err.response?.status && err.response.status !== 403) {
-          logger.warn({ sub, host, status: err.response.status }, "Reddit topic fetch failed");
+      const proxy = pickProxy(); // rotate IF a proxy is configured (optional)
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const res = await axios.get(`${host}/r/${encodeURIComponent(sub)}/top.json`, {
+            params: { t: timeframe, limit: perSub, raw_json: 1 },
+            timeout: 12000,
+            headers: { "User-Agent": ua, Accept: "application/json", ...authHeader },
+            ...(proxy ? { proxy } : {}),
+          });
+          if (res.data && typeof res.data === "object") return parseRedditListing(sub, res.data);
+          break; // 200 but non-JSON (block page) — try the next host
+        } catch (err) {
+          const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+          if (status === 429 && attempt === 0) {
+            const retryAfter = Number(axios.isAxiosError(err) ? err.response?.headers?.["retry-after"] : 0) || 2;
+            await sleep(Math.min(retryAfter, 5) * 1000); // respect Retry-After, then retry once
+            continue;
+          }
+          if (status && status !== 403 && status !== 429) {
+            logger.warn({ sub, host, status }, "Reddit topic fetch failed");
+          }
+          break; // 403/other — try the next host
         }
       }
     }
@@ -586,9 +635,9 @@ export async function fetchRedditTopics(opts?: { perSub?: number; timeframe?: "d
   if (failures > 0 && out.length === 0) {
     logger.warn(
       { failures, oauth: isRedditOAuthConfigured(), proxy: isRedditProxyConfigured() },
-      isRedditOAuthConfigured() || isRedditProxyConfigured()
-        ? "Reddit returned no topics — check the proxy/OAuth credentials (the proxy may be blocked or out of quota)"
-        : "Reddit returned no topics — public JSON is 403-blocked from this server. Set SEO_REDDIT_PROXY_URL (a residential/rotating proxy) or REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET",
+      isRedditOAuthConfigured()
+        ? "Reddit returned no topics even with OAuth — check the app credentials/type at reddit.com/prefs/apps"
+        : "Reddit returned no topics — this server's IP is being blocked by Reddit. Add a Reddit app (REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET) for the official API, which works from a datacenter without changing location.",
     );
   }
   if (ttlMs > 0 && out.length > 0) redditCache.set(cacheKey, { data: out, exp: nowMs + ttlMs });
@@ -608,6 +657,8 @@ export interface BlogCandidate {
   score: number;        // 0..1, comparable across sources
   reason: string;
   subreddit?: string;
+  intent?: RedditIntent;   // what kind of need this is (complaint/question/…)
+  painPoint?: string;      // the verbatim problem the blog should solve + answer
 }
 
 const STOP = new Set(["the", "and", "for", "with", "your", "how", "what", "are", "can", "from", "you", "that", "this", "best", "online", "money"]);
@@ -650,23 +701,31 @@ export async function combinedResearch(limit = 20): Promise<{ candidates: BlogCa
   }
 
   for (const t of reddit) {
-    // If this Reddit topic matches an existing GSC query, fuse them and boost.
+    // If this Reddit topic matches an existing GSC query, fuse them and boost —
+    // a complaint that also has real search demand is the highest-value blog.
     const match = gsc.find((o) => overlaps(t.title, o.query));
     if (match) {
       const existing = byKey.get(keyOf(match.query));
       if (existing) {
         existing.source = "both";
-        existing.score = Math.min(1, existing.score + 0.5 + (t.score / rMax) * 0.2);
-        existing.reason = `Google search demand + Reddit interest (r/${t.subreddit})`;
+        existing.score = Math.min(1, existing.score + 0.4 + (t.score / rMax) * 0.1 + t.painScore * 0.1);
+        existing.reason = `Google demand + Reddit ${t.intent} (r/${t.subreddit})`;
         existing.subreddit = t.subreddit;
+        existing.intent = t.intent;
+        existing.painPoint = t.snippet ? `${t.title} — ${t.snippet}` : t.title;
         continue;
       }
     }
+    // Reddit-only: blend community upvotes with the pain signal so complaints and
+    // unanswered questions rank above generic discussion even with modest upvotes.
+    const score = Math.min(1, (t.score / rMax) * 0.45 + t.painScore * 0.45);
     byKey.set(keyOf(t.title), {
       keyword: t.title, source: "reddit",
-      score: (t.score / rMax) * 0.7, // Reddit-only ranks below validated "both"
-      reason: `Reddit interest: r/${t.subreddit} · ${t.score} pts`,
+      score,
+      reason: `Reddit ${t.intent}: r/${t.subreddit} · ${t.score} pts`,
       subreddit: t.subreddit,
+      intent: t.intent,
+      painPoint: t.snippet ? `${t.title} — ${t.snippet}` : t.title,
     });
   }
 
@@ -779,11 +838,35 @@ export function deriveAudience(opts: { keyword: string; source?: string; subredd
 }
 
 /**
- * Draft an SEO blog post for a target keyword, grounded in PRODUCT_FACTS and the
- * Google 2026 SEO rules, using Gemini. Throws DraftNotConfiguredError until
- * GEMINI_API_KEY is set — never a faked article.
+ * The blog body renders beneath the post title, which the page already outputs
+ * as the single <h1>. So the body must NOT contain its own H1 (that would be a
+ * duplicate H1 — a real SEO defect). Demote any H1 lines to H2. Pure/testable.
  */
-export async function generateBlogDraft(keyword: string, audienceHint?: string): Promise<BlogDraft> {
+export function normalizeArticleBody(md: string): string {
+  return (md ?? "")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/^#\s+/, "## ")) // a lone leading '#' (H1) → '##' (H2)
+    .join("\n")
+    .trim();
+}
+
+export interface DraftBrief {
+  audience?: string;
+  /** The verbatim complaint/question this post must address and resolve. */
+  painPoint?: string;
+  /** The kind of need, so the post leads with the right angle. */
+  intent?: RedditIntent;
+}
+
+/**
+ * Draft an SEO blog post for a target keyword, grounded in PRODUCT_FACTS and the
+ * Google 2026 SEO rules, using Gemini. When a pain point is supplied (e.g. a real
+ * Reddit complaint), the post is written to NAME that problem and walk the reader
+ * to a solution — honestly positioning the relevant S-PAY capability. Throws
+ * DraftNotConfiguredError until GEMINI_API_KEY is set — never a faked article.
+ */
+export async function generateBlogDraft(keyword: string, brief: DraftBrief = {}): Promise<BlogDraft> {
   if (!isDraftConfigured()) throw new DraftNotConfiguredError();
 
   const system =
@@ -795,15 +878,26 @@ export async function generateBlogDraft(keyword: string, audienceHint?: string):
     "every one of the GOOGLE 2026 SEO RULES. Output STRICT JSON only.\n\n" +
     SEO_RULES_2026 + "\n\nPRODUCT FACTS:\n" + PRODUCT_FACTS;
 
+  const painBlock = brief.painPoint
+    ? ` This topic comes from a real ${brief.intent ?? "discussion"} from the audience: ` +
+      `"${brief.painPoint.slice(0, 300)}". Open by clearly naming this exact problem in the ` +
+      `reader's words, validate it, then walk through practical solutions step by step. ` +
+      `Where S-PAY genuinely solves part of it (per the PRODUCT FACTS), explain how — ` +
+      `honestly, without overstating, and noting that availability/limits vary by country.`
+    : "";
+
   const user =
     `Write a blog post targeting the search query: "${keyword}".` +
-    (audienceHint ? ` Audience: ${audienceHint}.` : "") +
+    (brief.audience ? ` Audience: ${brief.audience}.` : "") +
+    painBlock +
     ` Apply every GOOGLE 2026 SEO RULE. Return JSON with keys: title (<=60 chars), ` +
     `metaDescription (<=155 chars), excerpt (<=200 chars), bodyMarkdown ` +
-    `(900–1400 words: one H1, logical H2/H3 sections, a short key-takeaways list ` +
-    `near the top, a 2–4 question FAQ, 1–2 descriptive internal-link anchors, and ` +
-    `a single soft CTA to open a free S-PAY account; no fabricated claims, ` +
-    `YMYL-accurate). JSON only, no prose around it.`;
+    `(900–1400 words: do NOT include a top-level '# ' H1 — the page adds the title as the ` +
+    `H1; start sections at '## '. Include a short key-takeaways list near the top, logical ` +
+    `H2/H3 sections, a 2–4 question FAQ under a '## FAQ' heading, 1–2 descriptive ` +
+    `internal-link anchors to relative paths like /jobs or /how-it-works, and a single soft ` +
+    `CTA to open a free S-PAY account; no fabricated claims, YMYL-accurate). ` +
+    `JSON only, no prose around it.`;
 
   // Gemini generateContent. responseMimeType: application/json makes Gemini
   // return clean JSON (no code fences), so parsing is reliable.
@@ -853,7 +947,7 @@ export async function generateBlogDraft(keyword: string, audienceHint?: string):
     title: parsed.title?.trim() || keyword,
     metaDescription: parsed.metaDescription?.trim() || "",
     excerpt: parsed.excerpt?.trim() || "",
-    bodyMarkdown: parsed.bodyMarkdown?.trim() || "",
+    bodyMarkdown: normalizeArticleBody(parsed.bodyMarkdown ?? ""),
     model: DRAFT_MODEL,
   };
 }
@@ -868,6 +962,58 @@ export function slugify(input: string): string {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 80) || `post-${Date.now()}`;
+}
+
+// ─── SEO cross-check (the editorial gate) ────────────────────────────────────────
+// Every blog is scored against the Google 2026 rules BEFORE it can publish, so the
+// engine can't quietly ship thin or non-compliant content at scale. Pure and
+// testable; the publish route blocks on error-severity failures (human-overridable).
+
+export interface SeoCheck { id: string; label: string; ok: boolean; severity: "error" | "warn"; detail?: string }
+export interface SeoAudit { score: number; pass: boolean; errors: number; warnings: number; checks: SeoCheck[] }
+
+export function auditDraft(input: {
+  title?: string | null; metaDescription?: string | null; excerpt?: string | null;
+  bodyMarkdown?: string | null; keyword?: string | null;
+}): SeoAudit {
+  const title = (input.title ?? "").trim();
+  const meta = (input.metaDescription ?? "").trim();
+  const excerpt = (input.excerpt ?? "").trim();
+  const body = input.bodyMarkdown ?? "";
+  const keyword = (input.keyword ?? "").trim().toLowerCase();
+  const lowerBody = body.toLowerCase();
+
+  const words = (body.replace(/[#>*_`~\-|]/g, " ").match(/[A-Za-z0-9']+/g) ?? []).length;
+  const h1Count = (body.match(/^#\s+/gm) ?? []).length;
+  const h2Count = (body.match(/^##\s+/gm) ?? []).length;
+  const hasInternalLink = /\]\(\/[^)\s]/.test(body);                       // [text](/relative)
+  const hasFaq = /^#{2,3}\s*(faq|frequently asked)/im.test(body) || (body.match(/\?\s*$/gm)?.length ?? 0) >= 2;
+  const hasCta = /\bs-?pay\b/i.test(body) && /(open|create|sign[\s-]?up|get started|free account|register|join)/i.test(lowerBody);
+  const keywordHit = !keyword || title.toLowerCase().includes(keyword) || lowerBody.includes(keyword)
+    // For long Reddit-derived "keywords", count it a hit if most significant words appear.
+    || (() => { const ks = [...tokens(keyword)]; return ks.length > 0 && ks.filter((w) => lowerBody.includes(w)).length / ks.length >= 0.6; })();
+
+  const checks: SeoCheck[] = [
+    { id: "title_present", label: "Has a title", ok: title.length > 0, severity: "error" },
+    { id: "title_len", label: "Title ≤ 60 chars", ok: title.length > 0 && title.length <= 60, severity: "error", detail: `${title.length} chars` },
+    { id: "meta_present", label: "Has a meta description", ok: meta.length > 0, severity: "error" },
+    { id: "meta_len", label: "Meta ≤ 155 chars", ok: meta.length > 0 && meta.length <= 155, severity: "warn", detail: `${meta.length} chars` },
+    { id: "excerpt_present", label: "Has an excerpt", ok: excerpt.length > 0, severity: "warn" },
+    { id: "single_h1", label: "No duplicate H1 in body", ok: h1Count === 0, severity: "error", detail: h1Count ? `${h1Count} H1 line(s) in body` : undefined },
+    { id: "has_h2", label: "≥ 2 H2 sections", ok: h2Count >= 2, severity: "error", detail: `${h2Count} H2` },
+    { id: "word_count", label: "700–1600 words", ok: words >= 700 && words <= 1600, severity: "warn", detail: `${words} words` },
+    { id: "faq", label: "Has an FAQ", ok: hasFaq, severity: "warn" },
+    { id: "keyword", label: "Targets the keyword", ok: keywordHit, severity: "warn" },
+    { id: "internal_link", label: "Has an internal link", ok: hasInternalLink, severity: "warn" },
+    { id: "cta", label: "Has a soft S-PAY CTA", ok: hasCta, severity: "error" },
+  ];
+
+  const weight = (c: SeoCheck) => (c.severity === "error" ? 2 : 1);
+  const total = checks.reduce((s, c) => s + weight(c), 0);
+  const earned = checks.reduce((s, c) => s + (c.ok ? weight(c) : 0), 0);
+  const errors = checks.filter((c) => !c.ok && c.severity === "error").length;
+  const warnings = checks.filter((c) => !c.ok && c.severity === "warn").length;
+  return { score: Math.round((100 * earned) / total), pass: errors === 0, errors, warnings, checks };
 }
 
 /** Article JSON-LD for a published post (embed in the page <head> for rich results). */

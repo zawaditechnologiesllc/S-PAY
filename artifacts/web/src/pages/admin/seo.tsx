@@ -9,8 +9,9 @@ import {
   useGetSeoPosts, getGetSeoPostsQueryKey,
   useGetSeoPost, getGetSeoPostQueryKey,
   useCreateSeoDraft, useAutoDraftSeo, useUpdateSeoPost, usePublishSeoPost, useUnpublishSeoPost,
+  type BlogCandidate, type SeoAudit,
 } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, Send, RefreshCw, Archive, ExternalLink, TrendingUp, MessageSquare, Wand2, BarChart3 } from "lucide-react";
+import { CheckCircle2, XCircle, Send, RefreshCw, Archive, ExternalLink, TrendingUp, MessageSquare, Wand2, BarChart3, ShieldCheck, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function StatusPill({ label, ok, reason }: { label: string; ok: boolean; reason?: string }) {
@@ -60,10 +61,15 @@ export default function AdminSeo() {
   };
 
   // Draft straight from a researched item — the keyword comes from research and
-  // the audience is derived server-side. The admin never types either.
-  const draftFrom = (keyword: string, source: "gsc" | "reddit", subreddit?: string) => {
+  // the audience is derived server-side. The admin never types either. A pain
+  // point (a real complaint/question) is passed so the post solves that problem.
+  const draftFrom = (
+    keyword: string,
+    source: "gsc" | "reddit",
+    opts?: { subreddit?: string; painPoint?: string; intent?: BlogCandidate["intent"] },
+  ) => {
     createDraft.mutate(
-      { data: { keyword, source, ...(subreddit ? { subreddit } : {}) } },
+      { data: { keyword, source, ...(opts?.subreddit ? { subreddit: opts.subreddit } : {}), ...(opts?.painPoint ? { painPoint: opts.painPoint } : {}), ...(opts?.intent ? { intent: opts.intent } : {}) } },
       {
         onSuccess: (res) => { toast({ title: "Draft generated", description: `For “${res.post.keyword ?? keyword}”. Review and publish below.` }); setSelectedId(res.post.id); refetchPosts(); },
         onError: onDraftError,
@@ -87,9 +93,9 @@ export default function AdminSeo() {
           <StatusPill label="Analytics (GA4)" ok={!!status?.ga4Configured} reason={status?.ga4Reason} />
           <StatusPill label="AI drafting (Gemini)" ok={!!status?.draftConfigured} />
           <StatusPill
-            label={status?.redditOAuthConfigured ? "Reddit (API)" : status?.redditProxyConfigured ? "Reddit (proxy)" : "Reddit topics"}
-            ok={!!status?.redditEnabled && (!!status?.redditOAuthConfigured || !!status?.redditProxyConfigured)}
-            reason={status?.redditEnabled && !status?.redditOAuthConfigured && !status?.redditProxyConfigured ? "Public Reddit JSON is usually IP-blocked from servers. Set SEO_REDDIT_PROXY_URL (residential/rotating proxy) or REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET." : undefined}
+            label={status?.redditOAuthConfigured ? "Reddit (API)" : "Reddit (old.reddit)"}
+            ok={!!status?.redditEnabled}
+            reason={status?.redditEnabled && !status?.redditOAuthConfigured ? "Using old.reddit's public JSON (works when this server's IP isn't blocked). For a reliable, location-neutral path add a Reddit app: REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET." : undefined}
           />
           <p className="text-xs text-gray-400 ml-1">Research picks the keyword + audience. Drafts are AI-written, grounded in product facts. Nothing publishes until you approve it.</p>
         </div>
@@ -127,9 +133,9 @@ export default function AdminSeo() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{c.keyword}</p>
-                    <p className="text-[11px] text-gray-400 truncate">{c.reason}</p>
+                    <p className="text-[11px] text-gray-400 truncate">{c.intent === "complaint" ? "💢 " : c.intent === "question" ? "❓ " : c.intent === "comparison" ? "⚖️ " : ""}{c.reason}</p>
                   </div>
-                  <button onClick={() => draftFrom(c.keyword, c.source === "reddit" ? "reddit" : "gsc", c.subreddit)} disabled={busy}
+                  <button onClick={() => draftFrom(c.keyword, c.source === "reddit" ? "reddit" : "gsc", { subreddit: c.subreddit, painPoint: c.painPoint, intent: c.intent })} disabled={busy}
                     className="flex-shrink-0 text-xs font-semibold text-[#4DC9EE] hover:underline disabled:opacity-40">Draft</button>
                 </li>
               ))}
@@ -170,7 +176,7 @@ export default function AdminSeo() {
               </button>
             </div>
             {!showReddit ? (
-              <p className="text-xs text-gray-400">Mines ~50 project subreddits via public old.reddit JSON. Click Load.</p>
+              <p className="text-xs text-gray-400">Mines ~100 project subreddits via old.reddit JSON. Click Load.</p>
             ) : (reddit?.topics ?? []).length === 0 ? (
               <p className="text-xs text-gray-400">{redditFetching ? "Fetching…" : (reddit?.message ?? "No topics returned.")}</p>
             ) : (
@@ -178,10 +184,10 @@ export default function AdminSeo() {
                 {reddit!.topics.map((t, i) => (
                   <li key={i} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2">{t.title}</p>
-                      <p className="text-[11px] text-gray-400">r/{t.subreddit} · {t.score} pts · {t.numComments} comments</p>
+                      <p className="text-xs font-medium text-gray-800 dark:text-gray-200 line-clamp-2">{t.intent === "complaint" ? "💢 " : t.intent === "question" ? "❓ " : ""}{t.title}</p>
+                      <p className="text-[11px] text-gray-400">r/{t.subreddit} · {t.score} pts · {t.numComments} comments{t.intent ? ` · ${t.intent}` : ""}</p>
                     </div>
-                    <button onClick={() => draftFrom(t.title, "reddit", t.subreddit)} disabled={busy}
+                    <button onClick={() => draftFrom(t.title, "reddit", { subreddit: t.subreddit, painPoint: t.title, intent: t.intent })} disabled={busy}
                       className="flex-shrink-0 text-xs font-semibold text-[#4DC9EE] hover:underline disabled:opacity-40">Draft</button>
                   </li>
                 ))}
@@ -251,11 +257,13 @@ function PostEditor({ postId, onChanged }: { postId: string | null; onChanged: (
   const unpublish = useUnpublishSeoPost();
 
   const [form, setForm] = useState({ title: "", metaDescription: "", excerpt: "", slug: "", bodyMarkdown: "" });
+  const [forceNeeded, setForceNeeded] = useState(false);
   useEffect(() => {
     if (post) setForm({
       title: post.title ?? "", metaDescription: post.metaDescription ?? "", excerpt: post.excerpt ?? "",
       slug: post.slug ?? "", bodyMarkdown: post.bodyMarkdown ?? "",
     });
+    setForceNeeded(false);
   }, [post]);
 
   if (!postId) {
@@ -263,12 +271,23 @@ function PostEditor({ postId, onChanged }: { postId: string | null; onChanged: (
   }
 
   const save = () => update.mutate({ id: postId, data: form }, {
-    onSuccess: () => { toast({ title: "Saved" }); refetch(); onChanged(); },
+    onSuccess: () => { toast({ title: "Saved" }); setForceNeeded(false); refetch(); onChanged(); },
     onError: () => toast({ title: "Could not save", variant: "destructive" }),
   });
-  const doPublish = () => publish.mutate({ id: postId }, {
-    onSuccess: () => { toast({ title: "Published ✅", description: "It's live on the blog." }); refetch(); onChanged(); },
-    onError: () => toast({ title: "Could not publish", variant: "destructive" }),
+  // Publish runs the server-side SEO cross-check. On a 422 it returns the audit;
+  // we surface the failing checks and reveal a "Publish anyway" override.
+  const doPublish = (force = false) => publish.mutate({ id: postId, data: force ? { force: true } : undefined }, {
+    onSuccess: () => { toast({ title: "Published ✅", description: "It's live on the blog." }); setForceNeeded(false); refetch(); onChanged(); },
+    onError: (e: unknown) => {
+      const err = e as { status?: number; data?: { audit?: SeoAudit } };
+      if (err?.status === 422) {
+        const failed = (err.data?.audit?.checks ?? []).filter((c) => !c.ok && c.severity === "error").map((c) => c.label).join(", ");
+        toast({ title: "Blocked by SEO check", description: failed ? `Fix: ${failed}. Or Publish anyway.` : "Fix the SEO issues, or Publish anyway.", variant: "destructive" });
+        setForceNeeded(true);
+      } else {
+        toast({ title: "Could not publish", variant: "destructive" });
+      }
+    },
   });
   const doUnpublish = () => unpublish.mutate({ id: postId }, {
     onSuccess: () => { toast({ title: "Unpublished", description: "Archived and removed from the blog." }); refetch(); onChanged(); },
@@ -286,11 +305,15 @@ function PostEditor({ postId, onChanged }: { postId: string | null; onChanged: (
           <button onClick={save} disabled={update.isPending} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50">Save</button>
           {post?.status === "published" ? (
             <button onClick={doUnpublish} disabled={unpublish.isPending} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-1"><Archive size={12} /> Unpublish</button>
+          ) : forceNeeded ? (
+            <button onClick={() => doPublish(true)} disabled={publish.isPending} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-1"><AlertTriangle size={12} /> Publish anyway</button>
           ) : (
-            <button onClick={doPublish} disabled={publish.isPending} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-600 text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-1"><Send size={12} /> Approve &amp; Publish</button>
+            <button onClick={() => doPublish(false)} disabled={publish.isPending} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-600 text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-1"><Send size={12} /> Approve &amp; Publish</button>
           )}
         </div>
       </div>
+
+      {post?.audit && <AuditPanel audit={post.audit} />}
 
       <Field label="Title"><input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputCls} /></Field>
       <Field label="Slug"><input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} className={inputCls} /></Field>
@@ -298,6 +321,35 @@ function PostEditor({ postId, onChanged }: { postId: string | null; onChanged: (
       <Field label="Excerpt"><input value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} className={inputCls} /></Field>
       <Field label="Body (Markdown)"><textarea value={form.bodyMarkdown} onChange={(e) => setForm({ ...form, bodyMarkdown: e.target.value })} rows={16} className={`${inputCls} font-mono text-xs leading-relaxed`} /></Field>
       {post?.keyword && <p className="text-[11px] text-gray-400">Target keyword: <span className="font-medium">{post.keyword}</span> · drafted by {post.model ?? "—"}</p>}
+    </div>
+  );
+}
+
+// The SEO cross-check, shown in the editor. Reflects the last SAVED version —
+// save edits to re-run it. Error-severity failures block publish (overridable).
+function AuditPanel({ audit }: { audit: SeoAudit }) {
+  const tone = audit.score >= 85 ? "text-green-700 bg-green-50" : audit.score >= 60 ? "text-amber-700 bg-amber-50" : "text-red-700 bg-red-50";
+  const failing = audit.checks.filter((c) => !c.ok);
+  return (
+    <div className="rounded-xl border border-gray-100 dark:border-gray-800 p-3 bg-gray-50/60 dark:bg-gray-800/40">
+      <div className="flex items-center gap-2 mb-1.5">
+        <ShieldCheck size={14} className="text-[#4DC9EE]" />
+        <span className="text-xs font-bold text-gray-800 dark:text-gray-200">SEO cross-check</span>
+        <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${tone}`}>{audit.score}/100</span>
+        {audit.pass
+          ? <span className="text-[11px] font-semibold text-green-700">Passes — ready to publish</span>
+          : <span className="text-[11px] font-semibold text-red-700">{audit.errors} blocker{audit.errors === 1 ? "" : "s"}{audit.warnings ? ` · ${audit.warnings} warning${audit.warnings === 1 ? "" : "s"}` : ""}</span>}
+      </div>
+      {failing.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5">
+          {failing.map((c) => (
+            <li key={c.id} title={c.detail ?? ""}
+              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${c.severity === "error" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+              {c.severity === "error" ? "✕" : "•"} {c.label}{c.detail ? ` (${c.detail})` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

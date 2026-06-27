@@ -6,7 +6,8 @@ import {
   fetchGa4LandingPages, isGa4Configured, checkGa4Connection,
   generateBlogDraft, isDraftConfigured, DraftNotConfiguredError, GoogleApiError,
   fetchRedditTopics, isRedditEnabled, isRedditOAuthConfigured, isRedditProxyConfigured,
-  combinedResearch, deriveAudience, slugify, articleJsonLd,
+  combinedResearch, deriveAudience, slugify, articleJsonLd, auditDraft,
+  type RedditIntent,
 } from "../lib/seo";
 import { db, blogPostsTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
@@ -22,10 +23,13 @@ type DraftSource = "gsc" | "reddit" | "manual";
  * from the research context (subreddit / keyword terms) — the admin never picks
  * a keyword or audience by hand. Returns the inserted post row.
  */
-async function createResearchedDraft(input: { keyword: string; source: DraftSource; subreddit?: string }) {
+async function createResearchedDraft(input: { keyword: string; source: DraftSource; subreddit?: string; painPoint?: string; intent?: RedditIntent }) {
   const keyword = input.keyword.trim();
   const audience = deriveAudience({ keyword, source: input.source, subreddit: input.subreddit });
-  const draft = await generateBlogDraft(keyword, audience);
+  // Reddit-sourced topics ARE the pain point; pass it (and any explicit one) so the
+  // post names the real problem and walks the reader to a solution.
+  const painPoint = input.painPoint?.trim() || (input.source === "reddit" ? keyword : undefined);
+  const draft = await generateBlogDraft(keyword, { audience, painPoint, intent: input.intent });
 
   let slug = slugify(draft.title || keyword);
   const [clash] = await db.select({ id: blogPostsTable.id }).from(blogPostsTable).where(eq(blogPostsTable.slug, slug)).limit(1);
@@ -46,12 +50,18 @@ async function createResearchedDraft(input: { keyword: string; source: DraftSour
 }
 
 /** The single best keyword from the COMBINED Google + Reddit research. */
-async function topResearchedKeyword(): Promise<{ keyword: string; source: DraftSource; subreddit?: string } | null> {
+async function topResearchedKeyword(): Promise<{ keyword: string; source: DraftSource; subreddit?: string; painPoint?: string; intent?: RedditIntent } | null> {
   const { candidates } = await combinedResearch(1);
   const top = candidates[0];
   if (!top) return null;
-  // A "both" candidate is GSC-anchored; record it as gsc but keep its subreddit.
-  return { keyword: top.keyword, source: top.source === "reddit" ? "reddit" : "gsc", subreddit: top.subreddit };
+  // A "both" candidate is GSC-anchored; record it as gsc but keep its subreddit/pain.
+  return {
+    keyword: top.keyword,
+    source: top.source === "reddit" ? "reddit" : "gsc",
+    subreddit: top.subreddit,
+    painPoint: top.painPoint,
+    intent: top.intent,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -133,8 +143,8 @@ router.get("/admin/seo/reddit-topics", requireAuth, requireAnyAdmin, async (req,
   try {
     const timeframe = (["day", "week", "month"].includes(String(req.query.timeframe)) ? req.query.timeframe : "week") as "day" | "week" | "month";
     const topics = await fetchRedditTopics({ timeframe, perSub: Number(req.query.perSub) || 4 });
-    const message = topics.length === 0 && isRedditEnabled() && !isRedditOAuthConfigured() && !isRedditProxyConfigured()
-      ? "Reddit returned no topics — its public endpoints block this server's IP. Set SEO_REDDIT_PROXY_URL (a residential/rotating proxy) to collect from all subreddits without a Reddit app, or set REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET for the official API."
+    const message = topics.length === 0 && isRedditEnabled() && !isRedditOAuthConfigured()
+      ? "No topics — old.reddit's public JSON works only when this server's IP isn't blocked by Reddit. For a reliable, location-neutral path, add a Reddit app (REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET, instant at reddit.com/prefs/apps) — the official API works from a datacenter without changing location."
       : undefined;
     res.json({
       enabled: isRedditEnabled(),
@@ -167,14 +177,19 @@ router.get("/admin/seo/research", requireAuth, requireAnyAdmin, async (req, res)
 // GEMINI_API_KEY is set.
 router.post("/admin/seo/drafts", requireAuth, requireManager, async (req, res) => {
   try {
-    const { keyword, source, subreddit } = req.body as { keyword?: string; source?: string; subreddit?: string };
+    const { keyword, source, subreddit, painPoint, intent } = req.body as { keyword?: string; source?: string; subreddit?: string; painPoint?: string; intent?: string };
     if (!keyword?.trim()) {
       res.status(400).json({ error: "validation_error", message: "keyword is required (pick a researched opportunity or topic)" });
       return;
     }
     const draftSource = (["gsc", "reddit"].includes(String(source)) ? source : "gsc") as DraftSource;
-    const post = await createResearchedDraft({ keyword: keyword.trim(), source: draftSource, subreddit: subreddit?.trim() || undefined });
-    res.status(201).json({ post: serializePost(post) });
+    const validIntent = (["complaint", "question", "comparison", "discussion"].includes(String(intent)) ? intent : undefined) as RedditIntent | undefined;
+    const post = await createResearchedDraft({
+      keyword: keyword.trim(), source: draftSource,
+      subreddit: subreddit?.trim() || undefined,
+      painPoint: painPoint?.trim() || undefined, intent: validIntent,
+    });
+    res.status(201).json({ post: serializePost(post, true, true) });
   } catch (err) {
     if (err instanceof DraftNotConfiguredError) {
       res.status(503).json({ error: "not_configured", message: "AI drafting is activating soon (set GEMINI_API_KEY)." });
@@ -198,7 +213,7 @@ router.post("/admin/seo/auto-draft", requireAuth, requireManager, async (req, re
       return;
     }
     const post = await createResearchedDraft(pick);
-    res.status(201).json({ post: serializePost(post), pickedKeyword: pick.keyword, source: pick.source });
+    res.status(201).json({ post: serializePost(post, true, true), pickedKeyword: pick.keyword, source: pick.source });
   } catch (err) {
     if (err instanceof DraftNotConfiguredError) {
       res.status(503).json({ error: "not_configured", message: "AI drafting is activating soon (set GEMINI_API_KEY)." });
@@ -220,7 +235,7 @@ router.get("/admin/seo/posts", requireAuth, requireAnyAdmin, async (req, res) =>
 router.get("/admin/seo/posts/:id", requireAuth, requireAnyAdmin, async (req, res) => {
   const [post] = await db.select().from(blogPostsTable).where(eq(blogPostsTable.id, req.params.id as string)).limit(1);
   if (!post) { res.status(404).json({ error: "not_found", message: "Post not found" }); return; }
-  res.json({ post: serializePost(post, true) });
+  res.json({ post: serializePost(post, true, true) });
 });
 
 // Edit a draft before publishing (human-in-the-loop).
@@ -239,7 +254,7 @@ router.patch("/admin/seo/posts/:id", requireAuth, requireManager, async (req, re
       slug: typeof slug === "string" && slug.trim() ? slugify(slug) : existing.slug,
       updatedAt: new Date(),
     }).where(eq(blogPostsTable.id, existing.id)).returning();
-    res.json({ post: serializePost(updated, true) });
+    res.json({ post: serializePost(updated, true, true) });
   } catch (err) {
     // The slug is uniquely indexed — an edit that collides with another post's
     // slug is a clean 409, not an opaque 500.
@@ -253,9 +268,23 @@ router.patch("/admin/seo/posts/:id", requireAuth, requireManager, async (req, re
 });
 
 // Approve + publish. The human approval gate — only published posts are public.
+// The SEO cross-check runs here: a post that fails an error-severity rule can't
+// publish unless a human explicitly overrides with { force: true }.
 router.post("/admin/seo/posts/:id/publish", requireAuth, requireManager, async (req, res) => {
   const [existing] = await db.select().from(blogPostsTable).where(eq(blogPostsTable.id, req.params.id as string)).limit(1);
   if (!existing) { res.status(404).json({ error: "not_found", message: "Post not found" }); return; }
+
+  const audit = auditDraft(existing);
+  const force = (req.body as { force?: boolean } | undefined)?.force === true;
+  if (!audit.pass && !force) {
+    res.status(422).json({
+      error: "seo_check_failed",
+      message: `This post fails ${audit.errors} required SEO check(s). Fix them, or publish anyway to override.`,
+      audit,
+    });
+    return;
+  }
+
   const [updated] = await db.update(blogPostsTable).set({
     status: "published",
     reviewedByAdminId: req.user!.userId,
@@ -295,7 +324,7 @@ router.get("/blog/:slug", async (req, res) => {
 
 // ── serializer ───────────────────────────────────────────────────────────────────
 
-function serializePost(p: typeof blogPostsTable.$inferSelect, withBody = false) {
+function serializePost(p: typeof blogPostsTable.$inferSelect, withBody = false, withAudit = false) {
   return {
     id: p.id,
     slug: p.slug,
@@ -311,6 +340,8 @@ function serializePost(p: typeof blogPostsTable.$inferSelect, withBody = false) 
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
     ...(withBody ? { bodyMarkdown: p.bodyMarkdown } : {}),
+    // SEO cross-check — admin-only (never leaked on the public blog endpoints).
+    ...(withAudit ? { audit: auditDraft(p) } : {}),
   };
 }
 
