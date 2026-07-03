@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FlowStepper } from "@/components/flow-stepper";
 import { useToast } from "@/hooks/use-toast";
 import { payrollApi, PayrollApiError } from "@/lib/payroll-api";
 import {
@@ -50,6 +51,10 @@ export default function PayrollOverview() {
   return (
     <Layout back title="Payroll">
       <div className="space-y-6 mt-4">
+        {/* Guided setup — the same step bar as the money flows, tracking the
+            employer from registration to their first paid batch. */}
+        <SetupGuide />
+
         <SummaryCards />
 
         {/* Employer profile + verification */}
@@ -91,6 +96,44 @@ export default function PayrollOverview() {
         </button>
       </div>
     </Layout>
+  );
+}
+
+// Register → API key → Fund → First batch: computed from live data, gone once
+// the employer has fully launched. Each pending step says exactly what to do.
+function SetupGuide() {
+  // staleTime 0: the guide must reflect what the user JUST did (minted a key,
+  // funded, ran a batch) — never a persisted cache from the last visit.
+  const { data: keys } = useQuery({ queryKey: ["payroll", "keys"], queryFn: payrollApi.listKeys, retry: false, staleTime: 0, refetchOnMount: "always" });
+  const { data: summary } = useQuery({ queryKey: ["payroll", "summary"], queryFn: payrollApi.getSummary, retry: false, staleTime: 0, refetchOnMount: "always" });
+  if (!keys || !summary) return null;
+
+  const hasKey = keys.apiKeys.some((k) => !k.revokedAt);
+  const funded = summary.balanceUsdc > 0;
+  const ranBatch = summary.totalBatches > 0;
+  if (hasKey && funded && ranBatch) return null; // fully launched — guide retires
+
+  const current = !hasKey ? 1 : !funded ? 2 : 3;
+  const hint = !hasKey
+    ? { text: "Create an API key — your backend authenticates with it.", href: "/payroll/keys", cta: "Create a key" }
+    : !funded
+      ? { text: "Fund your payroll balance (sandbox: POST /payroll/sandbox/fund with a test key).", href: null, cta: null }
+      : { text: "Send your first batch — two API calls pays your whole team.", href: "/payroll/batches", cta: "See how" };
+
+  return (
+    <Card className="border-0 shadow-md rounded-2xl">
+      <CardContent className="p-5 space-y-3">
+        <FlowStepper steps={["Register", "API key", "Fund", "First batch"]} current={current} />
+        <div className="flex items-center justify-between gap-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl p-3">
+          <p className="text-xs text-blue-700 dark:text-blue-300">{hint.text}</p>
+          {hint.href && (
+            <Link href={hint.href}>
+              <Button size="sm" variant="outline" className="rounded-full flex-shrink-0 text-xs">{hint.cta} <ArrowRight size={13} className="ml-1" /></Button>
+            </Link>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

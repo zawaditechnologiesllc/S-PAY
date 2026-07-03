@@ -118,6 +118,10 @@ import type {
   SeoOpportunitiesResponse,
   SeoResearchResponse,
   SeoStatus,
+  SetCardFrozen200,
+  SetCardFrozenBody,
+  SetCardLimit200,
+  SetCardLimitBody,
   SetTransactionPinBody,
   SiteContent,
   SiteContentUpdateRequest,
@@ -2478,6 +2482,148 @@ export const useJoinCardWaitlist = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getJoinCardWaitlistMutationOptions(options));
+    }
+
+export const getSetCardFrozenUrl = () => {
+
+
+
+
+  return `/api/card/freeze`
+}
+
+/**
+ * @summary Freeze or unfreeze the virtual card — frozen cards decline every payment instantly
+ */
+export const setCardFrozen = async (setCardFrozenBody: SetCardFrozenBody, options?: RequestInit): Promise<SetCardFrozen200> => {
+
+  return customFetch<SetCardFrozen200>(getSetCardFrozenUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setCardFrozenBody,)
+  }
+);}
+
+
+
+
+export const getSetCardFrozenMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setCardFrozen>>, TError,{data: BodyType<SetCardFrozenBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setCardFrozen>>, TError,{data: BodyType<SetCardFrozenBody>}, TContext> => {
+
+const mutationKey = ['setCardFrozen'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setCardFrozen>>, {data: BodyType<SetCardFrozenBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  setCardFrozen(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetCardFrozenMutationResult = NonNullable<Awaited<ReturnType<typeof setCardFrozen>>>
+    export type SetCardFrozenMutationBody = BodyType<SetCardFrozenBody>
+    export type SetCardFrozenMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Freeze or unfreeze the virtual card — frozen cards decline every payment instantly
+ */
+export const useSetCardFrozen = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setCardFrozen>>, TError,{data: BodyType<SetCardFrozenBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setCardFrozen>>,
+        TError,
+        {data: BodyType<SetCardFrozenBody>},
+        TContext
+      > => {
+      return useMutation(getSetCardFrozenMutationOptions(options));
+    }
+
+export const getSetCardLimitUrl = () => {
+
+
+
+
+  return `/api/card/limits`
+}
+
+/**
+ * @summary Set (or clear with 0) the card's monthly spending limit, enforced on every authorization
+ */
+export const setCardLimit = async (setCardLimitBody: SetCardLimitBody, options?: RequestInit): Promise<SetCardLimit200> => {
+
+  return customFetch<SetCardLimit200>(getSetCardLimitUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setCardLimitBody,)
+  }
+);}
+
+
+
+
+export const getSetCardLimitMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setCardLimit>>, TError,{data: BodyType<SetCardLimitBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setCardLimit>>, TError,{data: BodyType<SetCardLimitBody>}, TContext> => {
+
+const mutationKey = ['setCardLimit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setCardLimit>>, {data: BodyType<SetCardLimitBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  setCardLimit(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetCardLimitMutationResult = NonNullable<Awaited<ReturnType<typeof setCardLimit>>>
+    export type SetCardLimitMutationBody = BodyType<SetCardLimitBody>
+    export type SetCardLimitMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Set (or clear with 0) the card's monthly spending limit, enforced on every authorization
+ */
+export const useSetCardLimit = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setCardLimit>>, TError,{data: BodyType<SetCardLimitBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setCardLimit>>,
+        TError,
+        {data: BodyType<SetCardLimitBody>},
+        TContext
+      > => {
+      return useMutation(getSetCardLimitMutationOptions(options));
     }
 
 export const getIssueCardUrl = () => {

@@ -2,6 +2,10 @@ import { Router } from "express";
 import crypto from "crypto";
 import { logger } from "../lib/logger";
 import { notifyUser } from "../lib/notify";
+import { getTokenBalances } from "../lib/celo-chain";
+import { approveAuthorization, declineAuthorization } from "../lib/stripe-issuing";
+import { ensureUserWallet, getSendableProvider } from "../lib/wallet-providers";
+import { treasuryAddress } from "../lib/settings";
 import { db, usersTable, transactionsTable, kycVerificationsTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
 
@@ -241,7 +245,89 @@ function verifyStripeSignature(header: string | undefined, rawBody: Buffer | str
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-router.post("/webhooks/stripe", (req, res) => {
+interface IssuingAuthorization {
+  id: string;
+  amount?: number;                                   // cents (0 until decided)
+  pending_request?: { amount?: number };             // cents — the amount to decide on
+  approved?: boolean;
+  merchant_data?: { name?: string; category?: string };
+  card?: { id?: string; metadata?: { spay_user_id?: string }; cardholder?: string | { id?: string } };
+}
+
+/**
+ * The card spends the USER'S balance: every swipe is decided in real time
+ * against their on-chain USDC/USDT. Approve → record the purchase in their
+ * history and (best-effort, async) sweep the settlement amount from their
+ * wallet to the treasury so the program float is repaid. A sweep that fails is
+ * logged for reconciliation — the authorization decision itself never waits on
+ * an on-chain transfer (Stripe's window is ~2s).
+ */
+async function decideCardAuthorization(auth: IssuingAuthorization): Promise<void> {
+  const amountCents = auth.pending_request?.amount ?? auth.amount ?? 0;
+  const amountUsd = amountCents / 100;
+  const spayUserId = auth.card?.metadata?.spay_user_id;
+  const cardholderId = typeof auth.card?.cardholder === "string" ? auth.card.cardholder : auth.card?.cardholder?.id;
+
+  // Resolve the user: card metadata first (we stamp spay_user_id at issuance),
+  // cardholder linkage as fallback.
+  let user;
+  if (spayUserId) {
+    [user] = await db.select().from(usersTable).where(eq(usersTable.id, spayUserId)).limit(1);
+  }
+  if (!user && cardholderId) {
+    [user] = await db.select().from(usersTable).where(eq(usersTable.stripeCardholderId, cardholderId)).limit(1);
+  }
+  if (!user?.celoWalletAddress) {
+    logger.warn({ authId: auth.id, spayUserId, cardholderId }, "Card authorization for unknown user/wallet — declining");
+    await declineAuthorization(auth.id);
+    return;
+  }
+
+  const balances = await getTokenBalances(user.celoWalletAddress);
+  // Fail closed: an unreadable balance never approves a spend.
+  if (!balances || balances.total < amountUsd) {
+    await declineAuthorization(auth.id);
+    logger.info({ authId: auth.id, userId: user.id, amountUsd, available: balances?.total ?? "unknown" }, "Card authorization declined — insufficient balance");
+    notifyUser(user.id, "Card payment declined", `A ${amountUsd.toFixed(2)} USD card payment was declined — your balance couldn't cover it.`, "money");
+    return;
+  }
+
+  await approveAuthorization(auth.id);
+  const merchant = auth.merchant_data?.name?.trim() || "Merchant";
+  await db.insert(transactionsTable).values({
+    userId: user.id,
+    type: "payment",
+    amount: String(amountUsd),
+    currency: "USDC",
+    description: `Card purchase — ${merchant}`,
+    counterparty: merchant,
+    status: "completed",
+  });
+  notifyUser(user.id, "Card payment 💳", `${amountUsd.toFixed(2)} USD at ${merchant} — paid from your balance.`, "money");
+  logger.info({ authId: auth.id, userId: user.id, amountUsd, merchant }, "Card authorization approved");
+
+  // Settlement sweep (async): move the spent USDC from the user's wallet to the
+  // treasury, which fronts the money to Stripe. Never blocks the decision.
+  void (async () => {
+    const treasury = treasuryAddress();
+    if (!treasury) {
+      logger.warn({ authId: auth.id, userId: user.id, amountUsd }, "Card settlement sweep skipped — TREASURY_CELO_ADDRESS not set; reconcile manually");
+      return;
+    }
+    try {
+      const wallet = await ensureUserWallet(user);
+      const signer = wallet ? await getSendableProvider(wallet.provider) : null;
+      if (!wallet || !signer) throw new Error("wallet provider unavailable");
+      const token = balances.usdc >= amountUsd ? "USDC" as const : "USDT" as const;
+      const txHash = await signer.sendToken(wallet, treasury, token, amountUsd);
+      logger.info({ authId: auth.id, userId: user.id, amountUsd, txHash }, "Card settlement swept to treasury");
+    } catch (err) {
+      logger.error({ err, authId: auth.id, userId: user.id, amountUsd }, "Card settlement sweep FAILED — reconcile: user balance still holds the spent amount");
+    }
+  })();
+}
+
+router.post("/webhooks/stripe", async (req, res) => {
   const sig = req.headers["stripe-signature"] as string | undefined;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -257,17 +343,27 @@ router.post("/webhooks/stripe", (req, res) => {
     return;
   }
 
-  const event = req.body as { type: string; data?: { object?: { id?: string } } };
+  const event = req.body as { type: string; data?: { object?: IssuingAuthorization } };
 
-  switch (event.type) {
-    case "issuing_authorization.created":
-      logger.info({ authId: event.data?.object?.id }, "Card authorization — processing");
-      break;
-    case "issuing_authorization.updated":
-      logger.info({ authId: event.data?.object?.id }, "Card authorization updated");
-      break;
-    default:
-      logger.info({ type: event.type }, "Unhandled Stripe event");
+  try {
+    switch (event.type) {
+      // Real-time decision: Stripe holds the merchant while we answer.
+      // Requires the webhook endpoint to be subscribed to
+      // issuing_authorization.request in the Stripe dashboard.
+      case "issuing_authorization.request":
+        if (event.data?.object?.id) await decideCardAuthorization(event.data.object);
+        break;
+      case "issuing_authorization.created":
+        logger.info({ authId: event.data?.object?.id, approved: event.data?.object?.approved }, "Card authorization finalized");
+        break;
+      case "issuing_authorization.updated":
+        logger.info({ authId: event.data?.object?.id }, "Card authorization updated");
+        break;
+      default:
+        logger.info({ type: event.type }, "Unhandled Stripe event");
+    }
+  } catch (err) {
+    logger.error({ err, type: event.type }, "Error processing Stripe webhook");
   }
 
   res.json({ received: true });

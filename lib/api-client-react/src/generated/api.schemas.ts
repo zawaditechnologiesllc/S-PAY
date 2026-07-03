@@ -1741,6 +1741,25 @@ export const GetSpendingSummaryPeriod = {
   last_3_months: 'last_3_months',
 } as const;
 
+export type SetCardFrozenBody = {
+  frozen: boolean;
+};
+
+export type SetCardFrozen200 = {
+  frozen: boolean;
+  message?: string;
+};
+
+export type SetCardLimitBody = {
+  /** USD per month; 0 removes the limit */
+  monthlyLimit: number;
+};
+
+export type SetCardLimit200 = {
+  monthlyLimit: number;
+  message?: string;
+};
+
 export type GetJobsParams = {
 keyword?: string;
 category?: string;

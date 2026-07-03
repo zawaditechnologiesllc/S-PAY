@@ -731,6 +731,76 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
+  /card/freeze:
+    post:
+      operationId: setCardFrozen
+      tags: [card]
+      summary: Freeze or unfreeze the virtual card — frozen cards decline every payment instantly
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                frozen: { type: boolean }
+              required: [frozen]
+      responses:
+        "200":
+          description: New freeze state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  frozen: { type: boolean }
+                  message: { type: string }
+                required: [frozen]
+        "404":
+          description: No card issued yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /card/limits:
+    post:
+      operationId: setCardLimit
+      tags: [card]
+      summary: Set (or clear with 0) the card's monthly spending limit, enforced on every authorization
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                monthlyLimit:
+                  type: number
+                  description: USD per month; 0 removes the limit
+              required: [monthlyLimit]
+      responses:
+        "200":
+          description: New limit
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  monthlyLimit: { type: number }
+                  message: { type: string }
+                required: [monthlyLimit]
+        "404":
+          description: No card issued yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /card/issue:
     post:
       operationId: issueCard

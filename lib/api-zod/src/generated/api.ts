@@ -663,6 +663,32 @@ export const JoinCardWaitlistResponse = zod.object({
 
 
 /**
+ * @summary Freeze or unfreeze the virtual card — frozen cards decline every payment instantly
+ */
+export const SetCardFrozenBody = zod.object({
+  "frozen": zod.boolean()
+})
+
+export const SetCardFrozenResponse = zod.object({
+  "frozen": zod.boolean(),
+  "message": zod.string().optional()
+})
+
+
+/**
+ * @summary Set (or clear with 0) the card's monthly spending limit, enforced on every authorization
+ */
+export const SetCardLimitBody = zod.object({
+  "monthlyLimit": zod.number().describe('USD per month; 0 removes the limit')
+})
+
+export const SetCardLimitResponse = zod.object({
+  "monthlyLimit": zod.number(),
+  "message": zod.string().optional()
+})
+
+
+/**
  * @summary Issue the user's virtual card (requires the card program to be enabled by an admin and KYC approval)
  */
 export const IssueCardResponse = zod.object({

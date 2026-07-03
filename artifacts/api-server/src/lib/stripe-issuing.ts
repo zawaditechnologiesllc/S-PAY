@@ -87,6 +87,42 @@ export async function issueVirtualCard(user: Pick<User, "id" | "email" | "fullNa
   };
 }
 
+/** Freeze / unfreeze a card. Stripe's "inactive" = frozen (declines all auths). */
+export async function setCardStatus(cardId: string, status: "active" | "inactive"): Promise<void> {
+  await stripeClient().post(`/issuing/cards/${cardId}`, new URLSearchParams({ status }));
+  logger.info({ cardId, status }, "Card status changed");
+}
+
+/**
+ * Set (or clear) a monthly spending limit. Stripe spending_controls amounts are
+ * integer cents; 0 clears the limit entirely.
+ */
+export async function setCardSpendingLimit(cardId: string, monthlyUsd: number): Promise<void> {
+  const params = new URLSearchParams();
+  if (monthlyUsd > 0) {
+    params.set("spending_controls[spending_limits][0][amount]", String(Math.round(monthlyUsd * 100)));
+    params.set("spending_controls[spending_limits][0][interval]", "monthly");
+  } else {
+    // Clearing: send an empty spending_limits array
+    params.set("spending_controls[spending_limits]", "");
+  }
+  await stripeClient().post(`/issuing/cards/${cardId}`, params);
+  logger.info({ cardId, monthlyUsd }, "Card spending limit updated");
+}
+
+/**
+ * Real-time authorization decision. Stripe holds the merchant's request open
+ * for ~2 seconds waiting for this call — the webhook handler must decide fast
+ * (one balance read) and answer immediately.
+ */
+export async function approveAuthorization(authId: string): Promise<void> {
+  await stripeClient().post(`/issuing/authorizations/${authId}/approve`);
+}
+
+export async function declineAuthorization(authId: string): Promise<void> {
+  await stripeClient().post(`/issuing/authorizations/${authId}/decline`);
+}
+
 /** Fetch a live summary of an issued card (masked — full PAN stays inside Stripe). */
 export async function fetchCardSummary(cardId: string): Promise<Omit<IssuedCard, "cardholderId"> | null> {
   try {
