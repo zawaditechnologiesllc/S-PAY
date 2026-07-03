@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { payrollApi, PayrollApiError } from "@/lib/payroll-api";
 import {
   Building2, KeyRound, ListChecks, Wallet, Users, CheckCircle2,
-  AlertCircle, ArrowRight, BadgeCheck,
+  AlertCircle, ArrowRight, BadgeCheck, Banknote, Copy,
 } from "lucide-react";
 
 // Employer payroll console — overview + onboarding. Companies (Upwork, Fiverr,
@@ -71,6 +71,9 @@ export default function PayrollOverview() {
           </CardContent>
         </Card>
 
+        {/* Fund the payroll balance — the step between registering and paying */}
+        <FundingCard />
+
         {/* Quick links */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <NavCard href="/payroll/keys" icon={<KeyRound size={20} />} title="API keys" desc="Create and manage the keys your backend uses." />
@@ -113,6 +116,68 @@ function SummaryCards() {
         </Card>
       ))}
     </div>
+  );
+}
+
+// Guided funding: live payroll draws from a prepaid USDC balance. This card
+// walks the employer through topping it up — request the funding address once,
+// then send USDC on Celo to it (sandbox integrators use the test top-up API).
+function FundingCard() {
+  const { toast } = useToast();
+  const funding = useMutation({ mutationFn: payrollApi.getFundingAddress });
+
+  const copy = (addr: string) => {
+    navigator.clipboard.writeText(addr);
+    toast({ title: "Funding address copied", description: "Send USDC on the Celo network to it — the balance credits automatically." });
+  };
+
+  return (
+    <Card className="border-0 shadow-md rounded-2xl">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Banknote size={18} className="text-[#4DC9EE]" /> Fund your payroll balance
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Live batches are paid from your prepaid USDC balance. Top it up by sending <strong>USDC on the Celo
+          network</strong> to your funding address — from an exchange (Binance, Coinbase…) or any Celo wallet.
+        </p>
+        {funding.data ? (
+          <div className="space-y-2">
+            <button
+              onClick={() => copy(funding.data.fundingAddress)}
+              className="w-full bg-gray-50 dark:bg-gray-800/60 rounded-xl p-3 flex items-center gap-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              title="Tap to copy"
+            >
+              <code className="text-[11px] text-gray-700 dark:text-gray-300 break-all flex-1">{funding.data.fundingAddress}</code>
+              <Copy size={15} className="text-gray-400 flex-shrink-0" />
+            </button>
+            <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-3 text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+              ⚠ The network must be <strong>Celo</strong> and the token <strong>USDC</strong>. Deposits credit your payroll balance automatically.
+            </div>
+          </div>
+        ) : (
+          <Button
+            onClick={() => funding.mutate(undefined, {
+              onError: (e) => toast({
+                title: "Funding address not ready",
+                description: e instanceof Error ? e.message : "Try again shortly.",
+                variant: "destructive",
+              }),
+            })}
+            disabled={funding.isPending}
+            variant="outline"
+            className="rounded-full"
+          >
+            {funding.isPending ? "Preparing…" : "Show my funding address"}
+          </Button>
+        )}
+        <p className="text-[11px] text-gray-400">
+          Testing? Use a <strong>sandbox key</strong> with <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">POST /payroll/sandbox/fund</code> — it mints test balance without real money.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 

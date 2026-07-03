@@ -2,10 +2,11 @@ import { useState } from "react";
 import { AdminLayout } from "./layout";
 import {
   useGetAdminUsers, getGetAdminUsersQueryKey,
+  useGetAdminKycVerifications, getGetAdminKycVerificationsQueryKey,
 } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { Search, CheckCircle2, XCircle, Clock, Filter, Users } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Clock, Filter, Users, ShieldCheck } from "lucide-react";
 
 const KYC_BADGE: Record<string, string> = {
   approved: "bg-green-100 text-green-700",
@@ -147,7 +148,70 @@ export default function AdminUsers() {
             </table>
           </div>
         </div>
+
+        <KycVerificationsPanel />
       </div>
     </AdminLayout>
+  );
+}
+
+// The provider-run identity trail: every verification attempt started via
+// /kyc/start with which money-rail ran it (Noah, Bridge, Conduit, Yellow Card)
+// and their decision — stored in S-PAY's own kyc_verifications table.
+function KycVerificationsPanel() {
+  const { data, isLoading } = useGetAdminKycVerifications({ query: { queryKey: getGetAdminKycVerificationsQueryKey() } });
+  const rows = data?.verifications ?? [];
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
+        <ShieldCheck size={18} className="text-[#4DC9EE]" />
+        <span className="font-bold text-gray-900 dark:text-gray-100">Identity verifications</span>
+        <span className="text-xs text-gray-400">— provider-run KYC/KYB attempts ({data?.total ?? 0} total)</span>
+      </div>
+      {isLoading ? (
+        <div className="p-6 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-6 w-full" />)}
+        </div>
+      ) : rows.length === 0 ? (
+        <p className="p-8 text-center text-sm text-gray-400">
+          No verification attempts yet. When a user taps “Verify Now”, the attempt — provider, hosted-flow link and the
+          provider's decision — is recorded here.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60">
+                {["User", "Provider", "Type", "Result", "Started", "Decided"].map((h) => (
+                  <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((v) => (
+                <tr key={v.id} className="border-b border-gray-50 dark:border-gray-800">
+                  <td className="px-5 py-3">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{v.userFullName ?? "—"}</span>
+                    <span className="text-gray-400 text-xs block">{v.userEmail}</span>
+                  </td>
+                  <td className="px-5 py-3 capitalize text-gray-700 dark:text-gray-300">{v.provider}</td>
+                  <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{v.accountType === "business" ? "KYB" : "KYC"}</td>
+                  <td className="px-5 py-3">
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                      v.status === "approved" ? "bg-green-100 text-green-700" : v.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
+                    }`}>
+                      {v.status === "approved" ? <CheckCircle2 size={12} /> : v.status === "rejected" ? <XCircle size={12} /> : <Clock size={12} />}
+                      {v.status === "started" ? "in progress" : v.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{new Date(v.createdAt).toLocaleDateString()}</td>
+                  <td className="px-5 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{v.decidedAt ? new Date(v.decidedAt).toLocaleDateString() : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }

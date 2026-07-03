@@ -22,6 +22,8 @@ import type {
 import type {
   AddFundsRequest,
   AddFundsResponse,
+  AdminKycVerificationsResponse,
+  AdminPayrollStats,
   AdminStats,
   AdminTeamResponse,
   AdminTransactionsResponse,
@@ -68,6 +70,12 @@ import type {
   GetExchangeRatesParams,
   GetIncomingPaymentsParams,
   GetJobsParams,
+  GetPayrollDashboardBatch200,
+  GetPayrollDashboardBatchesParams,
+  GetPayrollFundingAddress200,
+  GetPayrollPayoutProviders200,
+  GetPayrollPayoutQuote200,
+  GetPayrollPayoutQuoteParams,
   GetSeoPostsParams,
   GetSeoRedditTopicsParams,
   GetSpendingSummaryParams,
@@ -80,6 +88,7 @@ import type {
   InitiateDepositBody,
   Job,
   JobsResponse,
+  KycStatusResponse,
   ListPayrollBatchPaymentsParams,
   ListPayrollBatchesParams,
   LoginChallengeResponse,
@@ -1162,7 +1171,7 @@ export const getStartKycUrl = () => {
 }
 
 /**
- * @summary Begin identity verification (Noah) — returns the hosted verification URL once the provider is live
+ * @summary Begin identity verification via the admin-designated provider — returns the hosted verification URL once the provider is live
  */
 export const startKyc = async ( options?: RequestInit): Promise<StartKyc200> => {
 
@@ -1210,7 +1219,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type StartKycMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Begin identity verification (Noah) — returns the hosted verification URL once the provider is live
+ * @summary Begin identity verification via the admin-designated provider — returns the hosted verification URL once the provider is live
  */
 export const useStartKyc = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startKyc>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -1222,6 +1231,83 @@ export const useStartKyc = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getStartKycMutationOptions(options));
     }
+
+export const getGetKycStatusUrl = () => {
+
+
+
+
+  return `/api/kyc/status`
+}
+
+/**
+ * @summary Current verification state — the account gate plus the latest provider verification attempt (with a resume URL while in flight)
+ */
+export const getKycStatus = async ( options?: RequestInit): Promise<KycStatusResponse> => {
+
+  return customFetch<KycStatusResponse>(getGetKycStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetKycStatusQueryKey = () => {
+    return [
+    `/api/kyc/status`
+    ] as const;
+    }
+
+
+export const getGetKycStatusQueryOptions = <TData = Awaited<ReturnType<typeof getKycStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getKycStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetKycStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getKycStatus>>> = ({ signal }) => getKycStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getKycStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetKycStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getKycStatus>>>
+export type GetKycStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Current verification state — the account gate plus the latest provider verification attempt (with a resume URL while in flight)
+ */
+
+export function useGetKycStatus<TData = Awaited<ReturnType<typeof getKycStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getKycStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetKycStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetDashboardSummaryUrl = () => {
 
@@ -1845,7 +1931,7 @@ export const getInitiateWithdrawUrl = () => {
 }
 
 /**
- * @summary Initiate a withdrawal via Noah payout
+ * @summary Initiate a withdrawal — routed to the best-rate payout rail for the corridor; records a wallet transaction
  */
 export const initiateWithdraw = async (withdrawRequest: WithdrawRequest, options?: RequestInit): Promise<WithdrawResponse> => {
 
@@ -1894,7 +1980,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type InitiateWithdrawMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Initiate a withdrawal via Noah payout
+ * @summary Initiate a withdrawal — routed to the best-rate payout rail for the corridor; records a wallet transaction
  */
 export const useInitiateWithdraw = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initiateWithdraw>>, TError,{data: BodyType<WithdrawRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -2828,6 +2914,160 @@ export function useGetAdminUsers<TData = Awaited<ReturnType<typeof getAdminUsers
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminUsersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminKycVerificationsUrl = () => {
+
+
+
+
+  return `/api/admin/kyc/verifications`
+}
+
+/**
+ * @summary Provider-run KYC/KYB verification attempts (audit trail)
+ */
+export const getAdminKycVerifications = async ( options?: RequestInit): Promise<AdminKycVerificationsResponse> => {
+
+  return customFetch<AdminKycVerificationsResponse>(getGetAdminKycVerificationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminKycVerificationsQueryKey = () => {
+    return [
+    `/api/admin/kyc/verifications`
+    ] as const;
+    }
+
+
+export const getGetAdminKycVerificationsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminKycVerifications>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminKycVerifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminKycVerificationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminKycVerifications>>> = ({ signal }) => getAdminKycVerifications({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminKycVerifications>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminKycVerificationsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminKycVerifications>>>
+export type GetAdminKycVerificationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Provider-run KYC/KYB verification attempts (audit trail)
+ */
+
+export function useGetAdminKycVerifications<TData = Awaited<ReturnType<typeof getAdminKycVerifications>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminKycVerifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminKycVerificationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminPayrollStatsUrl = () => {
+
+
+
+
+  return `/api/admin/payroll/stats`
+}
+
+/**
+ * @summary Platform-wide payroll metrics (employers, batches, workers paid)
+ */
+export const getAdminPayrollStats = async ( options?: RequestInit): Promise<AdminPayrollStats> => {
+
+  return customFetch<AdminPayrollStats>(getGetAdminPayrollStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminPayrollStatsQueryKey = () => {
+    return [
+    `/api/admin/payroll/stats`
+    ] as const;
+    }
+
+
+export const getGetAdminPayrollStatsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPayrollStats>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPayrollStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminPayrollStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminPayrollStats>>> = ({ signal }) => getAdminPayrollStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminPayrollStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminPayrollStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminPayrollStats>>>
+export type GetAdminPayrollStatsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Platform-wide payroll metrics (employers, batches, workers paid)
+ */
+
+export function useGetAdminPayrollStats<TData = Awaited<ReturnType<typeof getAdminPayrollStats>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPayrollStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminPayrollStatsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -5947,6 +6187,475 @@ export function useListPayrollWebhookDeliveries<TData = Awaited<ReturnType<typeo
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListPayrollWebhookDeliveriesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetPayrollFundingAddressUrl = () => {
+
+
+
+
+  return `/api/payroll/funding/address`
+}
+
+/**
+ * @summary Provision (or return) the Celo USDC address that funds the live payroll balance — owner JWT
+ */
+export const getPayrollFundingAddress = async ( options?: RequestInit): Promise<GetPayrollFundingAddress200> => {
+
+  return customFetch<GetPayrollFundingAddress200>(getGetPayrollFundingAddressUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getGetPayrollFundingAddressMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getPayrollFundingAddress>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof getPayrollFundingAddress>>, TError,void, TContext> => {
+
+const mutationKey = ['getPayrollFundingAddress'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getPayrollFundingAddress>>, void> = () => {
+
+
+          return  getPayrollFundingAddress(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GetPayrollFundingAddressMutationResult = NonNullable<Awaited<ReturnType<typeof getPayrollFundingAddress>>>
+
+    export type GetPayrollFundingAddressMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Provision (or return) the Celo USDC address that funds the live payroll balance — owner JWT
+ */
+export const useGetPayrollFundingAddress = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getPayrollFundingAddress>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof getPayrollFundingAddress>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getGetPayrollFundingAddressMutationOptions(options));
+    }
+
+export const getGetPayrollDashboardSummaryUrl = () => {
+
+
+
+
+  return `/api/payroll/dashboard/summary`
+}
+
+/**
+ * @summary Rollup analytics for the signed-in owner's employer — owner JWT (the portal), not an API key
+ */
+export const getPayrollDashboardSummary = async ( options?: RequestInit): Promise<PayrollSummary> => {
+
+  return customFetch<PayrollSummary>(getGetPayrollDashboardSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayrollDashboardSummaryQueryKey = () => {
+    return [
+    `/api/payroll/dashboard/summary`
+    ] as const;
+    }
+
+
+export const getGetPayrollDashboardSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getPayrollDashboardSummary>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollDashboardSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayrollDashboardSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayrollDashboardSummary>>> = ({ signal }) => getPayrollDashboardSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayrollDashboardSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPayrollDashboardSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getPayrollDashboardSummary>>>
+export type GetPayrollDashboardSummaryQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Rollup analytics for the signed-in owner's employer — owner JWT (the portal), not an API key
+ */
+
+export function useGetPayrollDashboardSummary<TData = Awaited<ReturnType<typeof getPayrollDashboardSummary>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollDashboardSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPayrollDashboardSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetPayrollDashboardBatchesUrl = (params?: GetPayrollDashboardBatchesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/payroll/dashboard/batches?${stringifiedParams}` : `/api/payroll/dashboard/batches`
+}
+
+/**
+ * @summary List the owner's payroll batches — owner JWT (the portal), not an API key
+ */
+export const getPayrollDashboardBatches = async (params?: GetPayrollDashboardBatchesParams, options?: RequestInit): Promise<BatchListResponse> => {
+
+  return customFetch<BatchListResponse>(getGetPayrollDashboardBatchesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayrollDashboardBatchesQueryKey = (params?: GetPayrollDashboardBatchesParams,) => {
+    return [
+    `/api/payroll/dashboard/batches`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPayrollDashboardBatchesQueryOptions = <TData = Awaited<ReturnType<typeof getPayrollDashboardBatches>>, TError = ErrorType<unknown>>(params?: GetPayrollDashboardBatchesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollDashboardBatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayrollDashboardBatchesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayrollDashboardBatches>>> = ({ signal }) => getPayrollDashboardBatches(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayrollDashboardBatches>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPayrollDashboardBatchesQueryResult = NonNullable<Awaited<ReturnType<typeof getPayrollDashboardBatches>>>
+export type GetPayrollDashboardBatchesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the owner's payroll batches — owner JWT (the portal), not an API key
+ */
+
+export function useGetPayrollDashboardBatches<TData = Awaited<ReturnType<typeof getPayrollDashboardBatches>>, TError = ErrorType<unknown>>(
+ params?: GetPayrollDashboardBatchesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollDashboardBatches>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPayrollDashboardBatchesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetPayrollDashboardBatchUrl = (batchId: string,) => {
+
+
+
+
+  return `/api/payroll/dashboard/batches/${batchId}`
+}
+
+/**
+ * @summary Batch detail with its payments — owner JWT (the portal), not an API key
+ */
+export const getPayrollDashboardBatch = async (batchId: string, options?: RequestInit): Promise<GetPayrollDashboardBatch200> => {
+
+  return customFetch<GetPayrollDashboardBatch200>(getGetPayrollDashboardBatchUrl(batchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayrollDashboardBatchQueryKey = (batchId: string,) => {
+    return [
+    `/api/payroll/dashboard/batches/${batchId}`
+    ] as const;
+    }
+
+
+export const getGetPayrollDashboardBatchQueryOptions = <TData = Awaited<ReturnType<typeof getPayrollDashboardBatch>>, TError = ErrorType<ErrorResponse>>(batchId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollDashboardBatch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayrollDashboardBatchQueryKey(batchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayrollDashboardBatch>>> = ({ signal }) => getPayrollDashboardBatch(batchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(batchId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayrollDashboardBatch>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPayrollDashboardBatchQueryResult = NonNullable<Awaited<ReturnType<typeof getPayrollDashboardBatch>>>
+export type GetPayrollDashboardBatchQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Batch detail with its payments — owner JWT (the portal), not an API key
+ */
+
+export function useGetPayrollDashboardBatch<TData = Awaited<ReturnType<typeof getPayrollDashboardBatch>>, TError = ErrorType<ErrorResponse>>(
+ batchId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollDashboardBatch>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPayrollDashboardBatchQueryOptions(batchId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetPayrollPayoutProvidersUrl = () => {
+
+
+
+
+  return `/api/payroll/payout-providers`
+}
+
+/**
+ * @summary The payout rails that settle worker cash-outs (static catalog + configured state)
+ */
+export const getPayrollPayoutProviders = async ( options?: RequestInit): Promise<GetPayrollPayoutProviders200> => {
+
+  return customFetch<GetPayrollPayoutProviders200>(getGetPayrollPayoutProvidersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayrollPayoutProvidersQueryKey = () => {
+    return [
+    `/api/payroll/payout-providers`
+    ] as const;
+    }
+
+
+export const getGetPayrollPayoutProvidersQueryOptions = <TData = Awaited<ReturnType<typeof getPayrollPayoutProviders>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollPayoutProviders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayrollPayoutProvidersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayrollPayoutProviders>>> = ({ signal }) => getPayrollPayoutProviders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayrollPayoutProviders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPayrollPayoutProvidersQueryResult = NonNullable<Awaited<ReturnType<typeof getPayrollPayoutProviders>>>
+export type GetPayrollPayoutProvidersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The payout rails that settle worker cash-outs (static catalog + configured state)
+ */
+
+export function useGetPayrollPayoutProviders<TData = Awaited<ReturnType<typeof getPayrollPayoutProviders>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollPayoutProviders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPayrollPayoutProvidersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetPayrollPayoutQuoteUrl = (params?: GetPayrollPayoutQuoteParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/payroll/payout-quote?${stringifiedParams}` : `/api/payroll/payout-quote`
+}
+
+/**
+ * @summary Compare configured providers' quotes for a payout corridor
+ */
+export const getPayrollPayoutQuote = async (params?: GetPayrollPayoutQuoteParams, options?: RequestInit): Promise<GetPayrollPayoutQuote200> => {
+
+  return customFetch<GetPayrollPayoutQuote200>(getGetPayrollPayoutQuoteUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayrollPayoutQuoteQueryKey = (params?: GetPayrollPayoutQuoteParams,) => {
+    return [
+    `/api/payroll/payout-quote`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPayrollPayoutQuoteQueryOptions = <TData = Awaited<ReturnType<typeof getPayrollPayoutQuote>>, TError = ErrorType<unknown>>(params?: GetPayrollPayoutQuoteParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollPayoutQuote>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayrollPayoutQuoteQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayrollPayoutQuote>>> = ({ signal }) => getPayrollPayoutQuote(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayrollPayoutQuote>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPayrollPayoutQuoteQueryResult = NonNullable<Awaited<ReturnType<typeof getPayrollPayoutQuote>>>
+export type GetPayrollPayoutQuoteQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Compare configured providers' quotes for a payout corridor
+ */
+
+export function useGetPayrollPayoutQuote<TData = Awaited<ReturnType<typeof getPayrollPayoutQuote>>, TError = ErrorType<unknown>>(
+ params?: GetPayrollPayoutQuoteParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPayrollPayoutQuote>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPayrollPayoutQuoteQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

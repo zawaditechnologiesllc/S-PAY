@@ -2,12 +2,14 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { getFeeSchedule, withdrawalFee } from "../lib/settings";
 import { ensureUserWallet } from "../lib/wallet-providers";
+import { getTokenBalances } from "../lib/celo-chain";
 import {
   selectPayoutProvider, selectDepositProvider, selectVirtualAccountIssuer,
   accountTypeForCurrency,
 } from "../lib/payout-providers";
 import { verifyTransactionPin } from "../lib/pin";
-import { db, usersTable, virtualAccountsTable } from "@workspace/db";
+import { notifyUser } from "../lib/notify";
+import { db, usersTable, virtualAccountsTable, transactionsTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 
 const router = Router();
@@ -188,66 +190,132 @@ router.get("/banking/rates", requireAuth, async (req, res) => {
 });
 
 router.post("/banking/withdraw", requireAuth, async (req, res) => {
-  const { amount, targetCurrency, method, pin } = req.body;
-  if (!amount || amount <= 0) {
-    res.status(400).json({ error: "validation_error", message: "Invalid amount" });
-    return;
-  }
-  if (!method) {
-    res.status(400).json({ error: "validation_error", message: "Withdrawal method is required" });
-    return;
-  }
-  // Route to the best-configured payout rail for this corridor (Noah, Bridge,
-  // Conduit, Yellow Card, Thunes…). None available → honest 503, funds untouched.
-  const payoutProvider = await selectPayoutProvider(String(targetCurrency ?? "USD"), String(method));
-  if (!payoutProvider) {
-    res.status(503).json({
-      error: "not_configured",
-      message: "Local cash-outs are activating soon. Your balance stays safe in your wallet until then.",
+  try {
+    const { amount, targetCurrency, method, pin, recipientPhone, recipientIban, recipientTaxId, recipientAccount } = req.body as {
+      amount?: number; targetCurrency?: string; method?: string; pin?: string;
+      recipientPhone?: string; recipientIban?: string; recipientTaxId?: string; recipientAccount?: string;
+    };
+    if (!amount || amount <= 0) {
+      res.status(400).json({ error: "validation_error", message: "Invalid amount" });
+      return;
+    }
+    if (!method) {
+      res.status(400).json({ error: "validation_error", message: "Withdrawal method is required" });
+      return;
+    }
+    const recipient = (recipientPhone ?? recipientIban ?? recipientTaxId ?? recipientAccount ?? "").trim();
+    if (!recipient) {
+      res.status(400).json({ error: "validation_error", message: "Recipient details are required" });
+      return;
+    }
+    // Route to the best-configured payout rail for this corridor (Noah, Bridge,
+    // Conduit, Yellow Card, Thunes…). None available → honest 503, funds untouched.
+    const payoutProvider = await selectPayoutProvider(String(targetCurrency ?? "USD"), String(method));
+    if (!payoutProvider) {
+      res.status(503).json({
+        error: "not_configured",
+        message: "Local cash-outs are activating soon. Your balance stays safe in your wallet until then.",
+      });
+      return;
+    }
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "not_found", message: "User not found" });
+      return;
+    }
+    // Same second factor as transfers: cashing out requires the transaction PIN.
+    const pinCheck = await verifyTransactionPin(user, pin);
+    if (!pinCheck.ok) {
+      const status = pinCheck.reason === "not_set" ? 428 : pinCheck.reason === "locked" ? 423 : 401;
+      res.status(status).json({ error: `pin_${pinCheck.reason}`, message: pinCheck.message, attemptsLeft: pinCheck.attemptsLeft });
+      return;
+    }
+
+    // Withdrawing is a money action: JIT-provision the wallet (the payout debits
+    // USDC from it — see task D2), so it must exist before we quote.
+    const wallet = await ensureUserWallet(user);
+    if (!wallet) {
+      res.status(503).json({
+        error: "not_configured",
+        message: "Cash-outs are activating soon. Your balance stays safe until then.",
+      });
+      return;
+    }
+
+    const rate = lookupRate(targetCurrency);
+    // User-facing fee from the admin-set schedule (provider cost + S-PAY margin).
+    const fee = withdrawalFee(amount, await getFeeSchedule());
+    if (amount <= fee) {
+      res.status(400).json({ error: "validation_error", message: `Amount must be above the ${fee.toFixed(2)} USDC fee.` });
+      return;
+    }
+
+    // The cash-out debits the user's on-chain balance — verify it covers the amount.
+    const balances = await getTokenBalances(wallet.address);
+    if ((balances?.usdc ?? 0) < amount) {
+      res.status(400).json({ error: "insufficient_balance", message: `Insufficient USDC balance (${(balances?.usdc ?? 0).toFixed(2)} available).` });
+      return;
+    }
+
+    // Execute on the routed rail. A provider whose keys aren't live throws its
+    // NotConfiguredError → the same honest 503; no record is written and no
+    // funds move. When the rail IS live, createPayout returns the provider's
+    // payout id and settlement instructions handle the on-chain debit.
+    const reference = `wdw-${crypto.randomUUID()}`;
+    let payout;
+    try {
+      payout = await payoutProvider.createPayout({
+        amountUsd: amount - fee,
+        targetCurrency: String(targetCurrency ?? "USD"),
+        method: String(method),
+        destination: {
+          ...(recipientPhone ? { phoneNumber: recipientPhone.trim() } : {}),
+          ...(recipientIban ? { iban: recipientIban.trim() } : {}),
+          ...(recipientTaxId ? { taxId: recipientTaxId.trim() } : {}),
+          ...(recipientAccount ? { accountNumber: recipientAccount.trim() } : {}),
+        },
+        reference,
+      });
+    } catch {
+      req.log.info({ provider: payoutProvider.key, targetCurrency, method }, "Withdrawal requested — provider not configured");
+      res.status(503).json({
+        error: "not_configured",
+        message: "Local cash-outs are activating soon. Your balance stays safe in your wallet until then.",
+      });
+      return;
+    }
+
+    // The chosen rail is an internal routing decision — log it for reconciliation,
+    // but never surface it to the user (they just get the best rate).
+    req.log.info({ provider: payoutProvider.key, targetCurrency, method, payoutId: payout.payoutId }, "Withdrawal routed");
+
+    const localAmount = Math.max(amount - fee, 0) * rate;
+    const [tx] = await db.insert(transactionsTable).values({
+      userId: user.id,
+      type: "withdraw",
+      amount: String(amount),
+      currency: "USDC",
+      description: `Withdrawal to ${String(method)} — ${localAmount.toFixed(2)} ${String(targetCurrency ?? "USD")}`,
+      counterparty: recipient,
+      status: payout.status === "completed" ? "completed" : payout.status === "failed" ? "failed" : "pending",
+    }).returning();
+
+    notifyUser(user.id, "Withdrawal started 🏦", `${amount.toFixed(2)} USDC is on its way to ${recipient}. ${METHOD_ARRIVAL[String(method)] ?? "Arriving in 1–2 business days"}.`);
+
+    res.json({
+      withdrawalId: payout.payoutId,
+      transactionId: tx.id,
+      status: payout.status,
+      estimatedArrival: METHOD_ARRIVAL[String(method)] ?? "1–2 business days",
+      localAmount,
+      localCurrency: targetCurrency ?? "USD",
+      fee,
     });
-    return;
+  } catch (err) {
+    req.log.error({ err }, "Withdrawal error");
+    res.status(500).json({ error: "internal_error", message: "Could not start the withdrawal. Your funds were not moved." });
   }
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
-  if (!user) {
-    res.status(404).json({ error: "not_found", message: "User not found" });
-    return;
-  }
-  // Same second factor as transfers: cashing out requires the transaction PIN.
-  const pinCheck = await verifyTransactionPin(user, pin);
-  if (!pinCheck.ok) {
-    const status = pinCheck.reason === "not_set" ? 428 : pinCheck.reason === "locked" ? 423 : 401;
-    res.status(status).json({ error: `pin_${pinCheck.reason}`, message: pinCheck.message, attemptsLeft: pinCheck.attemptsLeft });
-    return;
-  }
-
-  // Withdrawing is a money action: JIT-provision the wallet (the payout debits
-  // USDC from it — see task D2), so it must exist before we quote.
-  const wallet = await ensureUserWallet(user);
-  if (!wallet) {
-    res.status(503).json({
-      error: "not_configured",
-      message: "Cash-outs are activating soon. Your balance stays safe until then.",
-    });
-    return;
-  }
-
-  const rate = lookupRate(targetCurrency);
-  // User-facing fee from the admin-set schedule (provider cost + S-PAY margin).
-  const fee = withdrawalFee(amount, await getFeeSchedule());
-
-  // The chosen rail is an internal routing decision — log it for reconciliation,
-  // but never surface it to the user (they just get the best rate).
-  req.log.info({ provider: payoutProvider.key, targetCurrency, method }, "Withdrawal routed");
-
-  res.json({
-    withdrawalId: `wdw-${crypto.randomUUID()}`,
-    status: "pending",
-    estimatedArrival: METHOD_ARRIVAL[String(method)] ?? "1–2 business days",
-    localAmount: Math.max(amount - fee, 0) * rate,
-    localCurrency: targetCurrency ?? "USD",
-    fee,
-  });
 });
 
 // Mobile-money / local top-up (on-ramp). Provider-agnostic: routed to the best

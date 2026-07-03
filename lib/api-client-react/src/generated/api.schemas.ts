@@ -865,6 +865,8 @@ export interface WithdrawRequest {
 
 export interface WithdrawResponse {
   withdrawalId: string;
+  /** The wallet-history transaction recording this cash-out */
+  transactionId?: string;
   status: string;
   estimatedArrival?: string;
   localAmount: number;
@@ -1498,6 +1500,94 @@ export interface PlatformStatus {
   message?: string;
 }
 
+export type KycStatusResponseKycStatus = typeof KycStatusResponseKycStatus[keyof typeof KycStatusResponseKycStatus];
+
+
+export const KycStatusResponseKycStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export type KycStatusResponseAccountType = typeof KycStatusResponseAccountType[keyof typeof KycStatusResponseAccountType];
+
+
+export const KycStatusResponseAccountType = {
+  personal: 'personal',
+  business: 'business',
+} as const;
+
+export type KycStatusResponseVerificationStatus = typeof KycStatusResponseVerificationStatus[keyof typeof KycStatusResponseVerificationStatus];
+
+
+export const KycStatusResponseVerificationStatus = {
+  started: 'started',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+/**
+ * The latest provider verification attempt, if any
+ */
+export type KycStatusResponseVerification = {
+  id: string;
+  /** Money-rail that ran the verification (noah, bridge, conduit, yellowcard) */
+  provider: string;
+  status: KycStatusResponseVerificationStatus;
+  /** Hosted-flow URL to resume an in-flight verification */
+  verificationUrl?: string | null;
+  startedAt: string;
+  decidedAt?: string | null;
+} | null;
+
+export interface KycStatusResponse {
+  kycStatus: KycStatusResponseKycStatus;
+  accountType: KycStatusResponseAccountType;
+  /** The latest provider verification attempt, if any */
+  verification?: KycStatusResponseVerification;
+}
+
+export type AdminKycVerificationStatus = typeof AdminKycVerificationStatus[keyof typeof AdminKycVerificationStatus];
+
+
+export const AdminKycVerificationStatus = {
+  started: 'started',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface AdminKycVerification {
+  id: string;
+  userId: string;
+  provider: string;
+  externalId?: string | null;
+  status: AdminKycVerificationStatus;
+  accountType?: string | null;
+  decidedAt?: string | null;
+  createdAt: string;
+  userEmail?: string | null;
+  userFullName?: string | null;
+  userKycStatus?: string | null;
+}
+
+export interface AdminKycVerificationsResponse {
+  verifications: AdminKycVerification[];
+  total: number;
+}
+
+export interface AdminPayrollStats {
+  totalEmployers: number;
+  verifiedEmployers: number;
+  totalBatches: number;
+  batches30d: number;
+  totalDisbursed: number;
+  totalFees: number;
+  workersPaid30d: number;
+  completedPayments: number;
+  failedPayments: number;
+  workersOnboarded: number;
+}
+
 /**
  * Signup counts grouped by acquisition source (jobs, landing, google, direct...)
  */
@@ -1726,6 +1816,30 @@ export type TestPayrollWebhook200 = {
   queued?: boolean;
   deliveryId?: string | null;
 };
+
+export type GetPayrollFundingAddress200 = {
+  fundingAddress: string;
+  network: string;
+  currency: string;
+  instructions?: string;
+};
+
+export type GetPayrollDashboardBatchesParams = {
+limit?: number;
+offset?: number;
+};
+
+export type GetPayrollDashboardBatch200 = { [key: string]: unknown };
+
+export type GetPayrollPayoutProviders200 = { [key: string]: unknown };
+
+export type GetPayrollPayoutQuoteParams = {
+targetCurrency?: string;
+method?: string;
+amount?: number;
+};
+
+export type GetPayrollPayoutQuote200 = { [key: string]: unknown };
 
 export type GetSeoRedditTopicsParams = {
 timeframe?: GetSeoRedditTopicsTimeframe;

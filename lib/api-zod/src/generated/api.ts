@@ -301,9 +301,26 @@ export const ResetPasswordResponse = zod.object({
 
 
 /**
- * @summary Begin identity verification (Noah) — returns the hosted verification URL once the provider is live
+ * @summary Begin identity verification via the admin-designated provider — returns the hosted verification URL once the provider is live
  */
 export const StartKycResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Current verification state — the account gate plus the latest provider verification attempt (with a resume URL while in flight)
+ */
+export const GetKycStatusResponse = zod.object({
+  "kycStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "accountType": zod.enum(['personal', 'business']),
+  "verification": zod.object({
+  "id": zod.string(),
+  "provider": zod.string().describe('Money-rail that ran the verification (noah, bridge, conduit, yellowcard)'),
+  "status": zod.enum(['started', 'approved', 'rejected']),
+  "verificationUrl": zod.string().nullish().describe('Hosted-flow URL to resume an in-flight verification'),
+  "startedAt": zod.string(),
+  "decidedAt": zod.string().nullish()
+}).nullish().describe('The latest provider verification attempt, if any')
+})
 
 
 /**
@@ -498,7 +515,7 @@ export const GetIncomingPaymentsResponse = zod.object({
 
 
 /**
- * @summary Initiate a withdrawal via Noah payout
+ * @summary Initiate a withdrawal — routed to the best-rate payout rail for the corridor; records a wallet transaction
  */
 export const initiateWithdrawBodySourceCurrencyDefault = `USDC`;
 
@@ -516,6 +533,7 @@ export const InitiateWithdrawBody = zod.object({
 
 export const InitiateWithdrawResponse = zod.object({
   "withdrawalId": zod.string(),
+  "transactionId": zod.string().optional().describe('The wallet-history transaction recording this cash-out'),
   "status": zod.string(),
   "estimatedArrival": zod.string().optional(),
   "localAmount": zod.number(),
@@ -777,6 +795,44 @@ export const GetAdminUsersResponse = zod.object({
   "createdAt": zod.string().optional()
 })),
   "total": zod.number()
+})
+
+
+/**
+ * @summary Provider-run KYC/KYB verification attempts (audit trail)
+ */
+export const GetAdminKycVerificationsResponse = zod.object({
+  "verifications": zod.array(zod.object({
+  "id": zod.string(),
+  "userId": zod.string(),
+  "provider": zod.string(),
+  "externalId": zod.string().nullish(),
+  "status": zod.enum(['started', 'approved', 'rejected']),
+  "accountType": zod.string().nullish(),
+  "decidedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "userEmail": zod.string().nullish(),
+  "userFullName": zod.string().nullish(),
+  "userKycStatus": zod.string().nullish()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Platform-wide payroll metrics (employers, batches, workers paid)
+ */
+export const GetAdminPayrollStatsResponse = zod.object({
+  "totalEmployers": zod.number(),
+  "verifiedEmployers": zod.number(),
+  "totalBatches": zod.number(),
+  "batches30d": zod.number(),
+  "totalDisbursed": zod.number(),
+  "totalFees": zod.number(),
+  "workersPaid30d": zod.number(),
+  "completedPayments": zod.number(),
+  "failedPayments": zod.number(),
+  "workersOnboarded": zod.number()
 })
 
 
@@ -1628,6 +1684,93 @@ export const ListPayrollWebhookDeliveriesResponse = zod.object({
   "createdAt": zod.string()
 }))
 })
+
+
+/**
+ * @summary Provision (or return) the Celo USDC address that funds the live payroll balance — owner JWT
+ */
+export const GetPayrollFundingAddressResponse = zod.object({
+  "fundingAddress": zod.string(),
+  "network": zod.string(),
+  "currency": zod.string(),
+  "instructions": zod.string().optional()
+})
+
+
+/**
+ * @summary Rollup analytics for the signed-in owner's employer — owner JWT (the portal), not an API key
+ */
+export const GetPayrollDashboardSummaryResponse = zod.object({
+  "balanceUsdc": zod.number().optional(),
+  "totalBatches": zod.number().optional(),
+  "totalDisbursed": zod.number().optional(),
+  "totalFees": zod.number().optional(),
+  "totalPayments": zod.number().optional(),
+  "completedPayments": zod.number().optional(),
+  "failedPayments": zod.number().optional(),
+  "workersOnboarded": zod.number().optional()
+})
+
+
+/**
+ * @summary List the owner's payroll batches — owner JWT (the portal), not an API key
+ */
+export const GetPayrollDashboardBatchesQueryParams = zod.object({
+  "limit": zod.coerce.number().optional(),
+  "offset": zod.coerce.number().optional()
+})
+
+export const GetPayrollDashboardBatchesResponse = zod.object({
+  "batches": zod.array(zod.object({
+  "id": zod.string(),
+  "reference": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "sandbox": zod.boolean().optional(),
+  "currency": zod.string(),
+  "status": zod.enum(['draft', 'processing', 'completed', 'partially_completed', 'failed', 'cancelled']),
+  "totalAmount": zod.number(),
+  "feeAmount": zod.number(),
+  "totalCost": zod.number().optional(),
+  "paymentCount": zod.number(),
+  "completedCount": zod.number().optional(),
+  "failedCount": zod.number().optional(),
+  "webhookUrl": zod.string().nullish(),
+  "submittedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number(),
+  "limit": zod.number().optional(),
+  "offset": zod.number().optional()
+})
+
+
+/**
+ * @summary Batch detail with its payments — owner JWT (the portal), not an API key
+ */
+export const GetPayrollDashboardBatchParams = zod.object({
+  "batchId": zod.coerce.string()
+})
+
+export const GetPayrollDashboardBatchResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary The payout rails that settle worker cash-outs (static catalog + configured state)
+ */
+export const GetPayrollPayoutProvidersResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
+ * @summary Compare configured providers' quotes for a payout corridor
+ */
+export const GetPayrollPayoutQuoteQueryParams = zod.object({
+  "targetCurrency": zod.coerce.string().optional(),
+  "method": zod.coerce.string().optional(),
+  "amount": zod.coerce.number().optional()
+})
+
+export const GetPayrollPayoutQuoteResponse = zod.record(zod.string(), zod.unknown())
 
 
 /**
