@@ -1,9 +1,12 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { isCardProgramEnabled, getFeeSchedule } from "../lib/settings";
-import { isStripeConfigured, issueVirtualCard, fetchCardSummary } from "../lib/stripe-issuing";
-import { db, usersTable, cardWaitlistTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import {
+  isStripeConfigured, issueVirtualCard, fetchCardSummary,
+  setCardStatus, setCardSpendingLimit,
+} from "../lib/stripe-issuing";
+import { db, usersTable, cardWaitlistTable, transactionsTable } from "@workspace/db";
+import { eq, and, desc, count, like } from "drizzle-orm";
 
 const router = Router();
 
@@ -124,10 +127,77 @@ router.post("/card/issue", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/card/transactions", requireAuth, (req, res) => {
-  // Real card transactions arrive via Stripe Issuing webhooks once the
-  // program is live — until then every user has a clean, honest history.
-  res.json({ transactions: [], total: 0 });
+// Freeze / unfreeze — instantly declines (or re-allows) every authorization.
+router.post("/card/freeze", requireAuth, async (req, res) => {
+  try {
+    const frozen = Boolean((req.body as { frozen?: unknown })?.frozen);
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+    if (!user?.stripeCardId || !isStripeConfigured()) {
+      res.status(404).json({ error: "no_card", message: "You don't have a card yet." });
+      return;
+    }
+    await setCardStatus(user.stripeCardId, frozen ? "inactive" : "active");
+    res.json({ frozen, message: frozen ? "Card frozen — every payment attempt is declined until you unfreeze it." : "Card unfrozen — payments work again." });
+  } catch (err) {
+    req.log.error({ err }, "Card freeze error");
+    res.status(500).json({ error: "internal_error", message: "Could not update the card. Try again." });
+  }
+});
+
+// Monthly spending limit (0 clears it). Enforced by Stripe on every authorization.
+router.post("/card/limits", requireAuth, async (req, res) => {
+  try {
+    const monthlyLimit = Number((req.body as { monthlyLimit?: unknown })?.monthlyLimit);
+    if (!Number.isFinite(monthlyLimit) || monthlyLimit < 0 || monthlyLimit > 1_000_000) {
+      res.status(400).json({ error: "validation_error", message: "monthlyLimit must be a number between 0 and 1,000,000 (0 removes the limit)." });
+      return;
+    }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+    if (!user?.stripeCardId || !isStripeConfigured()) {
+      res.status(404).json({ error: "no_card", message: "You don't have a card yet." });
+      return;
+    }
+    await setCardSpendingLimit(user.stripeCardId, monthlyLimit);
+    res.json({
+      monthlyLimit,
+      message: monthlyLimit > 0 ? `Monthly spending limit set to $${monthlyLimit.toFixed(2)}.` : "Monthly spending limit removed.",
+    });
+  } catch (err) {
+    req.log.error({ err }, "Card limit error");
+    res.status(500).json({ error: "internal_error", message: "Could not update the limit. Try again." });
+  }
+});
+
+router.get("/card/transactions", requireAuth, async (req, res) => {
+  try {
+    // Card purchases are recorded as "payment" transactions by the Stripe
+    // real-time authorization webhook (description "Card purchase — <merchant>").
+    const limit = Math.min(Number(req.query.limit) || 20, 100);
+    const where = and(
+      eq(transactionsTable.userId, req.user!.userId),
+      eq(transactionsTable.type, "payment"),
+      like(transactionsTable.description, "Card purchase%"),
+    );
+    const rows = await db.select().from(transactionsTable).where(where)
+      .orderBy(desc(transactionsTable.createdAt)).limit(limit);
+    const [{ total }] = await db.select({ total: count() }).from(transactionsTable).where(where);
+    res.json({
+      transactions: rows.map((t) => ({
+        id: t.id,
+        merchantName: t.counterparty ?? t.description.replace(/^Card purchase — /, ""),
+        merchantLogo: null,
+        category: "Purchase",
+        amount: parseFloat(String(t.amount)),
+        currency: t.currency,
+        status: t.status,
+        createdAt: t.createdAt.toISOString(),
+      })),
+      total,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Card transactions error");
+    res.status(500).json({ error: "internal_error", message: "Failed to load card activity" });
+  }
 });
 
 router.get("/card/spending-summary", requireAuth, (req, res) => {

@@ -2,18 +2,34 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import axios from "axios";
 import { createRemoteJWKSet, jwtVerify } from "jose";
-import { signToken } from "../lib/auth";
+import { signToken, hashLoginCode } from "../lib/auth";
 import { requireAuth } from "../middlewares/auth";
 import { generateToken, hashToken, sendVerificationEmail, sendPasswordResetEmail, generateLoginCode, sendLoginCodeEmail } from "../lib/email";
-import { isValidPinFormat, hashPin } from "../lib/pin";
+import { isValidPinFormat, hashPin, verifyTransactionPin } from "../lib/pin";
+import { getTokenBalances } from "../lib/celo-chain";
 import { db, usersTable } from "@workspace/db";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, sql } from "drizzle-orm";
 
 /** Sanitized acquisition channel, e.g. "jobs", "jobs:rv-123", "landing", "google", "mobile" */
 function cleanSignupSource(raw: unknown): string | null {
   if (typeof raw !== "string" || !raw.trim()) return null;
   return raw.trim().slice(0, 64).replace(/[^\w:\-./]/g, "");
 }
+
+/**
+ * One canonical form for every email: trimmed + lowercased. Applied on write
+ * (register, OAuth account creation) and on every lookup (login, MFA verify,
+ * password reset, OAuth linking) so an address typed with different casing
+ * always resolves to the same account — including P2P send-by-email, which
+ * already lowercases.
+ */
+function normalizeEmail(raw: unknown): string {
+  return typeof raw === "string" ? raw.trim().toLowerCase() : "";
+}
+
+/** Wrong-guess ceiling on the emailed 6-digit sign-in code: after this many
+ *  misses the code is invalidated and the user must sign in again. */
+const MAX_LOGIN_CODE_ATTEMPTS = 5;
 
 const router = Router();
 
@@ -51,10 +67,15 @@ function userResponse(u: typeof usersTable.$inferSelect) {
 
 router.post("/auth/register", async (req, res) => {
   try {
-    const { email, password, fullName, phoneNumber } = req.body as Record<string, string>;
+    const { password, fullName, phoneNumber } = req.body as Record<string, string>;
+    const email = normalizeEmail((req.body as Record<string, unknown>).email);
 
     if (!email || !password || !fullName) {
       res.status(400).json({ error: "validation_error", message: "email, password, and fullName are required" });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      res.status(400).json({ error: "validation_error", message: "Enter a valid email address" });
       return;
     }
     if (password.length < 8) {
@@ -112,14 +133,21 @@ router.post("/auth/register", async (req, res) => {
 
 router.post("/auth/login", async (req, res) => {
   try {
-    const { email, password } = req.body as Record<string, string>;
+    const { password } = req.body as Record<string, string>;
+    const email = normalizeEmail((req.body as Record<string, unknown>).email);
 
     if (!email || !password) {
       res.status(400).json({ error: "validation_error", message: "email and password are required" });
       return;
     }
 
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    // Normalized lookup with a raw-email fallback for pre-normalization rows
+    // the migration couldn't safely lowercase (case-colliding duplicates).
+    let [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    if (!user) {
+      const raw = typeof (req.body as Record<string, unknown>).email === "string" ? ((req.body as Record<string, string>).email).trim() : "";
+      if (raw && raw !== email) [user] = await db.select().from(usersTable).where(eq(usersTable.email, raw)).limit(1);
+    }
     if (!user) {
       res.status(401).json({ error: "invalid_credentials", message: "Invalid email or password" });
       return;
@@ -138,12 +166,15 @@ router.post("/auth/login", async (req, res) => {
 
     // Email MFA: a correct password is only the FIRST factor. Issue a 6-digit
     // code, email it, and withhold the session token until the code is verified
-    // at /auth/verify-login-code. The login JWT is never returned here.
+    // at /auth/verify-login-code. The login JWT is never returned here. Only
+    // sha256(code) is stored — a DB leak can't be replayed into sessions — and
+    // the attempt counter resets with each fresh code.
     const code = generateLoginCode();
     await db.update(usersTable)
       .set({
-        loginVerificationCode: code,
+        loginVerificationCode: hashLoginCode(code),
         loginVerificationExpires: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        loginVerificationAttempts: 0,
         updatedAt: new Date(),
       })
       .where(eq(usersTable.id, user.id));
@@ -160,7 +191,8 @@ router.post("/auth/login", async (req, res) => {
 
 router.post("/auth/verify-login-code", async (req, res) => {
   try {
-    const { email, code } = req.body as { email?: string; code?: string };
+    const { code } = req.body as { email?: string; code?: string };
+    const email = normalizeEmail((req.body as Record<string, unknown>).email);
     if (!email || !code) {
       res.status(400).json({ error: "validation_error", message: "email and code are required" });
       return;
@@ -170,9 +202,13 @@ router.post("/auth/verify-login-code", async (req, res) => {
       return;
     }
 
-    // Exact-match lookup, identical to /auth/login, so we always find the same
-    // row the code was stored on (emails are persisted as entered).
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.trim())).limit(1);
+    // Same normalized lookup as /auth/login (with the same legacy fallback), so
+    // we always find the row the code was stored on.
+    let [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    if (!user) {
+      const raw = typeof (req.body as Record<string, unknown>).email === "string" ? ((req.body as Record<string, string>).email).trim() : "";
+      if (raw && raw !== email) [user] = await db.select().from(usersTable).where(eq(usersTable.email, raw)).limit(1);
+    }
     // Same generic answer whether the email is unknown or the code is wrong —
     // never reveal which accounts exist.
     const reject = () =>
@@ -186,14 +222,25 @@ router.post("/auth/verify-login-code", async (req, res) => {
       reject();
       return;
     }
-    if (user.loginVerificationCode !== code) {
+    if (user.loginVerificationCode !== hashLoginCode(code)) {
+      // Count the miss atomically; past the ceiling the code is dead and the
+      // user must sign in again — a 6-digit code can't survive brute force.
+      const [row] = await db.update(usersTable)
+        .set({ loginVerificationAttempts: sql`${usersTable.loginVerificationAttempts} + 1` })
+        .where(eq(usersTable.id, user.id))
+        .returning({ attempts: usersTable.loginVerificationAttempts });
+      if ((row?.attempts ?? MAX_LOGIN_CODE_ATTEMPTS) >= MAX_LOGIN_CODE_ATTEMPTS) {
+        await db.update(usersTable)
+          .set({ loginVerificationCode: null, loginVerificationExpires: null, loginVerificationAttempts: 0, updatedAt: new Date() })
+          .where(eq(usersTable.id, user.id));
+      }
       reject();
       return;
     }
 
     // Single-use: clear the code so it can't be replayed.
     await db.update(usersTable)
-      .set({ loginVerificationCode: null, loginVerificationExpires: null, updatedAt: new Date() })
+      .set({ loginVerificationCode: null, loginVerificationExpires: null, loginVerificationAttempts: 0, updatedAt: new Date() })
       .where(eq(usersTable.id, user.id));
 
     const token = signToken({ userId: user.id, email: user.email });
@@ -311,9 +358,48 @@ router.patch("/auth/me", requireAuth, async (req, res) => {
 router.delete("/auth/me", requireAuth, async (req, res) => {
   try {
     const userId = req.user!.userId;
-    const { transactionsTable, cardWaitlistTable } = await import("@workspace/db");
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "not_found", message: "User not found" });
+      return;
+    }
+
+    // A stolen 30-day session must not be enough to erase an account: when a
+    // transaction PIN exists, deletion requires it (same second factor as
+    // moving money).
+    if (user.transactionPinHash) {
+      const pinCheck = await verifyTransactionPin(user, (req.body as { pin?: unknown })?.pin);
+      if (!pinCheck.ok) {
+        const status = pinCheck.reason === "locked" ? 423 : 401;
+        res.status(status).json({ error: `pin_${pinCheck.reason}`, message: `Deleting your account requires your transaction PIN. ${pinCheck.message}`, attemptsLeft: pinCheck.attemptsLeft });
+        return;
+      }
+    }
+
+    // Deleting the row severs the only link to the provider-held wallet key —
+    // any USDC/USDT still in the wallet would be unrecoverable. Refuse until
+    // the balance is withdrawn (dust under $1 is allowed through).
+    if (user.celoWalletAddress) {
+      const balances = await getTokenBalances(user.celoWalletAddress);
+      if (balances === null) {
+        res.status(503).json({ error: "balance_unavailable", message: "We couldn't confirm your balance is empty. Try again in a moment — deleting now could strand funds." });
+        return;
+      }
+      if (balances.total >= 1) {
+        res.status(409).json({
+          error: "balance_not_empty",
+          message: `Your wallet still holds ${balances.total.toFixed(2)} USD in stablecoins. Withdraw or send it first — deleting the account would make it unrecoverable.`,
+        });
+        return;
+      }
+    }
+
+    const { transactionsTable, cardWaitlistTable, notificationsTable, virtualAccountsTable, kycVerificationsTable } = await import("@workspace/db");
     await db.delete(transactionsTable).where(eq(transactionsTable.userId, userId));
     await db.delete(cardWaitlistTable).where(eq(cardWaitlistTable.userId, userId));
+    await db.delete(notificationsTable).where(eq(notificationsTable.userId, userId));
+    await db.delete(virtualAccountsTable).where(eq(virtualAccountsTable.userId, userId));
+    await db.delete(kycVerificationsTable).where(eq(kycVerificationsTable.userId, userId));
     await db.delete(usersTable).where(eq(usersTable.id, userId));
     req.log.info({ userId }, "Account deleted at user request");
     res.json({ message: "Your account and all associated data have been permanently deleted." });
@@ -355,7 +441,7 @@ router.post("/auth/oauth/google", async (req, res) => {
       audience: GOOGLE_AUDIENCES,
     });
     const googleId = String(payload.sub);
-    const email = typeof payload.email === "string" ? payload.email : null;
+    const email = typeof payload.email === "string" ? normalizeEmail(payload.email) : null;
     const name = typeof payload.name === "string" ? payload.name : "S-PAY User";
     const picture = typeof payload.picture === "string" ? payload.picture : null;
     if (!email) {
@@ -406,7 +492,7 @@ router.post("/auth/oauth/apple", async (req, res) => {
       audience: APPLE_BUNDLE_ID,
     });
     const appleId = String(payload.sub);
-    const email = typeof payload.email === "string" ? payload.email : null;
+    const email = typeof payload.email === "string" ? normalizeEmail(payload.email) : null;
 
     let [user] = await db.select().from(usersTable).where(eq(usersTable.appleId, appleId)).limit(1);
     if (!user && email) {
@@ -495,7 +581,8 @@ router.get("/auth/google/callback", async (req, res) => {
       headers: { Authorization: `Bearer ${tokenRes.data.access_token}` },
     });
 
-    const { sub: googleId, email, name, picture } = infoRes.data;
+    const { sub: googleId, name, picture } = infoRes.data;
+    const email = normalizeEmail(infoRes.data.email);
 
     // Find existing user by googleId or email; create if new
     let [user] = await db.select().from(usersTable).where(eq(usersTable.googleId, googleId)).limit(1);
@@ -597,7 +684,7 @@ router.post("/auth/forgot-password", async (req, res) => {
     // Always answer the same way — never reveal whether an account exists
     const generic = { message: "If an account exists for that email, a reset link is on its way." };
 
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.trim())).limit(1);
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, normalizeEmail(email))).limit(1);
     if (user?.passwordHash) {
       const { token, hash } = generateToken();
       await db.update(usersTable)

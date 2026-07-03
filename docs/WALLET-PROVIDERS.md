@@ -291,6 +291,36 @@ to Celo through viem.
 
 ---
 
+## 4b. Gas on Celo — who pays for the transaction itself
+
+Every on-chain send costs gas. Two ways to cover it:
+
+1. **Native CELO (default).** Each sending wallet needs a little CELO
+   (fractions of a cent per transfer; ~0.1 CELO covers hundreds of sends).
+   Without it, sends fail with "insufficient funds for gas". Fine for testing,
+   but it means an ops process that keeps user wallets topped up.
+
+2. **Fee abstraction — pay gas in USDC (CIP-64, the MiniPay model).** Set
+   `CELO_FEE_CURRENCY` to the fee-currency **adapter** address; sends then pay
+   gas from the same USDC being transferred, so wallets never need CELO at all.
+   Celo mainnet USDC adapter: `0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B`
+   (this is the adapter, not the USDC token address — the adapter handles the
+   6→18 decimal scaling).
+
+   Coverage: applies to the **viem-signed providers** (Coinbase CDP, Turnkey,
+   Openfort, Dynamic). **Privy** and **thirdweb** build and broadcast
+   transactions themselves, so their wallets still need native CELO gas (or the
+   provider's own gas sponsorship) — verify with a small test send before
+   making either the active provider with fee abstraction assumed.
+
+   Two practical notes: the sender needs a few cents of USDC headroom above the
+   transfer amount for the gas itself, and "send Max" leaves that headroom
+   automatically only if your UI subtracts it (S-PAY's Max button uses the full
+   balance — with fee abstraction on, a full-balance send can be rejected by
+   the node; the user retries with slightly less).
+
+---
+
 ## 5. The admin switches — exact semantics
 
 `/admin/settings` → **Wallet Infrastructure (Celo · WaaS)**. Stored in the

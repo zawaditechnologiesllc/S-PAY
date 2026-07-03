@@ -4,13 +4,16 @@ import {
   useGetCardTransactions, getGetCardTransactionsQueryKey,
   useGetSpendingSummary, getGetSpendingSummaryQueryKey,
   useJoinCardWaitlist, useIssueCard, useGetMe, getGetMeQueryKey,
+  useSetCardFrozen, useSetCardLimit,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CreditCard, ShoppingCart, ShieldCheck, Zap, Globe, CheckCircle, Sparkles } from "lucide-react";
+import { CreditCard, ShoppingCart, ShieldCheck, Zap, Globe, CheckCircle, Sparkles, Snowflake, Gauge } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { useState } from "react";
 
 const CARD_PERKS = [
   { icon: <Zap size={15} />, text: "Pay subscriptions, shop online — anywhere Visa is accepted" },
@@ -178,6 +181,9 @@ export default function CardPage() {
           </Card>
         )}
 
+        {/* ── Card controls: freeze + monthly limit ── */}
+        {hasCard && card && <CardControls frozen={status === "locked"} onChanged={refetchCard} />}
+
         {/* ── Spending & activity (only meaningful once a card exists) ── */}
         {hasCard && (
           <>
@@ -281,5 +287,88 @@ export default function CardPage() {
 
       </div>
     </Layout>
+  );
+}
+
+// Freeze/unfreeze + monthly spending limit — enforced by the issuer on every
+// authorization, alongside the real-time balance check the server runs.
+function CardControls({ frozen, onChanged }: { frozen: boolean; onChanged: () => void }) {
+  const { toast } = useToast();
+  const setFrozen = useSetCardFrozen();
+  const setLimit = useSetCardLimit();
+  const [limit, setLimitValue] = useState("");
+
+  const toggleFreeze = () => {
+    setFrozen.mutate({ data: { frozen: !frozen } }, {
+      onSuccess: (r) => { toast({ title: !frozen ? "Card frozen ❄️" : "Card unfrozen", description: (r as { message?: string })?.message }); onChanged(); },
+      onError: (e) => toast({ title: "Could not update the card", description: (e as { data?: { message?: string } })?.data?.message ?? "Try again.", variant: "destructive" }),
+    });
+  };
+
+  const saveLimit = () => {
+    const value = parseFloat(limit);
+    if (!Number.isFinite(value) || value < 0) {
+      toast({ title: "Enter a valid limit", description: "A monthly USD amount — 0 removes the limit.", variant: "destructive" });
+      return;
+    }
+    setLimit.mutate({ data: { monthlyLimit: value } }, {
+      onSuccess: (r) => { toast({ title: "Spending limit saved", description: (r as { message?: string })?.message }); setLimitValue(""); },
+      onError: (e) => toast({ title: "Could not save the limit", description: (e as { data?: { message?: string } })?.data?.message ?? "Try again.", variant: "destructive" }),
+    });
+  };
+
+  return (
+    <Card className="border-0 shadow-md rounded-2xl overflow-hidden bg-white dark:bg-gray-900">
+      <CardHeader className="bg-gray-50 dark:bg-gray-800/60 border-b pb-4">
+        <CardTitle className="text-md flex items-center gap-2 text-gray-800 dark:text-gray-200">
+          <ShieldCheck size={18} className="text-primary" /> Card Controls
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${frozen ? "bg-blue-100 text-blue-600" : "bg-gray-100 dark:bg-gray-800 text-gray-500"}`}>
+              <Snowflake size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{frozen ? "Card is frozen" : "Freeze card"}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{frozen ? "Every payment is declined until you unfreeze it." : "Instantly decline every payment attempt."}</p>
+            </div>
+          </div>
+          <Button
+            variant={frozen ? "default" : "outline"}
+            size="sm"
+            className="rounded-full"
+            disabled={setFrozen.isPending}
+            onClick={toggleFreeze}
+          >
+            {setFrozen.isPending ? "Saving…" : frozen ? "Unfreeze" : "Freeze"}
+          </Button>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center justify-center">
+              <Gauge size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Monthly limit</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">USD cap per month · 0 removes it</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number" min="0" step="1" placeholder="500"
+              className="w-24 h-9 text-right"
+              value={limit}
+              onChange={(e) => setLimitValue(e.target.value)}
+            />
+            <Button size="sm" variant="outline" className="rounded-full" disabled={setLimit.isPending || !limit} onClick={saveLimit}>
+              {setLimit.isPending ? "…" : "Set"}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

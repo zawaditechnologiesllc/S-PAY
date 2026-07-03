@@ -96,16 +96,26 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
         <div className="absolute top-0 left-0 right-0 h-56 bg-gradient-to-br from-[#4DC9EE] to-[#1A2B4A] z-0 rounded-b-3xl" />
 
         <div className="relative z-10 p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-          {/* Top bar — brand on mobile (sidebar carries it on desktop), page title on desktop */}
+          {/* Top bar — Payd pattern: inside the app the brand gives way to the
+              USER (avatar + greeting → profile); the logo lives on the sidebar
+              (desktop) and marketing pages only. */}
           <header className="flex justify-between items-center gap-3 pt-2">
-            {/* Mobile brand — tap to go home. Page title moved to its own line below
-                so the logo + name + slogan have room and don't feel crowded. */}
-            <Link href="/dashboard" className="md:hidden min-w-0">
+            <Link href="/profile" className="md:hidden min-w-0">
               <div className="flex items-center gap-2.5 min-w-0 cursor-pointer">
-                <img src={spayLogo} alt="S-PAY" className="w-9 h-9 rounded-[22%] flex-shrink-0 shadow-md ring-2 ring-white/30" />
+                {me?.avatarUrl ? (
+                  <img src={me.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0 shadow-md ring-2 ring-white/30" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-white/20 ring-2 ring-white/30 text-white flex items-center justify-center font-bold flex-shrink-0">
+                    {(me?.fullName ?? "?").charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className="min-w-0 leading-tight">
-                  <span className="font-black text-white text-base tracking-tight block">S-PAY</span>
-                  <span className="text-[10px] text-[#A8DEFF] font-medium tracking-wide block truncate">Digital Wallet</span>
+                  <span className="text-[11px] text-[#A8DEFF] font-medium tracking-wide block">
+                    {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}
+                  </span>
+                  <span className="font-bold text-white text-base tracking-tight block truncate">
+                    {me?.fullName ? me.fullName.split(" ")[0] : "My account"}
+                  </span>
                 </div>
               </div>
             </Link>
@@ -125,9 +135,11 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
               >
                 <QrCode size={19} />
               </button>
-              <Link href="/profile">
+              <Link href="/profile" className="hidden md:block">
                 <button className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 transition-colors" aria-label="Profile">
-                  <CircleUser size={19} />
+                  {me?.avatarUrl
+                    ? <img src={me.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                    : <CircleUser size={19} />}
                 </button>
               </Link>
             </div>

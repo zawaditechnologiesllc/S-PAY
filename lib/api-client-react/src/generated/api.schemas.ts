@@ -859,6 +859,10 @@ export interface WithdrawRequest {
   recipientIban?: string;
   recipientTaxId?: string;
   recipientAccount?: string;
+  /** US ACH routing number, or UK sort code for Faster Payments */
+  recipientRouting?: string;
+  /** Account holder's name, for bank rails that verify it */
+  recipientName?: string;
   /** Transaction PIN (4–6 digits) — required to authorize the cash-out */
   pin?: string;
 }
@@ -1500,6 +1504,25 @@ export interface PlatformStatus {
   message?: string;
 }
 
+export type RecipientPreviewAccountType = typeof RecipientPreviewAccountType[keyof typeof RecipientPreviewAccountType];
+
+
+export const RecipientPreviewAccountType = {
+  personal: 'personal',
+  business: 'business',
+} as const;
+
+export interface RecipientPreview {
+  found: boolean;
+  /** True when the identifier resolves to the sender themself */
+  self?: boolean;
+  /** The member's registered (or business) name */
+  name?: string;
+  accountType?: RecipientPreviewAccountType;
+  /** Whether the member has passed identity verification */
+  verified?: boolean;
+}
+
 export type KycStatusResponseKycStatus = typeof KycStatusResponseKycStatus[keyof typeof KycStatusResponseKycStatus];
 
 
@@ -1656,6 +1679,11 @@ export interface AdminTransactionsResponse {
   total: number;
 }
 
+export type DeleteAccountBody = {
+  /** Transaction PIN — required when the account has one */
+  pin?: string;
+};
+
 export type SetTransactionPinBody = {
   /** New 4–6 digit PIN */
   pin: string;
@@ -1678,6 +1706,12 @@ export type StartKyc200 = { [key: string]: unknown };
 export type GetWalletTransactionsParams = {
 limit?: number;
 offset?: number;
+};
+
+export type GetRecipientPreviewParams = {
+spayId?: string;
+phone?: string;
+email?: string;
 };
 
 export type GetIncomingPaymentsParams = {
@@ -1706,6 +1740,25 @@ export const GetSpendingSummaryPeriod = {
   last_month: 'last_month',
   last_3_months: 'last_3_months',
 } as const;
+
+export type SetCardFrozenBody = {
+  frozen: boolean;
+};
+
+export type SetCardFrozen200 = {
+  frozen: boolean;
+  message?: string;
+};
+
+export type SetCardLimitBody = {
+  /** USD per month; 0 removes the limit */
+  monthlyLimit: number;
+};
+
+export type SetCardLimit200 = {
+  monthlyLimit: number;
+  message?: string;
+};
 
 export type GetJobsParams = {
 keyword?: string;

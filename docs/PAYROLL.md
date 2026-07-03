@@ -20,6 +20,48 @@ currency).
 
 ---
 
+## Quickstart — from zero to paid workers in 5 calls
+
+Everything below assumes the API base `https://<your-api-host>/api`. Steps 1–2
+happen once in the web portal; 3–5 are what your backend automates.
+
+```bash
+# 1) Register (once, in the S-PAY web portal → Payroll, business account
+#    required) and mint a SANDBOX key from Payroll → API keys: spk_test_…
+
+# 2) Fund the sandbox balance (test money — sandbox keys only)
+curl -X POST $BASE/payroll/sandbox/fund \
+  -H "Authorization: Bearer spk_test_..." -H "Content-Type: application/json" \
+  -d '{ "amount": 1000 }'
+
+# 3) Create a batch (draft — nothing is charged yet)
+curl -X POST $BASE/payroll/batches \
+  -H "Authorization: Bearer spk_test_..." -H "Content-Type: application/json" \
+  -d '{
+    "reference": "2026-07-payroll",
+    "idempotencyKey": "july-2026-run-1",
+    "payments": [
+      { "workerIdentifier": "alice@gmail.com",  "amount": 500, "reason": "Logo design" },
+      { "workerIdentifier": "+254712345678",    "amount": 300, "reason": "Code review" }
+    ]
+  }'
+
+# 4) Submit it — resolves every worker (auto-onboarding new ones) and pays
+curl -X POST $BASE/payroll/batches/<batchId>/submit \
+  -H "Authorization: Bearer spk_test_..."
+
+# 5) Check the result (or receive it on your webhook — see §6)
+curl $BASE/payroll/batches/<batchId>/payments \
+  -H "Authorization: Bearer spk_test_..."
+```
+
+**Going live** = business verification (KYB) → mint a `spk_live_…` key → fund
+the real balance with USDC on Celo (portal → Payroll → "Fund your payroll
+balance") → same three API calls. Workers receive real USDC in their own wallet
+and either keep it in their balance or cash out (see §10).
+
+---
+
 ## 0. The mental model
 
 ```

@@ -14,10 +14,13 @@ export default function AuthCallback() {
 
     if (token) {
       setToken(token);
-      setLocation("/dashboard");
+      // Scrub the token from the address bar + history before navigating, so it
+      // can't be recovered from browser history or leak via a Referer header.
+      window.history.replaceState(null, "", "/auth/callback");
+      setLocation("/dashboard", { replace: true });
     } else {
       // error=google_cancelled or error=google_failed
-      setLocation(`/login?error=${error ?? "unknown"}`);
+      setLocation(`/login?error=${error ?? "unknown"}`, { replace: true });
     }
   }, [search, setLocation]);
 

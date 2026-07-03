@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { useSendMoney, getGetDashboardSummaryQueryKey, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
+import { useSendMoney, getGetDashboardSummaryQueryKey, useGetMe, getGetMeQueryKey, getRecipientPreview, type RecipientPreview } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,15 +109,39 @@ function TransferDialog({ open, onClose, initial }: { open: boolean; onClose: ()
   const [needsPinSetup, setNeedsPinSetup] = useState(false);
   const [result, setResult] = useState<{ txHash?: string; fee?: number; total?: number } | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
+  // M-Pesa-style hakikisha: resolve who the recipient is BEFORE any money moves.
+  const [preview, setPreview] = useState<RecipientPreview | null>(null);
+  const [checking, setChecking] = useState(false);
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), staleTime: 60_000 } });
 
   useEffect(() => {
     if (open) {
-      setResult(null); setAmount(""); setNote(""); setPin(""); setNeedsPinSetup(false);
-      if (initial) { setMode(initial.mode); setRecipient(initial.value); setStep(1); } // scanned → recipient known, go to amount
+      setResult(null); setAmount(""); setNote(""); setPin(""); setNeedsPinSetup(false); setPreview(null);
+      if (initial) { setMode(initial.mode); setRecipient(initial.value); confirmRecipient(initial.mode, initial.value); } // scanned → resolve name, go to amount
       else { setMode("phone"); setRecipient(""); setStep(0); }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial]);
+
+  // Look up the recipient's registered name, then advance to the amount step.
+  // Raw addresses aren't members — no preview, the address itself is shown.
+  const confirmRecipient = async (m: SendMode, value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    if (m === "address") { setPreview(null); setStep(1); return; }
+    setChecking(true);
+    try {
+      const p = await getRecipientPreview(
+        m === "phone" ? { phone: v } : m === "email" ? { email: v } : { spayId: v },
+      );
+      setPreview(p);
+    } catch {
+      setPreview(null); // lookup hiccup — proceed without the name, the send itself still validates
+    } finally {
+      setChecking(false);
+      setStep(1);
+    }
+  };
 
   const recipientField =
     mode === "phone" ? { recipientPhone: recipient.trim() } :
@@ -200,10 +224,10 @@ function TransferDialog({ open, onClose, initial }: { open: boolean; onClose: ()
                 </div>
                 <Button
                   className="w-full bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold"
-                  disabled={!recipient.trim()}
-                  onClick={() => setStep(1)}
+                  disabled={!recipient.trim() || checking}
+                  onClick={() => confirmRecipient(mode, recipient)}
                 >
-                  Continue <ArrowRight size={15} className="ml-1.5" />
+                  {checking ? "Checking recipient…" : <>Continue <ArrowRight size={15} className="ml-1.5" /></>}
                 </Button>
                 {/* Flip side of sending: let the user show their own S-PAY ID QR so
                     the other party can pay them without typing anything. */}
@@ -223,6 +247,34 @@ function TransferDialog({ open, onClose, initial }: { open: boolean; onClose: ()
                 <button onClick={() => setStep(0)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
                   <ArrowLeft size={13} /> {recipient}
                 </button>
+                {/* Pre-confirmation (M-Pesa hakikisha): show WHO this identifier
+                    belongs to before any amount is typed. */}
+                {preview?.found && !preview.self && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900">
+                    <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold flex-shrink-0">
+                      {(preview.name ?? "?").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate flex items-center gap-1.5">
+                        {preview.name}
+                        {preview.verified && <CheckCircle2 size={14} className="text-green-600 flex-shrink-0" />}
+                      </p>
+                      <p className="text-[11px] text-green-700 dark:text-green-400">
+                        S-PAY member{preview.accountType === "business" ? " · Business" : ""} — confirm this is who you're paying
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {preview?.found && preview.self && (
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700">
+                    That's your own account — you can't send money to yourself.
+                  </div>
+                )}
+                {preview && !preview.found && mode !== "address" && (
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700">
+                    No S-PAY member found for <strong>{recipient}</strong>. Double-check it — or ask them to join (it's free).
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label htmlFor="qa-amount">Amount (USDC)</Label>
                   <Input id="qa-amount" type="number" min="0" step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
@@ -250,7 +302,14 @@ function TransferDialog({ open, onClose, initial }: { open: boolean; onClose: ()
                 <div className="rounded-xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800 text-sm">
                   <div className="flex justify-between items-center gap-3 p-3">
                     <span className="text-gray-500 dark:text-gray-400">To</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100 break-all text-right">{recipient}</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100 break-all text-right">
+                      {preview?.found && preview.name ? (
+                        <>
+                          {preview.name}
+                          <span className="block text-[11px] text-gray-400 font-normal">{recipient}</span>
+                        </>
+                      ) : recipient}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center gap-3 p-3">
                     <span className="text-gray-500 dark:text-gray-400">Amount</span>

@@ -36,8 +36,11 @@ export function QRModal({ open, onClose, spayId, userName }: QRModalProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full">
+    // z-[70]: must sit ABOVE shadcn dialogs (z-50) — "Show my QR" is offered from
+    // inside the Transfer dialog, and equal z-index made it appear behind it.
+    // max-h + overflow keep the card fully on-screen on short viewports.
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full max-h-[92dvh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
           <div>

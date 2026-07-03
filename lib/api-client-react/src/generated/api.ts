@@ -49,6 +49,7 @@ import type {
   CustomJobCreateRequest,
   CustomJobsResponse,
   DashboardSummary,
+  DeleteAccountBody,
   EmployerRegisterRequest,
   EmployerRegisterResponse,
   EmployerResponse,
@@ -76,6 +77,7 @@ import type {
   GetPayrollPayoutProviders200,
   GetPayrollPayoutQuote200,
   GetPayrollPayoutQuoteParams,
+  GetRecipientPreviewParams,
   GetSeoPostsParams,
   GetSeoRedditTopicsParams,
   GetSpendingSummaryParams,
@@ -105,6 +107,7 @@ import type {
   PlatformStatus,
   PublishSeoPost422,
   PublishSeoPostBody,
+  RecipientPreview,
   RedditTopicsResponse,
   RegisterRequest,
   ResetPasswordBody,
@@ -115,6 +118,10 @@ import type {
   SeoOpportunitiesResponse,
   SeoResearchResponse,
   SeoStatus,
+  SetCardFrozen200,
+  SetCardFrozenBody,
+  SetCardLimit200,
+  SetCardLimitBody,
   SetTransactionPinBody,
   SiteContent,
   SiteContentUpdateRequest,
@@ -676,16 +683,17 @@ export const getDeleteAccountUrl = () => {
 }
 
 /**
- * @summary Permanently delete the current account and its data (required for App Store / Play Store compliance)
+ * @summary Permanently delete the current account and its data (required for App Store / Play Store compliance). Requires the transaction PIN when one is set, and refuses while the wallet still holds funds.
  */
-export const deleteAccount = async ( options?: RequestInit): Promise<MessageResponse> => {
+export const deleteAccount = async (deleteAccountBody?: DeleteAccountBody, options?: RequestInit): Promise<MessageResponse> => {
 
   return customFetch<MessageResponse>(getDeleteAccountUrl(),
   {
     ...options,
-    method: 'DELETE'
-
-
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      deleteAccountBody,)
   }
 );}
 
@@ -693,8 +701,8 @@ export const deleteAccount = async ( options?: RequestInit): Promise<MessageResp
 
 
 export const getDeleteAccountMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,{data?: BodyType<DeleteAccountBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,{data?: BodyType<DeleteAccountBody>}, TContext> => {
 
 const mutationKey = ['deleteAccount'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -706,10 +714,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAccount>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAccount>>, {data?: BodyType<DeleteAccountBody>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  deleteAccount(requestOptions)
+          return  deleteAccount(data,requestOptions)
         }
 
 
@@ -720,18 +728,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteAccountMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAccount>>>
-
+    export type DeleteAccountMutationBody = BodyType<DeleteAccountBody> | undefined
     export type DeleteAccountMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Permanently delete the current account and its data (required for App Store / Play Store compliance)
+ * @summary Permanently delete the current account and its data (required for App Store / Play Store compliance). Requires the transaction PIN when one is set, and refuses while the wallet still holds funds.
  */
 export const useDeleteAccount = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError,{data?: BodyType<DeleteAccountBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof deleteAccount>>,
         TError,
-        void,
+        {data?: BodyType<DeleteAccountBody>},
         TContext
       > => {
       return useMutation(getDeleteAccountMutationOptions(options));
@@ -1535,6 +1543,90 @@ export function useGetWalletTransactions<TData = Awaited<ReturnType<typeof getWa
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetWalletTransactionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetRecipientPreviewUrl = (params?: GetRecipientPreviewParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/wallet/recipient-preview?${stringifiedParams}` : `/api/wallet/recipient-preview`
+}
+
+/**
+ * @summary M-Pesa-style pre-confirmation — resolve an S-PAY ID / phone / email to the member's registered name before sending
+ */
+export const getRecipientPreview = async (params?: GetRecipientPreviewParams, options?: RequestInit): Promise<RecipientPreview> => {
+
+  return customFetch<RecipientPreview>(getGetRecipientPreviewUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRecipientPreviewQueryKey = (params?: GetRecipientPreviewParams,) => {
+    return [
+    `/api/wallet/recipient-preview`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetRecipientPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getRecipientPreview>>, TError = ErrorType<unknown>>(params?: GetRecipientPreviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRecipientPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRecipientPreviewQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRecipientPreview>>> = ({ signal }) => getRecipientPreview(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRecipientPreview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRecipientPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getRecipientPreview>>>
+export type GetRecipientPreviewQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary M-Pesa-style pre-confirmation — resolve an S-PAY ID / phone / email to the member's registered name before sending
+ */
+
+export function useGetRecipientPreview<TData = Awaited<ReturnType<typeof getRecipientPreview>>, TError = ErrorType<unknown>>(
+ params?: GetRecipientPreviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRecipientPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRecipientPreviewQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -2390,6 +2482,148 @@ export const useJoinCardWaitlist = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getJoinCardWaitlistMutationOptions(options));
+    }
+
+export const getSetCardFrozenUrl = () => {
+
+
+
+
+  return `/api/card/freeze`
+}
+
+/**
+ * @summary Freeze or unfreeze the virtual card — frozen cards decline every payment instantly
+ */
+export const setCardFrozen = async (setCardFrozenBody: SetCardFrozenBody, options?: RequestInit): Promise<SetCardFrozen200> => {
+
+  return customFetch<SetCardFrozen200>(getSetCardFrozenUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setCardFrozenBody,)
+  }
+);}
+
+
+
+
+export const getSetCardFrozenMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setCardFrozen>>, TError,{data: BodyType<SetCardFrozenBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setCardFrozen>>, TError,{data: BodyType<SetCardFrozenBody>}, TContext> => {
+
+const mutationKey = ['setCardFrozen'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setCardFrozen>>, {data: BodyType<SetCardFrozenBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  setCardFrozen(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetCardFrozenMutationResult = NonNullable<Awaited<ReturnType<typeof setCardFrozen>>>
+    export type SetCardFrozenMutationBody = BodyType<SetCardFrozenBody>
+    export type SetCardFrozenMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Freeze or unfreeze the virtual card — frozen cards decline every payment instantly
+ */
+export const useSetCardFrozen = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setCardFrozen>>, TError,{data: BodyType<SetCardFrozenBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setCardFrozen>>,
+        TError,
+        {data: BodyType<SetCardFrozenBody>},
+        TContext
+      > => {
+      return useMutation(getSetCardFrozenMutationOptions(options));
+    }
+
+export const getSetCardLimitUrl = () => {
+
+
+
+
+  return `/api/card/limits`
+}
+
+/**
+ * @summary Set (or clear with 0) the card's monthly spending limit, enforced on every authorization
+ */
+export const setCardLimit = async (setCardLimitBody: SetCardLimitBody, options?: RequestInit): Promise<SetCardLimit200> => {
+
+  return customFetch<SetCardLimit200>(getSetCardLimitUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setCardLimitBody,)
+  }
+);}
+
+
+
+
+export const getSetCardLimitMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setCardLimit>>, TError,{data: BodyType<SetCardLimitBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setCardLimit>>, TError,{data: BodyType<SetCardLimitBody>}, TContext> => {
+
+const mutationKey = ['setCardLimit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setCardLimit>>, {data: BodyType<SetCardLimitBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  setCardLimit(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetCardLimitMutationResult = NonNullable<Awaited<ReturnType<typeof setCardLimit>>>
+    export type SetCardLimitMutationBody = BodyType<SetCardLimitBody>
+    export type SetCardLimitMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Set (or clear with 0) the card's monthly spending limit, enforced on every authorization
+ */
+export const useSetCardLimit = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setCardLimit>>, TError,{data: BodyType<SetCardLimitBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setCardLimit>>,
+        TError,
+        {data: BodyType<SetCardLimitBody>},
+        TContext
+      > => {
+      return useMutation(getSetCardLimitMutationOptions(options));
     }
 
 export const getIssueCardUrl = () => {
