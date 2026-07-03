@@ -191,9 +191,10 @@ router.get("/banking/rates", requireAuth, async (req, res) => {
 
 router.post("/banking/withdraw", requireAuth, async (req, res) => {
   try {
-    const { amount, targetCurrency, method, pin, recipientPhone, recipientIban, recipientTaxId, recipientAccount } = req.body as {
+    const { amount, targetCurrency, method, pin, recipientPhone, recipientIban, recipientTaxId, recipientAccount, recipientRouting, recipientName } = req.body as {
       amount?: number; targetCurrency?: string; method?: string; pin?: string;
       recipientPhone?: string; recipientIban?: string; recipientTaxId?: string; recipientAccount?: string;
+      recipientRouting?: string; recipientName?: string;
     };
     if (!amount || amount <= 0) {
       res.status(400).json({ error: "validation_error", message: "Invalid amount" });
@@ -274,6 +275,11 @@ router.post("/banking/withdraw", requireAuth, async (req, res) => {
           ...(recipientIban ? { iban: recipientIban.trim() } : {}),
           ...(recipientTaxId ? { taxId: recipientTaxId.trim() } : {}),
           ...(recipientAccount ? { accountNumber: recipientAccount.trim() } : {}),
+          // Bank rails need more than one identifier: US ACH wants the routing
+          // number, UK Faster Payments the sort code (both ride in `routing`),
+          // and most banks verify the account holder's name.
+          ...(recipientRouting ? { routing: recipientRouting.trim() } : {}),
+          ...(recipientName ? { accountHolderName: recipientName.trim() } : {}),
         },
         reference,
       });

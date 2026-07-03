@@ -52,6 +52,13 @@ router.post("/webhooks/noah", async (req, res) => {
       res.status(401).json({ error: "invalid_signature" });
       return;
     }
+  } else if (process.env.NODE_ENV === "production") {
+    // Fail closed in production: this endpoint flips KYC state and records
+    // deposits — never process unauthenticated events. (Dev/test stays open so
+    // local tooling can exercise the handler.)
+    logger.warn("Noah webhook received but NOAH_WEBHOOK_SECRET is not set — rejecting");
+    res.status(401).json({ error: "webhook_secret_not_configured" });
+    return;
   }
 
   const event = req.body as {
@@ -169,6 +176,12 @@ router.post("/webhooks/kyc/:provider", async (req, res) => {
       res.status(401).json({ error: "invalid_signature" });
       return;
     }
+  } else if (process.env.NODE_ENV === "production") {
+    // Same fail-closed rule as the Noah endpoint: KYC decisions are only
+    // trusted when they can be verified.
+    logger.warn({ provider }, "KYC webhook received but its secret is not set — rejecting");
+    res.status(401).json({ error: "webhook_secret_not_configured" });
+    return;
   }
 
   const event = req.body as { event?: string; status?: string; customer_id?: string; external_id?: string };
@@ -209,12 +222,39 @@ router.post("/webhooks/kyc/:provider", async (req, res) => {
 
 // ─── Stripe webhooks ───────────────────────────────────────────────────────────
 
+/**
+ * Verify Stripe's signature scheme without the SDK: the `stripe-signature`
+ * header carries `t=<unix>,v1=<hmac>`, where v1 = HMAC-SHA256(secret,
+ * `${t}.${rawBody}`). A 5-minute tolerance defeats replay of captured events.
+ */
+function verifyStripeSignature(header: string | undefined, rawBody: Buffer | string | undefined, secret: string): boolean {
+  if (!header || !rawBody) return false;
+  const parts = new Map(header.split(",").map((kv) => kv.split("=") as [string, string]));
+  const t = parts.get("t");
+  const v1 = parts.get("v1");
+  if (!t || !v1 || !/^\d+$/.test(t)) return false;
+  if (Math.abs(Date.now() / 1000 - Number(t)) > 300) return false; // >5 min old — replay
+  const payload = typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
+  const expected = crypto.createHmac("sha256", secret).update(`${t}.${payload}`).digest("hex");
+  const a = Buffer.from(v1);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 router.post("/webhooks/stripe", (req, res) => {
-  const sig = req.headers["stripe-signature"] as string;
+  const sig = req.headers["stripe-signature"] as string | undefined;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (webhookSecret && sig) {
-    logger.info({ sig: sig.substring(0, 20) }, "Stripe webhook received");
+  if (webhookSecret) {
+    const rawBody = (req as typeof req & { rawBody?: Buffer }).rawBody;
+    if (!verifyStripeSignature(sig, rawBody, webhookSecret)) {
+      res.status(401).json({ error: "invalid_signature" });
+      return;
+    }
+  } else if (process.env.NODE_ENV === "production") {
+    logger.warn("Stripe webhook received but STRIPE_WEBHOOK_SECRET is not set — rejecting");
+    res.status(401).json({ error: "webhook_secret_not_configured" });
+    return;
   }
 
   const event = req.body as { type: string; data?: { object?: { id?: string } } };

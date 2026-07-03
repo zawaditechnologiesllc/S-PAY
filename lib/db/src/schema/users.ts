@@ -26,8 +26,11 @@ export const usersTable = pgTable("users", {
   passwordResetExpires: timestamp("password_reset_expires"),
   // Email MFA: a 6-digit code emailed at sign-in. Password alone never returns a
   // session token — the code (10-min expiry) is the second factor on login.
+  // Stored as sha256(code), never plaintext; the attempt counter invalidates the
+  // code after a handful of wrong guesses so it can't be brute-forced.
   loginVerificationCode: text("login_verification_code"),
   loginVerificationExpires: timestamp("login_verification_expires"),
+  loginVerificationAttempts: integer("login_verification_attempts").default(0).notNull(),
   notificationsReadAt: timestamp("notifications_read_at"), // everything created after this is "unread"
   isAdmin: boolean("is_admin").default(false).notNull(), // legacy, unused — see admin_role
   adminRole: text("admin_role"),                 // null = regular user; "superadmin" | "manager" | "support" (env ADMIN_EMAILS are always superadmin)

@@ -80,6 +80,48 @@ router.get("/wallet/transactions", requireAuth, async (req, res) => {
   }
 });
 
+// M-Pesa-style pre-confirmation: before sending, the app shows WHO the money is
+// going to. Resolves an S-PAY ID / phone / email to the member's registered
+// name (requires the exact identifier, which only someone the recipient shared
+// it with would hold — same disclosure model as M-Pesa's hakikisha). Raw Celo
+// addresses aren't members, so they resolve to not-found and the UI shows the
+// address itself. Auth-gated + answers only exact matches, so it can't be used
+// to enumerate members.
+router.get("/wallet/recipient-preview", requireAuth, async (req, res) => {
+  try {
+    const { spayId, phone, email } = req.query as { spayId?: string; phone?: string; email?: string };
+    let recipient: typeof usersTable.$inferSelect | undefined;
+    if (spayId?.trim()) {
+      [recipient] = await db.select().from(usersTable).where(eq(usersTable.spayId, spayId.trim())).limit(1);
+    } else if (phone?.trim()) {
+      [recipient] = await db.select().from(usersTable).where(eq(usersTable.phoneNumber, phone.trim())).limit(1);
+    } else if (email?.trim()) {
+      [recipient] = await db.select().from(usersTable).where(eq(usersTable.email, email.trim().toLowerCase())).limit(1);
+    } else {
+      res.status(400).json({ error: "validation_error", message: "Provide spayId, phone, or email" });
+      return;
+    }
+    if (!recipient) {
+      res.json({ found: false });
+      return;
+    }
+    if (recipient.id === req.user!.userId) {
+      res.json({ found: true, self: true, name: recipient.fullName });
+      return;
+    }
+    res.json({
+      found: true,
+      self: false,
+      name: recipient.businessName ?? recipient.fullName,
+      accountType: recipient.accountType,
+      verified: recipient.kycStatus === "approved",
+    });
+  } catch (err) {
+    req.log.error({ err }, "Recipient preview error");
+    res.status(500).json({ error: "internal_error", message: "Could not look up the recipient" });
+  }
+});
+
 router.post("/wallet/send", requireAuth, async (req, res) => {
   try {
     const { amount, currency, recipientPhone, recipientEmail, recipientAddress, recipientSpayId, note, pin } = req.body as {
@@ -201,7 +243,26 @@ router.post("/wallet/send", requireAuth, async (req, res) => {
       return;
     }
 
-    const txHash = await signer.sendToken(senderWallet, toAddress, token, amount);
+    // Failed attempts are part of the record too (like M-Pesa's failed-payment
+    // SMS): a send that got past validation but died on-chain leaves a "failed"
+    // history row, so the user sees what happened instead of a silent error.
+    let txHash: string;
+    try {
+      txHash = await signer.sendToken(senderWallet, toAddress, token, amount);
+    } catch (sendErr) {
+      req.log.error({ sendErr, userId: sender.id, token, amount }, "On-chain send failed");
+      await db.insert(transactionsTable).values({
+        userId: sender.id,
+        type: "send",
+        amount: String(amount),
+        currency: token,
+        description: note?.trim() || `Send to ${recipientPhone ?? `${toAddress.slice(0, 6)}…${toAddress.slice(-4)}`} — failed`,
+        counterparty: recipientPhone ?? toAddress,
+        status: "failed",
+      }).catch(() => {});
+      res.status(502).json({ error: "send_failed", message: "The transfer could not be completed on-chain. Your funds were not moved — please try again." });
+      return;
+    }
 
     // Collect the commission to the treasury. Best-effort: the user's transfer
     // already succeeded, so a sweep failure is logged for reconciliation rather

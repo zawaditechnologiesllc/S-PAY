@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { CheckCircle2, MailX } from "lucide-react";
 import { getToken } from "@/lib/auth";
+import { queryClient } from "@/lib/query-client";
+import { getGetMeQueryKey } from "@workspace/api-client-react";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 /** Landing page for the email confirmation link: /auth/verified?status=ok|invalid|error */
@@ -12,6 +14,9 @@ export default function EmailVerified() {
 
   useEffect(() => {
     if (!ok) return;
+    // The cached/persisted `me` still says unverified — drop it so the dashboard
+    // banner disappears immediately instead of "popping" until the next refetch.
+    queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
     const t = setTimeout(() => setLocation(signedIn ? "/dashboard" : "/login"), 2500);
     return () => clearTimeout(t);
   }, [ok, signedIn, setLocation]);

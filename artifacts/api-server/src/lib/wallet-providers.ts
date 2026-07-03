@@ -108,6 +108,20 @@ function pad32(hexNoPrefix: string): string {
 import { createWalletClient, http, erc20Abi, type LocalAccount } from "viem";
 import { celo } from "viem/chains";
 
+// Celo fee abstraction (CIP-64): gas can be paid in a whitelisted stablecoin
+// instead of native CELO — the MiniPay model, and the only way a server wallet
+// that holds ONLY USDC can send without being pre-funded with CELO. Opt-in via
+// CELO_FEE_CURRENCY (the fee-currency ADAPTER address, e.g. Celo mainnet's
+// USDC adapter 0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B). Unset = classic
+// native-CELO gas, exactly as before. Applies to the viem-signed providers
+// (CDP, Turnkey, Openfort, Dynamic); Privy and thirdweb build/broadcast
+// their own transactions, so their wallets need CELO gas or provider-side
+// sponsorship — see docs/WALLET-PROVIDERS.md.
+const CELO_FEE_CURRENCY = process.env.CELO_FEE_CURRENCY?.trim() ?? "";
+const feeCurrencyField = /^0x[0-9a-fA-F]{40}$/.test(CELO_FEE_CURRENCY)
+  ? { feeCurrency: CELO_FEE_CURRENCY as `0x${string}` }
+  : {};
+
 async function viemSendToken(account: LocalAccount, to: string, token: CeloToken, amount: number): Promise<string> {
   const client = createWalletClient({ account, chain: celo, transport: http(CELO_RPC) });
   return client.writeContract({
@@ -115,6 +129,7 @@ async function viemSendToken(account: LocalAccount, to: string, token: CeloToken
     abi: erc20Abi,
     functionName: "transfer",
     args: [to as `0x${string}`, tokenUnits(token, amount)],
+    ...feeCurrencyField,
   });
 }
 
@@ -412,6 +427,7 @@ const dynamicProvider: WalletProvider = {
       abi: erc20Abi,
       functionName: "transfer",
       args: [to as `0x${string}`, tokenUnits(token, amount)],
+      ...feeCurrencyField,
     });
   },
 };

@@ -187,9 +187,19 @@ paths:
     delete:
       operationId: deleteAccount
       tags: [auth]
-      summary: Permanently delete the current account and its data (required for App Store / Play Store compliance)
+      summary: Permanently delete the current account and its data (required for App Store / Play Store compliance). Requires the transaction PIN when one is set, and refuses while the wallet still holds funds.
       security:
         - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pin:
+                  type: string
+                  description: Transaction PIN — required when the account has one
       responses:
         "200":
           description: Account deleted
@@ -198,7 +208,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
         "401":
-          description: Unauthorized
+          description: Unauthorized or PIN incorrect
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Wallet balance not empty — withdraw first
           content:
             application/json:
               schema:
@@ -452,6 +468,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TransactionListResponse"
+
+  /wallet/recipient-preview:
+    get:
+      operationId: getRecipientPreview
+      tags: [wallet]
+      summary: M-Pesa-style pre-confirmation — resolve an S-PAY ID / phone / email to the member's registered name before sending
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: spayId, in: query, schema: { type: string } }
+        - { name: phone, in: query, schema: { type: string } }
+        - { name: email, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Preview result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipientPreview"
 
   /wallet/send:
     post:
@@ -3090,6 +3125,12 @@ components:
           type: string
         recipientAccount:
           type: string
+        recipientRouting:
+          type: string
+          description: US ACH routing number, or UK sort code for Faster Payments
+        recipientName:
+          type: string
+          description: Account holder's name, for bank rails that verify it
         pin:
           type: string
           description: Transaction PIN (4–6 digits) — required to authorize the cash-out
@@ -3806,6 +3847,25 @@ components:
       required:
         - status
         - maintenance
+
+    RecipientPreview:
+      type: object
+      properties:
+        found:
+          type: boolean
+        self:
+          type: boolean
+          description: True when the identifier resolves to the sender themself
+        name:
+          type: string
+          description: The member's registered (or business) name
+        accountType:
+          type: string
+          enum: [personal, business]
+        verified:
+          type: boolean
+          description: Whether the member has passed identity verification
+      required: [found]
 
     KycStatusResponse:
       type: object

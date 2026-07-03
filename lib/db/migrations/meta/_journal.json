@@ -134,6 +134,13 @@
       "when": 1782500000000,
       "tag": "0018_kyc_verifications",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1782510000000,
+      "tag": "0019_login_code_hardening",
+      "breakpoints": true
     }
   ]
 }

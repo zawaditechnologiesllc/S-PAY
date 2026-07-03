@@ -172,8 +172,12 @@ export const UpdateProfileResponse = zod.object({
 
 
 /**
- * @summary Permanently delete the current account and its data (required for App Store / Play Store compliance)
+ * @summary Permanently delete the current account and its data (required for App Store / Play Store compliance). Requires the transaction PIN when one is set, and refuses while the wallet still holds funds.
  */
+export const DeleteAccountBody = zod.object({
+  "pin": zod.string().optional().describe('Transaction PIN — required when the account has one')
+})
+
 export const DeleteAccountResponse = zod.object({
   "message": zod.string()
 })
@@ -392,6 +396,24 @@ export const GetWalletTransactionsResponse = zod.object({
 
 
 /**
+ * @summary M-Pesa-style pre-confirmation — resolve an S-PAY ID / phone / email to the member's registered name before sending
+ */
+export const GetRecipientPreviewQueryParams = zod.object({
+  "spayId": zod.coerce.string().optional(),
+  "phone": zod.coerce.string().optional(),
+  "email": zod.coerce.string().optional()
+})
+
+export const GetRecipientPreviewResponse = zod.object({
+  "found": zod.boolean(),
+  "self": zod.boolean().optional().describe('True when the identifier resolves to the sender themself'),
+  "name": zod.string().optional().describe('The member\'s registered (or business) name'),
+  "accountType": zod.enum(['personal', 'business']).optional(),
+  "verified": zod.boolean().optional().describe('Whether the member has passed identity verification')
+})
+
+
+/**
  * @summary Send money to another user
  */
 export const sendMoneyBodyCurrencyDefault = `USDC`;
@@ -528,6 +550,8 @@ export const InitiateWithdrawBody = zod.object({
   "recipientIban": zod.string().optional(),
   "recipientTaxId": zod.string().optional(),
   "recipientAccount": zod.string().optional(),
+  "recipientRouting": zod.string().optional().describe('US ACH routing number, or UK sort code for Faster Payments'),
+  "recipientName": zod.string().optional().describe('Account holder\'s name, for bank rails that verify it'),
   "pin": zod.string().optional().describe('Transaction PIN (4–6 digits) — required to authorize the cash-out')
 })
 

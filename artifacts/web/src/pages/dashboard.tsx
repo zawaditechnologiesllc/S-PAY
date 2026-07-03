@@ -4,7 +4,7 @@ import {
   useGetMe, getGetMeQueryKey, useResendVerification, useStartKyc,
 } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownLeft, ChevronRight, ShieldCheck, MailCheck } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, ChevronRight, ShieldCheck, MailCheck, Eye, EyeOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { QuickActions } from "@/components/quick-actions";
@@ -14,13 +14,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
+const BALANCE_HIDDEN_KEY = "spay:balance-hidden";
+
 export default function Dashboard() {
   const { data: summary, isLoading } = useGetDashboardSummary({ query: { queryKey: getGetDashboardSummaryQueryKey() } });
-  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
+  // The verification banners must react to state changes made OUTSIDE this tab
+  // (the user clicks the email link in their mail app / finishes hosted KYC).
+  // Refetch on focus + zero staleness for this read, so returning to the tab
+  // clears "Confirm your email" the moment it's actually confirmed.
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), staleTime: 0, refetchOnWindowFocus: true } });
   const resendVerification = useResendVerification();
   const startKyc = useStartKyc();
   const { toast } = useToast();
   const [momoOpen, setMomoOpen] = useState(false);
+  // Privacy shoulder-surf guard: remembered across sessions.
+  const [hideBalance, setHideBalance] = useState(() => localStorage.getItem(BALANCE_HIDDEN_KEY) === "1");
+  const toggleBalance = () => {
+    setHideBalance((h) => {
+      localStorage.setItem(BALANCE_HIDDEN_KEY, h ? "0" : "1");
+      return !h;
+    });
+  };
 
   const resendEmail = () => {
     resendVerification.mutate(undefined, {
@@ -50,12 +64,23 @@ export default function Dashboard() {
         <CardContent className="p-6">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Balance</p>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Balance</p>
+                <button
+                  onClick={toggleBalance}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  aria-label={hideBalance ? "Show balance" : "Hide balance"}
+                >
+                  {hideBalance ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
               {isLoading ? (
                 <Skeleton className="h-10 w-40" />
               ) : (
                 <h2 className="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-                  {summary?.currency} {(summary?.walletBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {hideBalance
+                    ? "••••••"
+                    : `${summary?.currency} ${(summary?.walletBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
                 </h2>
               )}
             </div>

@@ -52,6 +52,8 @@ export default function Withdraw() {
   const [method, setMethod] = useState<string>("mpesa");
   const [amount, setAmount] = useState<string>("100");
   const [recipient, setRecipient] = useState("");
+  const [routing, setRouting] = useState("");       // US routing number / UK sort code
+  const [holderName, setHolderName] = useState(""); // account holder, for bank rails
   const [pin, setPin] = useState("");
   const [targetCurrency, setTargetCurrency] = useState("KES");
   const [result, setResult] = useState<{ withdrawalId?: string; localAmount?: number; estimatedArrival?: string } | null>(null);
@@ -60,6 +62,8 @@ export default function Withdraw() {
 
   useEffect(() => {
     setTargetCurrency(CURRENCY_BY_METHOD[method] ?? "USD");
+    // Different rails need different details — clear stale ones on method change
+    setRecipient(""); setRouting(""); setHolderName("");
   }, [method]);
 
   const { data: fxData } = useGetExchangeRates(
@@ -69,17 +73,33 @@ export default function Withdraw() {
 
   const withdrawMutation = useInitiateWithdraw();
 
-  const recipientLabel =
-    MOMO_IDS.includes(method) ? "Phone number" :
-    method === "sepa" ? "IBAN" :
-    method === "pix" ? "CPF/CNPJ (Tax ID)" : "Account number";
+  // What each rail actually needs (MiniPay/Payd pattern): mobile money is just a
+  // phone number; PIX keys off the tax ID; SEPA takes an IBAN + name; US ACH
+  // wants routing + account + name; UK Faster Payments sort code + account.
+  const FIELDS: Record<string, { main: string; placeholder: string; routing?: string; routingPlaceholder?: string; name?: boolean }> = {
+    momo: { main: "Phone number", placeholder: "+254712345678" },
+    pix: { main: "CPF/CNPJ (Tax ID)", placeholder: "123.456.789-09" },
+    sepa: { main: "IBAN", placeholder: "DE89 3704 0044 0532 0130 00", name: true },
+    faster_payments: { main: "Account number", placeholder: "12345678", routing: "Sort code", routingPlaceholder: "12-34-56", name: true },
+    spei: { main: "CLABE (18 digits)", placeholder: "002010077777777771" },
+    bank_transfer: { main: "Account number", placeholder: "000123456789", routing: "Routing number (ABA)", routingPlaceholder: "026009593", name: true },
+  };
+  const fieldSpec = MOMO_IDS.includes(method) ? FIELDS.momo : FIELDS[method] ?? FIELDS.bank_transfer;
+  const recipientLabel = fieldSpec.main;
 
-  const detailsValid = numAmount > 0 && recipient.trim().length > 0 && /^\d{4,6}$/.test(pin);
+  const detailsValid =
+    numAmount > 0 &&
+    recipient.trim().length > 0 &&
+    (!fieldSpec.routing || routing.trim().length > 0) &&
+    (!fieldSpec.name || holderName.trim().length > 0) &&
+    /^\d{4,6}$/.test(pin);
 
   const goToReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (numAmount <= 0) { toast({ title: "Enter a valid amount", variant: "destructive" }); return; }
     if (!recipient.trim()) { toast({ title: `${recipientLabel} is required`, variant: "destructive" }); return; }
+    if (fieldSpec.routing && !routing.trim()) { toast({ title: `${fieldSpec.routing} is required`, variant: "destructive" }); return; }
+    if (fieldSpec.name && !holderName.trim()) { toast({ title: "Account holder's name is required", variant: "destructive" }); return; }
     if (!/^\d{4,6}$/.test(pin)) {
       toast({ title: "Enter your PIN", description: "Your 4–6 digit transaction PIN authorizes the cash-out.", variant: "destructive" });
       return;
@@ -99,7 +119,9 @@ export default function Withdraw() {
     if (phoneMethods.includes(method)) payload.recipientPhone = recipient.trim();
     else if (method === "sepa") payload.recipientIban = recipient.trim();
     else if (method === "pix") payload.recipientTaxId = recipient.trim();
-    else payload.recipientAccount = recipient.trim(); // bank account / CLABE / sort code
+    else payload.recipientAccount = recipient.trim(); // bank account / CLABE
+    if (fieldSpec.routing && routing.trim()) payload.recipientRouting = routing.trim();
+    if (fieldSpec.name && holderName.trim()) payload.recipientName = holderName.trim();
 
     withdrawMutation.mutate({ data: payload as never }, {
       onSuccess: (r) => {
@@ -228,17 +250,45 @@ export default function Withdraw() {
                   </div>
                 </div>
 
+                {fieldSpec.name && (
+                  <div className="space-y-2">
+                    <Label>Account holder's name</Label>
+                    <Input
+                      type="text"
+                      className="h-12"
+                      placeholder="Name exactly as on the bank account"
+                      value={holderName}
+                      onChange={(e) => setHolderName(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>{recipientLabel}</Label>
                   <Input
                     type="text"
                     className="h-12"
-                    placeholder={MOMO_IDS.includes(method) ? "+254712345678" : method === "sepa" ? "DE89 3704 0044 0532 0130 00" : ""}
+                    placeholder={fieldSpec.placeholder}
                     value={recipient}
                     onChange={(e) => setRecipient(e.target.value)}
                     required
                   />
                 </div>
+
+                {fieldSpec.routing && (
+                  <div className="space-y-2">
+                    <Label>{fieldSpec.routing}</Label>
+                    <Input
+                      type="text"
+                      className="h-12"
+                      placeholder={fieldSpec.routingPlaceholder}
+                      value={routing}
+                      onChange={(e) => setRouting(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5"><Lock size={13} /> Transaction PIN</Label>
@@ -295,7 +345,9 @@ export default function Withdraw() {
 
               <div className="rounded-xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
                 <ReviewRow label="Method" value={METHOD_LABELS[method] ?? method} />
+                {fieldSpec.name && holderName.trim() && <ReviewRow label="Account holder" value={holderName.trim()} />}
                 <ReviewRow label={recipientLabel} value={recipient} mono />
+                {fieldSpec.routing && routing.trim() && <ReviewRow label={fieldSpec.routing} value={routing.trim()} mono />}
                 <ReviewRow label="Amount" value={`${numAmount.toFixed(2)} USDC`} />
                 <ReviewRow label="Fee" value={fxData ? `${fee.toFixed(2)} USDC` : "—"} />
                 <ReviewRow label="Exchange rate" value={fxData ? `1 USDC = ${fxData.rate} ${targetCurrency}` : "—"} />

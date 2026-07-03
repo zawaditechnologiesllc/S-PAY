@@ -80,11 +80,56 @@ const Cookies = lazyWithReload(() => import("@/pages/cookies"));
 const ForgotPassword = lazyWithReload(() => import("@/pages/forgot-password"));
 const AuthCallback = lazyWithReload(() => import("@/pages/auth-callback"));
 
-// Lightweight fallback shown while a route chunk loads.
+// Skeleton fallback shown while a route chunk loads: instead of a spinner, the
+// user sees the shape of the page they're heading to (header band, balance
+// card, action row, list) — the same pattern the in-page loaders already use.
 function PageFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-[#4DC9EE] animate-spin" />
+    <div className="min-h-[100dvh] bg-gray-50 dark:bg-gray-950">
+      <div className="relative">
+        <div className="absolute top-0 left-0 right-0 h-56 bg-gradient-to-br from-[#4DC9EE] to-[#1A2B4A] rounded-b-3xl" />
+        <div className="relative p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+          {/* header row */}
+          <div className="flex justify-between items-center pt-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-full bg-white/25 animate-pulse" />
+              <div className="space-y-1.5">
+                <div className="h-2.5 w-20 rounded bg-white/25 animate-pulse" />
+                <div className="h-3.5 w-28 rounded bg-white/30 animate-pulse" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {[0, 1, 2].map((i) => <div key={i} className="w-10 h-10 rounded-full bg-white/25 animate-pulse" />)}
+            </div>
+          </div>
+          {/* balance / hero card */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 space-y-4">
+            <div className="h-3 w-24 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
+            <div className="h-9 w-44 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
+            <div className="grid grid-cols-4 gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+                  <div className="h-2.5 w-12 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* list card */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm p-6 space-y-4">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 w-1/2 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
+                  <div className="h-2.5 w-1/4 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
+                </div>
+                <div className="h-3.5 w-14 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
