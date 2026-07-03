@@ -2,10 +2,31 @@ import { Router } from "express";
 import crypto from "crypto";
 import { logger } from "../lib/logger";
 import { notifyUser } from "../lib/notify";
-import { db, usersTable, transactionsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, usersTable, transactionsTable, kycVerificationsTable } from "@workspace/db";
+import { and, desc, eq } from "drizzle-orm";
 
 const router = Router();
+
+/**
+ * Record a provider KYC/KYB decision on S-PAY's own verification trail. Matches
+ * the attempt row by the provider's customer id (written at /kyc/start) and
+ * stores the raw webhook payload for audit — the data stays in our system even
+ * though the provider ran the check.
+ */
+async function recordKycDecision(
+  provider: string,
+  externalId: string,
+  decision: "approved" | "rejected",
+  payload: unknown,
+): Promise<void> {
+  await db.update(kycVerificationsTable)
+    .set({ status: decision, payload: payload as object, decidedAt: new Date(), updatedAt: new Date() })
+    .where(and(
+      eq(kycVerificationsTable.provider, provider),
+      eq(kycVerificationsTable.externalId, externalId),
+      eq(kycVerificationsTable.status, "started"),
+    ));
+}
 
 function verifyHmac(signature: string, body: Buffer | string, secret: string): boolean {
   const expected = crypto.createHmac("sha256", secret).update(body).digest("hex");
@@ -53,6 +74,7 @@ router.post("/webhooks/noah", async (req, res) => {
           await db.update(usersTable)
             .set({ kycStatus: "approved", updatedAt: new Date() })
             .where(eq(usersTable.noahCustomerId, event.customer_id));
+          await recordKycDecision("noah", event.customer_id, "approved", req.body);
           const [approved] = await db.select({ id: usersTable.id }).from(usersTable)
             .where(eq(usersTable.noahCustomerId, event.customer_id)).limit(1);
           if (approved) notifyUser(approved.id, "Identity verified ✅", "Your account is fully unlocked: bank details, cash-outs, and higher limits are now available.", "account");
@@ -67,6 +89,7 @@ router.post("/webhooks/noah", async (req, res) => {
           await db.update(usersTable)
             .set({ kycStatus: "rejected", updatedAt: new Date() })
             .where(eq(usersTable.noahCustomerId, event.customer_id));
+          await recordKycDecision("noah", event.customer_id, "rejected", req.body);
           logger.warn({ customerId: event.customer_id, event: event.event }, "Verification rejected — user notified on next login");
         }
         break;
@@ -114,6 +137,71 @@ router.post("/webhooks/noah", async (req, res) => {
     }
   } catch (err) {
     logger.error({ err, event: event.event }, "Error processing Noah webhook");
+  }
+
+  res.json({ received: true });
+});
+
+// ─── Generic money-rail KYC webhooks (Bridge, Conduit, Yellow Card) ────────────
+// One landing place for every non-Noah provider's KYC/KYB decision. Each provider
+// is verified with its own secret (<PROVIDER>_WEBHOOK_SECRET); the event updates
+// S-PAY's own kyc_verifications trail (matched by the provider customer id
+// recorded at /kyc/start) and flips users.kycStatus — same contract as Noah.
+const KYC_WEBHOOK_PROVIDERS: Record<string, { secretEnv: string; sigHeader: string }> = {
+  bridge: { secretEnv: "BRIDGE_WEBHOOK_SECRET", sigHeader: "x-webhook-signature" },
+  conduit: { secretEnv: "CONDUIT_WEBHOOK_SECRET", sigHeader: "x-webhook-signature" },
+  yellowcard: { secretEnv: "YELLOWCARD_WEBHOOK_SECRET", sigHeader: "x-webhook-signature" },
+};
+
+router.post("/webhooks/kyc/:provider", async (req, res) => {
+  const provider = String(req.params.provider);
+  const conf = KYC_WEBHOOK_PROVIDERS[provider];
+  if (!conf) {
+    res.status(404).json({ error: "unknown_provider" });
+    return;
+  }
+
+  const secret = process.env[conf.secretEnv];
+  if (secret) {
+    const sig = req.headers[conf.sigHeader] as string | undefined;
+    const rawBody = (req as typeof req & { rawBody?: Buffer }).rawBody;
+    if (!sig || !verifyHmac(sig, rawBody ?? JSON.stringify(req.body), secret)) {
+      res.status(401).json({ error: "invalid_signature" });
+      return;
+    }
+  }
+
+  const event = req.body as { event?: string; status?: string; customer_id?: string; external_id?: string };
+  const externalId = event.customer_id ?? event.external_id;
+  const raw = `${event.event ?? ""} ${event.status ?? ""}`.toLowerCase();
+  const decision: "approved" | "rejected" | null =
+    /approved|verified|active/.test(raw) ? "approved" : /rejected|failed|declined/.test(raw) ? "rejected" : null;
+
+  logger.info({ provider, event: event.event ?? event.status, externalId }, "KYC webhook received");
+
+  try {
+    if (externalId && decision) {
+      // Trail first (it stores the payload), then flip the user gate via the
+      // verification row's userId — this provider linkage lives only in the trail.
+      const [attempt] = await db.select().from(kycVerificationsTable)
+        .where(and(eq(kycVerificationsTable.provider, provider), eq(kycVerificationsTable.externalId, externalId)))
+        .orderBy(desc(kycVerificationsTable.createdAt))
+        .limit(1);
+      await recordKycDecision(provider, externalId, decision, req.body);
+      if (attempt) {
+        await db.update(usersTable)
+          .set({ kycStatus: decision, updatedAt: new Date() })
+          .where(eq(usersTable.id, attempt.userId));
+        if (decision === "approved") {
+          notifyUser(attempt.userId, "Identity verified ✅", "Your account is fully unlocked: bank details, cash-outs, and higher limits are now available.", "account");
+        }
+        logger.info({ provider, userId: attempt.userId, decision }, "Verification decision recorded");
+      } else {
+        logger.warn({ provider, externalId }, "KYC webhook has no matching verification attempt");
+      }
+    }
+  } catch (err) {
+    logger.error({ err, provider }, "Error processing KYC webhook");
   }
 
   res.json({ received: true });

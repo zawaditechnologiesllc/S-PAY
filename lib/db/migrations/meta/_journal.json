@@ -127,6 +127,13 @@
       "when": 1782219104432,
       "tag": "0017_virtual_accounts_and_blog",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782500000000,
+      "tag": "0018_kyc_verifications",
+      "breakpoints": true
     }
   ]
 }

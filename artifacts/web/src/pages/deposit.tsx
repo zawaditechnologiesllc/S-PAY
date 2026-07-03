@@ -6,6 +6,7 @@ import { useAddFunds, useGetMe, getGetMeQueryKey, useInitiateDeposit } from "@wo
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FlowStepper } from "@/components/flow-stepper";
 import { useToast } from "@/hooks/use-toast";
 import {
   Smartphone, Landmark, Coins, ChevronRight, ArrowLeft, Copy, Download,
@@ -15,11 +16,15 @@ import { NetworkIcon } from "@/components/network-icon";
 
 /**
  * Deposit ("Add money") — MiniPay-style: three methods, each opening to its
- * specific options. Crypto works today (QR + address, JIT wallet); Mobile
- * Money and Bank transfer unlock with verification + the payout partner.
+ * specific options, with a Payd-style step bar on top so the user always knows
+ * where they are (Method → Details → Receive). Crypto works today (QR +
+ * address, JIT wallet); Mobile Money and Bank transfer unlock with
+ * verification + the payout partner.
  */
 
 type Method = null | "momo" | "bank" | "crypto";
+
+const DEPOSIT_STEPS = ["Method", "Details", "Receive"] as const;
 
 const MOMO_OPTIONS = [
   { flag: "🇰🇪", name: "M-Pesa", region: "Kenya · Tanzania", method: "mpesa" },
@@ -34,14 +39,22 @@ export default function Deposit() {
   const [method, setMethod] = useState<Method>(
     initial === "momo" || initial === "bank" || initial === "crypto" ? initial : null,
   );
+  // Panels report how deep the user is (1 = picking the option, 2 = final
+  // details/receive screen) so the guide bar on top tracks the whole journey.
+  const [stage, setStage] = useState(method === null ? 0 : 1);
+
+  const pick = (m: Method) => { setMethod(m); setStage(m === null ? 0 : 1); };
 
   return (
     <Layout back title="Deposit">
       <div className="max-w-xl mx-auto space-y-4 mt-2">
-        {method === null && <MethodList onPick={setMethod} />}
-        {method === "momo" && <MomoPanel onBack={() => setMethod(null)} />}
-        {method === "bank" && <BankPanel onBack={() => setMethod(null)} />}
-        {method === "crypto" && <CryptoPanel onBack={() => setMethod(null)} />}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-md px-5 pt-4 pb-3">
+          <FlowStepper steps={DEPOSIT_STEPS} current={stage} />
+        </div>
+        {method === null && <MethodList onPick={pick} />}
+        {method === "momo" && <MomoPanel onBack={() => pick(null)} onStage={setStage} />}
+        {method === "bank" && <BankPanel onBack={() => pick(null)} />}
+        {method === "crypto" && <CryptoPanel onBack={() => pick(null)} onStage={setStage} />}
       </div>
     </Layout>
   );
@@ -107,12 +120,13 @@ function PanelHeader({ title, onBack }: { title: string; onBack: () => void }) {
 
 // ─── Mobile money ─────────────────────────────────────────────────────────────
 
-function MomoPanel({ onBack }: { onBack: () => void }) {
+function MomoPanel({ onBack, onStage }: { onBack: () => void; onStage: (n: number) => void }) {
   const { toast } = useToast();
   const deposit = useInitiateDeposit();
-  const [picked, setPicked] = useState<typeof MOMO_OPTIONS[number] | null>(null);
+  const [picked, setPickedState] = useState<typeof MOMO_OPTIONS[number] | null>(null);
   const [amount, setAmount] = useState("");
   const [phone, setPhone] = useState("");
+  const setPicked = (o: typeof MOMO_OPTIONS[number] | null) => { setPickedState(o); onStage(o ? 2 : 1); };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,7 +272,7 @@ const RECEIVE_SOURCES = [
   },
 ] as const;
 
-function CryptoPanel({ onBack }: { onBack: () => void }) {
+function CryptoPanel({ onBack, onStage }: { onBack: () => void; onStage: (n: number) => void }) {
   const { toast } = useToast();
   const addFunds = useAddFunds();
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
@@ -266,7 +280,8 @@ function CryptoPanel({ onBack }: { onBack: () => void }) {
   const [address, setAddress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [view, setView] = useState<null | "qr" | typeof RECEIVE_SOURCES[number]["id"]>(null);
+  const [view, setViewState] = useState<null | "qr" | typeof RECEIVE_SOURCES[number]["id"]>(null);
+  const setView = (v: null | "qr" | typeof RECEIVE_SOURCES[number]["id"]) => { setViewState(v); onStage(v ? 2 : 1); };
   const source = RECEIVE_SOURCES.find((s) => s.id === view);
 
   useEffect(() => {

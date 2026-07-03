@@ -1,5 +1,5 @@
 import { Layout } from "@/components/layout";
-import { useStartKyc, useUpdateProfile } from "@workspace/api-client-react";
+import { useStartKyc, useUpdateProfile, useGetKycStatus, getGetKycStatusQueryKey } from "@workspace/api-client-react";
 import { useGetMe, getGetMeQueryKey, useDeleteAccount } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,10 @@ export default function Profile() {
     });
   };
   const { data: user, isLoading } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
+  // The provider-side verification trail: when an attempt is in flight, offer
+  // its hosted-flow link so the user resumes instead of restarting.
+  const { data: kyc } = useGetKycStatus({ query: { queryKey: getGetKycStatusQueryKey() } });
+  const inFlight = kyc?.verification?.status === "started" && kyc.verification.verificationUrl ? kyc.verification : null;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const deleteAccount = useDeleteAccount();
@@ -250,9 +254,15 @@ export default function Profile() {
                   </div>
                 </div>
                 {user?.kycStatus !== 'approved' && (
-                  <Button variant="outline" size="sm" disabled={startKyc.isPending} onClick={verifyIdentity}>
-                    {startKyc.isPending ? "Starting…" : "Verify Now"}
-                  </Button>
+                  inFlight ? (
+                    <Button variant="outline" size="sm" onClick={() => { window.location.href = inFlight.verificationUrl!; }}>
+                      Resume verification
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" disabled={startKyc.isPending} onClick={verifyIdentity}>
+                      {startKyc.isPending ? "Starting…" : "Verify Now"}
+                    </Button>
+                  )
                 )}
               </div>
             )}

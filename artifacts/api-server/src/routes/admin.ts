@@ -20,9 +20,12 @@ import {
 } from "../lib/admin-roles";
 import { isStripeConfigured } from "../lib/stripe-issuing";
 import { invalidateCustomJobs, CATEGORY_LABELS } from "../lib/jobs";
-import { db, usersTable, transactionsTable, cardWaitlistTable, customJobsTable, enquiriesTable, notificationsTable } from "@workspace/db";
+import {
+  db, usersTable, transactionsTable, cardWaitlistTable, customJobsTable, enquiriesTable,
+  kycVerificationsTable, employersTable, payrollBatchesTable, payrollPaymentsTable,
+} from "@workspace/db";
 import { notifyAll, notifyUser } from "../lib/notify";
-import { eq, count, desc, sql, isNotNull, or, isNull } from "drizzle-orm";
+import { eq, count, desc, sql, isNotNull, or } from "drizzle-orm";
 
 const router = Router();
 
@@ -120,6 +123,82 @@ router.get("/admin/users", requireAuth, requireAnyAdmin, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Admin users error");
     res.status(500).json({ error: "internal_error", message: "Failed to fetch users" });
+  }
+});
+
+// ─── KYC verifications: the provider-run identity trail ───────────────────────
+// Every attempt started via /kyc/start, with which provider ran it and their
+// decision — the admin's window into provider-held KYC data stored in OUR system.
+
+router.get("/admin/kyc/verifications", requireAuth, requireAnyAdmin, async (req, res) => {
+  try {
+    const rows = await db.select({
+      id: kycVerificationsTable.id,
+      userId: kycVerificationsTable.userId,
+      provider: kycVerificationsTable.provider,
+      externalId: kycVerificationsTable.externalId,
+      status: kycVerificationsTable.status,
+      accountType: kycVerificationsTable.accountType,
+      decidedAt: kycVerificationsTable.decidedAt,
+      createdAt: kycVerificationsTable.createdAt,
+      userEmail: usersTable.email,
+      userFullName: usersTable.fullName,
+      userKycStatus: usersTable.kycStatus,
+    }).from(kycVerificationsTable)
+      .leftJoin(usersTable, eq(kycVerificationsTable.userId, usersTable.id))
+      .orderBy(desc(kycVerificationsTable.createdAt))
+      .limit(200);
+    const [{ total }] = await db.select({ total: count() }).from(kycVerificationsTable);
+    res.json({
+      verifications: rows.map((v) => ({
+        ...v,
+        decidedAt: v.decidedAt?.toISOString() ?? null,
+        createdAt: v.createdAt.toISOString(),
+      })),
+      total,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Admin KYC verifications error");
+    res.status(500).json({ error: "internal_error", message: "Failed to load verifications" });
+  }
+});
+
+// ─── Payroll oversight: real counts for the admin payroll panel ────────────────
+
+router.get("/admin/payroll/stats", requireAuth, requireAnyAdmin, async (req, res) => {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [emp] = await db.select({
+      totalEmployers: count(),
+      verifiedEmployers: sql<number>`count(*) filter (where ${employersTable.status} = 'verified')`,
+    }).from(employersTable);
+    const [batches] = await db.select({
+      totalBatches: count(),
+      batches30d: sql<number>`count(*) filter (where ${payrollBatchesTable.createdAt} >= ${thirtyDaysAgo})`,
+      disbursed: sql<string>`coalesce(sum(${payrollBatchesTable.totalAmount}) filter (where ${payrollBatchesTable.status} in ('completed','partially_completed')), 0)`,
+      fees: sql<string>`coalesce(sum(${payrollBatchesTable.feeAmount}) filter (where ${payrollBatchesTable.status} in ('completed','partially_completed')), 0)`,
+    }).from(payrollBatchesTable);
+    const [pay] = await db.select({
+      workersPaid30d: sql<number>`count(distinct ${payrollPaymentsTable.resolvedUserId}) filter (where ${payrollPaymentsTable.status} = 'completed' and ${payrollPaymentsTable.paidAt} >= ${thirtyDaysAgo})`,
+      completedPayments: sql<number>`count(*) filter (where ${payrollPaymentsTable.status} = 'completed')`,
+      failedPayments: sql<number>`count(*) filter (where ${payrollPaymentsTable.status} = 'failed')`,
+      workersOnboarded: sql<number>`count(*) filter (where ${payrollPaymentsTable.workerCreated} = true)`,
+    }).from(payrollPaymentsTable);
+    res.json({
+      totalEmployers: emp.totalEmployers,
+      verifiedEmployers: Number(emp.verifiedEmployers),
+      totalBatches: batches.totalBatches,
+      batches30d: Number(batches.batches30d),
+      totalDisbursed: parseFloat(batches.disbursed),
+      totalFees: parseFloat(batches.fees),
+      workersPaid30d: Number(pay.workersPaid30d),
+      completedPayments: Number(pay.completedPayments),
+      failedPayments: Number(pay.failedPayments),
+      workersOnboarded: Number(pay.workersOnboarded),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Admin payroll stats error");
+    res.status(500).json({ error: "internal_error", message: "Failed to load payroll stats" });
   }
 });
 

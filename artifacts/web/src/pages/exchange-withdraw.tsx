@@ -13,6 +13,7 @@ import {
   ArrowLeft, AlertTriangle, CheckCircle2, ExternalLink, ShieldCheck, Lock,
 } from "lucide-react";
 import { NetworkIcon } from "@/components/network-icon";
+import { FlowStepper } from "@/components/flow-stepper";
 
 // MiniPay-style guided exchange withdrawal: pick the destination, follow
 // exchange-specific steps to find the Celo deposit address, paste it,
@@ -121,6 +122,11 @@ export default function ExchangeWithdraw() {
             <ArrowLeft size={15} /> Other withdrawal methods
           </span>
         </Link>
+
+        {/* Payd-style guide bar: destination → details → done */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-md px-5 pt-4 pb-3">
+          <FlowStepper steps={["Destination", "Details", "Done"]} current={result ? 2 : exchange ? 1 : 0} />
+        </div>
 
         {/* ── Success state ── */}
         {result ? (

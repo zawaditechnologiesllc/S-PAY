@@ -364,7 +364,7 @@ paths:
     post:
       operationId: startKyc
       tags: [auth]
-      summary: Begin identity verification (Noah) — returns the hosted verification URL once the provider is live
+      summary: Begin identity verification via the admin-designated provider — returns the hosted verification URL once the provider is live
       security:
         - bearerAuth: []
       responses:
@@ -381,6 +381,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /kyc/status:
+    get:
+      operationId: getKycStatus
+      tags: [auth]
+      summary: Current verification state — the account gate plus the latest provider verification attempt (with a resume URL while in flight)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Verification status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KycStatusResponse"
 
   /dashboard/summary:
     get:
@@ -557,7 +572,7 @@ paths:
     post:
       operationId: initiateWithdraw
       tags: [banking]
-      summary: Initiate a withdrawal via Noah payout
+      summary: Initiate a withdrawal — routed to the best-rate payout rail for the corridor; records a wallet transaction
       security:
         - bearerAuth: []
       requestBody:
@@ -836,6 +851,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminUsersResponse"
+
+  /admin/kyc/verifications:
+    get:
+      operationId: getAdminKycVerifications
+      summary: Provider-run KYC/KYB verification attempts (audit trail)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Verification attempts, newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminKycVerificationsResponse"
+
+  /admin/payroll/stats:
+    get:
+      operationId: getAdminPayrollStats
+      summary: Platform-wide payroll metrics (employers, batches, workers paid)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Payroll stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPayrollStats"
 
   /admin/transactions:
     get:
@@ -1671,6 +1716,132 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WebhookDeliveryListResponse"
+
+  /payroll/funding/address:
+    post:
+      operationId: getPayrollFundingAddress
+      tags: [payroll]
+      summary: Provision (or return) the Celo USDC address that funds the live payroll balance — owner JWT
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Funding address
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fundingAddress: { type: string }
+                  network: { type: string, example: Celo }
+                  currency: { type: string, example: USDC }
+                  instructions: { type: string }
+                required: [fundingAddress, network, currency]
+        "404":
+          description: No employer account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Wallet provider not configured yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payroll/dashboard/summary:
+    get:
+      operationId: getPayrollDashboardSummary
+      tags: [payroll]
+      summary: Rollup analytics for the signed-in owner's employer — owner JWT (the portal), not an API key
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollSummary"
+        "404":
+          description: No employer account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payroll/dashboard/batches:
+    get:
+      operationId: getPayrollDashboardBatches
+      tags: [payroll]
+      summary: List the owner's payroll batches — owner JWT (the portal), not an API key
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: limit, in: query, schema: { type: integer } }
+        - { name: offset, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: Batches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchListResponse"
+
+  /payroll/dashboard/batches/{batchId}:
+    get:
+      operationId: getPayrollDashboardBatch
+      tags: [payroll]
+      summary: Batch detail with its payments — owner JWT (the portal), not an API key
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: batchId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Batch with payments
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "404":
+          description: Batch not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payroll/payout-providers:
+    get:
+      operationId: getPayrollPayoutProviders
+      tags: [payroll]
+      summary: The payout rails that settle worker cash-outs (static catalog + configured state)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Providers
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /payroll/payout-quote:
+    get:
+      operationId: getPayrollPayoutQuote
+      tags: [payroll]
+      summary: Compare configured providers' quotes for a payout corridor
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: targetCurrency, in: query, schema: { type: string, example: KES } }
+        - { name: method, in: query, schema: { type: string, example: mpesa } }
+        - { name: amount, in: query, schema: { type: number } }
+      responses:
+        "200":
+          description: Quotes
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
 
   /admin/seo/status:
     get:
@@ -2933,6 +3104,9 @@ components:
       properties:
         withdrawalId:
           type: string
+        transactionId:
+          type: string
+          description: The wallet-history transaction recording this cash-out
         status:
           type: string
         estimatedArrival:
@@ -3632,6 +3806,120 @@ components:
       required:
         - status
         - maintenance
+
+    KycStatusResponse:
+      type: object
+      properties:
+        kycStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        accountType:
+          type: string
+          enum: [personal, business]
+        verification:
+          type: object
+          nullable: true
+          description: The latest provider verification attempt, if any
+          properties:
+            id:
+              type: string
+            provider:
+              type: string
+              description: Money-rail that ran the verification (noah, bridge, conduit, yellowcard)
+            status:
+              type: string
+              enum: [started, approved, rejected]
+            verificationUrl:
+              type: string
+              nullable: true
+              description: Hosted-flow URL to resume an in-flight verification
+            startedAt:
+              type: string
+            decidedAt:
+              type: string
+              nullable: true
+          required: [id, provider, status, startedAt]
+      required: [kycStatus, accountType]
+
+    AdminKycVerification:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        provider:
+          type: string
+        externalId:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [started, approved, rejected]
+        accountType:
+          type: string
+          nullable: true
+        decidedAt:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        userEmail:
+          type: string
+          nullable: true
+        userFullName:
+          type: string
+          nullable: true
+        userKycStatus:
+          type: string
+          nullable: true
+      required: [id, userId, provider, status, createdAt]
+
+    AdminKycVerificationsResponse:
+      type: object
+      properties:
+        verifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminKycVerification"
+        total:
+          type: integer
+      required: [verifications, total]
+
+    AdminPayrollStats:
+      type: object
+      properties:
+        totalEmployers:
+          type: integer
+        verifiedEmployers:
+          type: integer
+        totalBatches:
+          type: integer
+        batches30d:
+          type: integer
+        totalDisbursed:
+          type: number
+        totalFees:
+          type: number
+        workersPaid30d:
+          type: integer
+        completedPayments:
+          type: integer
+        failedPayments:
+          type: integer
+        workersOnboarded:
+          type: integer
+      required:
+        - totalEmployers
+        - verifiedEmployers
+        - totalBatches
+        - batches30d
+        - totalDisbursed
+        - totalFees
+        - workersPaid30d
+        - completedPayments
+        - failedPayments
+        - workersOnboarded
 
     AdminStats:
       type: object

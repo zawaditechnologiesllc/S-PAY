@@ -119,6 +119,13 @@ export const payrollApi = {
 
   getSummary: () => request<Summary>("/payroll/dashboard/summary"),
 
+  // Provisions (or returns) the Celo USDC address that funds the live payroll
+  // balance — send USDC on Celo to it and the balance credits.
+  getFundingAddress: () =>
+    request<{ fundingAddress: string; network: string; currency: string; instructions?: string }>(
+      "/payroll/funding/address", { method: "POST" },
+    ),
+
   listKeys: () => request<{ apiKeys: ApiKey[] }>("/payroll/employers/me/api-keys"),
 
   createKey: (body: { name?: string; sandbox: boolean }) =>

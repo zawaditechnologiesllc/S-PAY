@@ -172,6 +172,21 @@ Card) run their own hosted KYC/KYB — S-PAY routes the user to the admin-select
 `kycProvider`'s flow (`selectKycProvider`) and the result webhooks back to set
 `kycStatus`. Thunes is a payout network and leaves KYC to the partner.
 
+**…and the data stays in S-PAY's system.** Every attempt started via
+`POST /kyc/start` is recorded in `kyc_verifications` (provider, the provider's
+customer id, the hosted-flow URL, and later the decision payload from the
+webhook). This gives us:
+
+- `GET /kyc/status` — the user's gate (`kycStatus`) plus the latest attempt,
+  with a **resume URL** while the hosted flow is in flight (the profile page
+  shows "Resume verification" instead of restarting).
+- `GET /admin/kyc/verifications` — the audit trail in the admin panel
+  (Users page): who verified with which provider, and the outcome.
+- Webhook landing places: `/webhooks/noah` (Noah KYC/KYB events) and the
+  generic `/webhooks/kyc/:provider` for Bridge / Conduit / Yellow Card
+  (HMAC-verified with `<PROVIDER>_WEBHOOK_SECRET`); both update the trail and
+  flip `users.kycStatus`.
+
 ---
 
 ## Off-ramp (the cash-out, shared by all flows)
@@ -185,8 +200,14 @@ selectPayoutProvider(targetCurrency, method)  →  best enabled+configured rail
      ├─ Noah | Bridge | Conduit | Yellow Card | Thunes
      └─ none can serve the corridor → honest 503, funds untouched
      ↓
-Provider debits USDC from the wallet, converts to local currency, settles to the
-worker's phone/bank  (execution = task D2; live the moment a provider key is set)
+On-chain balance check (the cash-out debits the user's own USDC)
+     ↓
+provider.createPayout(...)  — a provider without live keys throws its
+NotConfiguredError → the same honest 503; nothing is recorded, nothing moves
+     ↓
+A "withdraw" row lands in the transactions table (status from the provider:
+pending → completed via webhook) and the user is notified. Execution is live
+the moment a payout provider's keys are set.
 ```
 
 Quotes for comparison across every eligible provider:

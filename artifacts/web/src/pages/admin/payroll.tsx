@@ -1,5 +1,8 @@
 import { Link } from "wouter";
-import { useGetPayoutProviders, getGetPayoutProvidersQueryKey } from "@workspace/api-client-react";
+import {
+  useGetPayoutProviders, getGetPayoutProvidersQueryKey,
+  useGetAdminPayrollStats, getGetAdminPayrollStatsQueryKey,
+} from "@workspace/api-client-react";
 import { AdminLayout } from "./layout";
 import { CheckCircle2, XCircle, Building2, TrendingUp, Users, Banknote, ArrowRight } from "lucide-react";
 
@@ -13,6 +16,7 @@ const PROVIDER_CORRIDORS: Record<string, string> = {
 
 export default function AdminPayroll() {
   const { data: payout } = useGetPayoutProviders({ query: { queryKey: getGetPayoutProvidersQueryKey() } });
+  const { data: stats } = useGetAdminPayrollStats({ query: { queryKey: getGetAdminPayrollStatsQueryKey() } });
   return (
     <AdminLayout title="Payroll Management">
       <div className="space-y-6 max-w-4xl">
@@ -21,45 +25,49 @@ export default function AdminPayroll() {
           Payroll system status, configured employers, and batch processing metrics.
         </p>
 
-        {/* Stats grid */}
+        {/* Stats grid — live from /admin/payroll/stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active Employers</p>
-                <p className="text-3xl font-black text-gray-900 dark:text-gray-100 mt-1">0</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Employers</p>
+                <p className="text-3xl font-black text-gray-900 dark:text-gray-100 mt-1">{stats?.totalEmployers ?? "…"}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600">
                 <Building2 size={20} />
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-3">KYB verified and funded</p>
+            <p className="text-xs text-gray-400 mt-3">{stats?.verifiedEmployers ?? 0} KYB verified</p>
           </div>
 
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payroll Batches (30d)</p>
-                <p className="text-3xl font-black text-gray-900 dark:text-gray-100 mt-1">0</p>
+                <p className="text-3xl font-black text-gray-900 dark:text-gray-100 mt-1">{stats?.batches30d ?? "…"}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center text-green-600">
                 <TrendingUp size={20} />
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-3">Submitted & completed</p>
+            <p className="text-xs text-gray-400 mt-3">
+              {stats ? `${stats.totalBatches} all-time · ${stats.totalDisbursed.toLocaleString()} USDC disbursed` : "Submitted & completed"}
+            </p>
           </div>
 
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Workers Paid (30d)</p>
-                <p className="text-3xl font-black text-gray-900 dark:text-gray-100 mt-1">0</p>
+                <p className="text-3xl font-black text-gray-900 dark:text-gray-100 mt-1">{stats?.workersPaid30d ?? "…"}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-purple-600">
                 <Users size={20} />
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-3">Auto-onboarded + existing</p>
+            <p className="text-xs text-gray-400 mt-3">
+              {stats ? `${stats.workersOnboarded} auto-onboarded · ${stats.failedPayments} failed payments` : "Auto-onboarded + existing"}
+            </p>
           </div>
         </div>
 

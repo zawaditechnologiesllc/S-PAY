@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { QRModal } from "@/components/qr-modal";
+import { FlowStepper } from "@/components/flow-stepper";
 import {
-  ScanLine, ArrowRightLeft, Plus, Banknote,
+  ScanLine, ArrowRightLeft, Plus, Banknote, ArrowRight, ArrowLeft,
   CheckCircle2, Smartphone, Wallet2, Mail, Lock, ShieldAlert, ExternalLink, CameraOff, QrCode,
   Camera, Image as ImageIcon,
 } from "lucide-react";
@@ -97,6 +98,9 @@ function TransferDialog({ open, onClose, initial }: { open: boolean; onClose: ()
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const send = useSendMoney();
+  // Payd-style guided steps: Recipient → Amount → Confirm → Done, with the
+  // step bar on top so the sender always knows where they are.
+  const [step, setStep] = useState(0);
   const [mode, setMode] = useState<SendMode>("phone");
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
@@ -110,8 +114,8 @@ function TransferDialog({ open, onClose, initial }: { open: boolean; onClose: ()
   useEffect(() => {
     if (open) {
       setResult(null); setAmount(""); setNote(""); setPin(""); setNeedsPinSetup(false);
-      if (initial) { setMode(initial.mode); setRecipient(initial.value); }
-      else { setMode("phone"); setRecipient(""); }
+      if (initial) { setMode(initial.mode); setRecipient(initial.value); setStep(1); } // scanned → recipient known, go to amount
+      else { setMode("phone"); setRecipient(""); setStep(0); }
     }
   }, [open, initial]);
 
@@ -121,22 +125,21 @@ function TransferDialog({ open, onClose, initial }: { open: boolean; onClose: ()
     mode === "spay-id" ? { recipientSpayId: recipient.trim() } :
     { recipientAddress: recipient.trim() };
 
+  const parsedAmount = parseFloat(amount);
+  const amountValid = Number.isFinite(parsedAmount) && parsedAmount > 0;
+
   const submit = () => {
-    const value = parseFloat(amount);
-    if (!recipient.trim() || !Number.isFinite(value) || value <= 0) {
-      toast({ title: "Check the details", description: "Enter a recipient and a valid amount.", variant: "destructive" });
-      return;
-    }
     if (!/^\d{4,6}$/.test(pin)) {
       toast({ title: "Enter your PIN", description: "Your 4–6 digit transaction PIN authorizes the transfer.", variant: "destructive" });
       return;
     }
     send.mutate(
-      { data: { amount: value, currency: "USDC", ...recipientField, ...(note.trim() ? { note: note.trim() } : {}), pin } },
+      { data: { amount: parsedAmount, currency: "USDC", ...recipientField, ...(note.trim() ? { note: note.trim() } : {}), pin } },
       {
         onSuccess: (tx) => {
           const t = tx as { txHash?: string; fee?: number; total?: number };
           setResult({ txHash: t.txHash, fee: t.fee, total: t.total });
+          setStep(3);
           queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
         },
         onError: (err) => {
@@ -156,27 +159,12 @@ function TransferDialog({ open, onClose, initial }: { open: boolean; onClose: ()
     { id: "address", icon: <Wallet2 size={13} />, label: "Address", placeholder: "0x…" },
   ];
   const activeMode = modes.find((m) => m.id === mode)!;
+  const recipientLabel = mode === "phone" ? "Recipient's phone number" : mode === "email" ? "Recipient's email" : mode === "spay-id" ? "Recipient's S-PAY ID" : "Recipient's Celo address";
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
-        {result ? (
-          <div className="flex flex-col items-center text-center py-6 gap-3">
-            <CheckCircle2 size={56} className="text-green-500" />
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Money sent 🎉</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">USDC {amount} is on its way — settled on Celo in ~5 seconds.</p>
-            {result.fee !== undefined && result.fee > 0 && (
-              <p className="text-xs text-gray-400">Fee: {result.fee.toFixed(2)} USDC · Total charged: {result.total?.toFixed(2)} USDC</p>
-            )}
-            {result.txHash && (
-              <a href={`https://celoscan.io/tx/${result.txHash}`} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-[#2E8FD6] hover:underline inline-flex items-center gap-1">
-                View receipt on CeloScan <ExternalLink size={12} />
-              </a>
-            )}
-            <Button className="mt-2 w-full bg-[#4DC9EE] hover:bg-[#2E8FD6]" onClick={onClose}>Done</Button>
-          </div>
-        ) : needsPinSetup ? (
+        {needsPinSetup ? (
           <div className="flex flex-col items-center text-center py-6 gap-3">
             <ShieldAlert size={48} className="text-amber-500" />
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Set up your transaction PIN</h3>
@@ -191,49 +179,120 @@ function TransferDialog({ open, onClose, initial }: { open: boolean; onClose: ()
               <DialogTitle>Transfer</DialogTitle>
               <DialogDescription>Send by phone, email, S-PAY ID, or to any Celo wallet.</DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
-              {modes.map((m) => (
-                <button key={m.id}
-                  onClick={() => { setMode(m.id); setRecipient(""); }}
-                  className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors ${mode === m.id ? "bg-white dark:bg-gray-900 shadow text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}`}>
-                  {m.icon} {m.label}
+
+            <FlowStepper steps={["Recipient", "Amount", "Confirm", "Done"]} current={step} />
+
+            {/* ── Step 1 · Recipient ── */}
+            {step === 0 && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                  {modes.map((m) => (
+                    <button key={m.id}
+                      onClick={() => { setMode(m.id); setRecipient(""); }}
+                      className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-colors ${mode === m.id ? "bg-white dark:bg-gray-900 shadow text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}`}>
+                      {m.icon} {m.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="qa-recipient">{recipientLabel}</Label>
+                  <Input id="qa-recipient" placeholder={activeMode.placeholder} value={recipient} onChange={(e) => setRecipient(e.target.value)} />
+                </div>
+                <Button
+                  className="w-full bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold"
+                  disabled={!recipient.trim()}
+                  onClick={() => setStep(1)}
+                >
+                  Continue <ArrowRight size={15} className="ml-1.5" />
+                </Button>
+                {/* Flip side of sending: let the user show their own S-PAY ID QR so
+                    the other party can pay them without typing anything. */}
+                <button
+                  type="button"
+                  onClick={() => setQrOpen(true)}
+                  className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-[#4DC9EE] hover:underline pt-1"
+                >
+                  <QrCode size={13} /> Show my QR to get paid instead
                 </button>
-              ))}
-            </div>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="qa-recipient">
-                  {mode === "phone" ? "Recipient's phone number" : mode === "email" ? "Recipient's email" : mode === "spay-id" ? "Recipient's S-PAY ID" : "Recipient's Celo address"}
-                </Label>
-                <Input id="qa-recipient" placeholder={activeMode.placeholder} value={recipient} onChange={(e) => setRecipient(e.target.value)} />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="qa-amount">Amount (USDC)</Label>
-                <Input id="qa-amount" type="number" min="0" step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            )}
+
+            {/* ── Step 2 · Amount ── */}
+            {step === 1 && (
+              <div className="space-y-3">
+                <button onClick={() => setStep(0)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
+                  <ArrowLeft size={13} /> {recipient}
+                </button>
+                <div className="space-y-1.5">
+                  <Label htmlFor="qa-amount">Amount (USDC)</Label>
+                  <Input id="qa-amount" type="number" min="0" step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="qa-note">Note (optional)</Label>
+                  <Input id="qa-note" placeholder="What's it for?" maxLength={120} value={note} onChange={(e) => setNote(e.target.value)} />
+                </div>
+                <Button
+                  className="w-full bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold"
+                  disabled={!amountValid}
+                  onClick={() => setStep(2)}
+                >
+                  Review transfer <ArrowRight size={15} className="ml-1.5" />
+                </Button>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="qa-note">Note (optional)</Label>
-                <Input id="qa-note" placeholder="What's it for?" maxLength={120} value={note} onChange={(e) => setNote(e.target.value)} />
+            )}
+
+            {/* ── Step 3 · Confirm with PIN ── */}
+            {step === 2 && (
+              <div className="space-y-3">
+                <button onClick={() => setStep(1)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600">
+                  <ArrowLeft size={13} /> Edit amount
+                </button>
+                <div className="rounded-xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800 text-sm">
+                  <div className="flex justify-between items-center gap-3 p-3">
+                    <span className="text-gray-500 dark:text-gray-400">To</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100 break-all text-right">{recipient}</span>
+                  </div>
+                  <div className="flex justify-between items-center gap-3 p-3">
+                    <span className="text-gray-500 dark:text-gray-400">Amount</span>
+                    <span className="font-black text-gray-900 dark:text-gray-100">{amountValid ? parsedAmount.toFixed(2) : "0.00"} USDC</span>
+                  </div>
+                  {note.trim() && (
+                    <div className="flex justify-between items-center gap-3 p-3">
+                      <span className="text-gray-500 dark:text-gray-400">Note</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100 text-right">{note.trim()}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="qa-pin" className="flex items-center gap-1.5"><Lock size={12} /> Transaction PIN</Label>
+                  <Input id="qa-pin" type="password" inputMode="numeric" autoComplete="off" maxLength={6}
+                    placeholder="••••" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} autoFocus />
+                </div>
+                <Button className="w-full bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold" disabled={send.isPending || !/^\d{4,6}$/.test(pin)} onClick={submit}>
+                  {send.isPending ? "Sending…" : `Send ${amountValid ? parsedAmount.toFixed(2) : ""} USDC now`}
+                </Button>
+                <p className="text-[11px] text-gray-400 text-center">Settled on Celo in ~5s · any network fee shows on your receipt</p>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="qa-pin" className="flex items-center gap-1.5"><Lock size={12} /> Transaction PIN</Label>
-                <Input id="qa-pin" type="password" inputMode="numeric" autoComplete="off" maxLength={6}
-                  placeholder="••••" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} />
+            )}
+
+            {/* ── Step 4 · Done ── */}
+            {step === 3 && result && (
+              <div className="flex flex-col items-center text-center py-4 gap-3">
+                <CheckCircle2 size={56} className="text-green-500" />
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Money sent 🎉</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">USDC {amount} is on its way — settled on Celo in ~5 seconds.</p>
+                {result.fee !== undefined && result.fee > 0 && (
+                  <p className="text-xs text-gray-400">Fee: {result.fee.toFixed(2)} USDC · Total charged: {result.total?.toFixed(2)} USDC</p>
+                )}
+                {result.txHash && (
+                  <a href={`https://celoscan.io/tx/${result.txHash}`} target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-[#2E8FD6] hover:underline inline-flex items-center gap-1">
+                    View receipt on CeloScan <ExternalLink size={12} />
+                  </a>
+                )}
+                <Button className="mt-2 w-full bg-[#4DC9EE] hover:bg-[#2E8FD6]" onClick={onClose}>Done</Button>
               </div>
-              <Button className="w-full bg-[#4DC9EE] hover:bg-[#2E8FD6] font-bold" disabled={send.isPending} onClick={submit}>
-                {send.isPending ? "Sending…" : "Send now"}
-              </Button>
-              <p className="text-[11px] text-gray-400 text-center">Settled on Celo in ~5s · any network fee shows on your receipt</p>
-              {/* Flip side of sending: let the user show their own S-PAY ID QR so
-                  the other party can pay them without typing anything. */}
-              <button
-                type="button"
-                onClick={() => setQrOpen(true)}
-                className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-[#4DC9EE] hover:underline pt-1"
-              >
-                <QrCode size={13} /> Show my QR to get paid instead
-              </button>
-            </div>
+            )}
           </>
         )}
       </DialogContent>

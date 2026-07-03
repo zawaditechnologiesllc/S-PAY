@@ -229,7 +229,25 @@ enabled (the API connects as table owner; Supabase's auto REST API is deny-all).
 
 ---
 
-## 10. Test it
+## 10. After the payout — how the worker's money completes
+
+A completed payment means real USDC arrived in the **worker's own Celo wallet**
+(their single S-PAY balance, with the on-chain tx hash on the transaction). From
+there the flow finishes however the worker wants:
+
+- **Keep it in the balance** — it's already theirs, spendable in-app (P2P sends,
+  card once live). Nothing else to do.
+- **Withdraw it** — the guided cash-out flows: mobile money / PIX / SEPA / bank
+  (`/banking/withdraw`, guided step bar in the app) or to any exchange
+  (`/wallet/exchange`, ~5 s on Celo). Cash-outs are PIN-authorized and routed to
+  the best-rate payout rail.
+
+Workers auto-onboarded by a batch get an invite; on first login they set a PIN
+and can withdraw immediately — no extra employer action needed.
+
+---
+
+## 11. Test it
 
 A self-contained end-to-end test boots the API against a throwaway Postgres and
 runs the full flow (register → key → fund → batch → submit → resolve →
