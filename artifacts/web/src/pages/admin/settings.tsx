@@ -697,8 +697,13 @@ function PayoutProvidersSection() {
     );
   };
 
-  const issuers = (data?.providers ?? []).filter((p) => p.supportsVirtualAccounts);
-  const kycers = (data?.providers ?? []).filter((p) => p.supportsKyc);
+  // The full rail list is always shown in both selectors — capability, keys and
+  // kill-switch state decide whether an entry is selectable, and the option
+  // label says exactly why when it isn't. Capable subsets drive the
+  // "effectively active" computation below.
+  const allProviders = data?.providers ?? [];
+  const issuers = allProviders.filter((p) => p.supportsVirtualAccounts);
+  const kycers = allProviders.filter((p) => p.supportsKyc);
 
   // What actually happens at runtime: the designated provider serves only while
   // it is configured + enabled; otherwise routing falls back to the first
@@ -774,23 +779,31 @@ function PayoutProvidersSection() {
       <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Virtual-account issuer</p>
         <p className="text-xs text-gray-400 mt-0.5 mb-2 leading-relaxed">
-          Who issues <strong>new</strong> virtual accounts (US ACH / EU IBAN, or local accounts via Conduit / Yellow Card).
-          Unlike deposits/withdrawals, an account is a sticky identifier — existing accounts keep their issuer; this only sets
-          the issuer for accounts not yet opened.
+          Who issues <strong>new</strong> virtual accounts (US ACH / EU IBAN). All rails are listed; only account-capable,
+          configured and enabled ones are selectable. Unlike deposits/withdrawals, an account is a sticky identifier —
+          existing accounts keep their issuer; this only sets the issuer for accounts not yet opened.
         </p>
         <select
+          aria-label="Virtual-account issuer"
           value={data?.virtualAccountIssuer ?? ""}
           onChange={(e) => setIssuer(e.target.value)}
-          disabled={update.isPending || issuers.length === 0}
+          disabled={update.isPending || allProviders.length === 0}
           className="w-full sm:w-auto text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 disabled:opacity-50"
         >
-          {issuers.length === 0 && <option value="">No issuer-capable provider</option>}
-          {issuers.map((p) => (
-            <option key={p.key} value={p.key} disabled={!p.configured || !p.enabled}>
-              {p.label}{!p.configured ? " — not set" : !p.enabled ? " — off" : ""}
+          {allProviders.length === 0 && <option value="">Loading providers…</option>}
+          {allProviders.map((p) => (
+            <option key={p.key} value={p.key} disabled={!p.supportsVirtualAccounts || !p.configured || !p.enabled}>
+              {p.label}
+              {!p.supportsVirtualAccounts
+                ? " — payout rail, can't issue accounts"
+                : ` (${(p.virtualAccountCurrencies ?? []).join(" + ") || "USD/EUR"})${!p.configured ? " — not set" : !p.enabled ? " — off" : ""}`}
             </option>
           ))}
         </select>
+        <p className="text-[11px] text-gray-400 mt-1">
+          Issuing coverage: {issuers.map((p) => `${p.label} (${(p.virtualAccountCurrencies ?? []).join(" + ")})`).join(" · ") || "none"}.
+          A currency the designated issuer can't serve routes to the next capable rail automatically.
+        </p>
         <p className={`text-xs mt-1.5 ${effectiveIssuer.provider ? (effectiveIssuer.fallback ? "text-amber-600" : "text-green-600") : "text-red-500"}`}>
           {effectiveIssuer.provider
             ? effectiveIssuer.fallback
@@ -808,15 +821,19 @@ function PayoutProvidersSection() {
           KYC/KYB; users are sent to the selected provider's flow and the result webhooks back to unlock their account.
         </p>
         <select
+          aria-label="Identity verification provider"
           value={data?.kycProvider ?? ""}
           onChange={(e) => setKyc(e.target.value)}
-          disabled={update.isPending || kycers.length === 0}
+          disabled={update.isPending || allProviders.length === 0}
           className="w-full sm:w-auto text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-gray-900 disabled:opacity-50"
         >
-          {kycers.length === 0 && <option value="">No KYC-capable provider</option>}
-          {kycers.map((p) => (
-            <option key={p.key} value={p.key} disabled={!p.configured || !p.enabled}>
-              {p.label}{!p.configured ? " — not set" : !p.enabled ? " — off" : ""}
+          {allProviders.length === 0 && <option value="">Loading providers…</option>}
+          {allProviders.map((p) => (
+            <option key={p.key} value={p.key} disabled={!p.supportsKyc || !p.configured || !p.enabled}>
+              {p.label}
+              {!p.supportsKyc
+                ? " — payout network, no hosted KYC"
+                : !p.configured ? " — not set" : !p.enabled ? " — off" : ""}
             </option>
           ))}
         </select>

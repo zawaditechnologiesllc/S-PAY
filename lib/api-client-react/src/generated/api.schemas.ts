@@ -1391,6 +1391,8 @@ export interface PayoutProviderInfo {
   supportsDeposits?: boolean;
   /** Whether this provider can issue USD/EUR virtual accounts */
   supportsVirtualAccounts?: boolean;
+  /** Which of the offered account currencies (USD, EUR) this provider can issue — empty for payout-only rails */
+  virtualAccountCurrencies?: string[];
   /** Whether this provider runs its own hosted KYC/KYB */
   supportsKyc?: boolean;
 }
