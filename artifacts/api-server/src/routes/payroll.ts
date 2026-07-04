@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { requireAuth } from "../middlewares/auth";
 import { requireEmployer, generateApiKey } from "../lib/employer-auth";
 import {
-  resolveWorker, payrollFee, round6, inferIdentifierType, validateIdentifier,
+  resolveWorker, payrollFee, getPayrollFeeConfig, round6, inferIdentifierType, validateIdentifier,
   type IdentifierType,
 } from "../lib/payroll";
 import { processBatch } from "../lib/payroll-processor";
@@ -342,8 +342,9 @@ router.post("/payroll/batches", requireEmployer("payroll:write"), async (req, re
       return;
     }
 
+    const feeCfg = await getPayrollFeeConfig(); // admin-set, live from /admin/settings
     const totalAmount = round6(cleaned.reduce((s, p) => s + p.amount, 0));
-    const feeAmount = round6(cleaned.reduce((s, p) => s + payrollFee(p.amount), 0));
+    const feeAmount = round6(cleaned.reduce((s, p) => s + payrollFee(p.amount, feeCfg), 0));
 
     const [batch] = await db.insert(payrollBatchesTable).values({
       employerId: employer.id,

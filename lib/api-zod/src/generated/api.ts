@@ -870,6 +870,40 @@ export const GetAdminKycVerificationsResponse = zod.object({
 
 
 /**
+ * @summary List payroll employers with KYB status, balance and batch count
+ */
+export const GetAdminEmployersResponse = zod.object({
+  "employers": zod.array(zod.object({
+  "id": zod.string(),
+  "companyName": zod.string(),
+  "email": zod.string(),
+  "websiteUrl": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "status": zod.enum(['pending', 'verified', 'rejected', 'suspended']),
+  "balanceUsdc": zod.number(),
+  "ownerUserId": zod.string().optional(),
+  "ownerEmail": zod.string().nullish(),
+  "batches": zod.number(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Set an employer's KYB status — "verified" unlocks live payroll keys; "suspended" blocks the account
+ */
+export const SetEmployerStatusParams = zod.object({
+  "employerId": zod.coerce.string()
+})
+
+export const SetEmployerStatusBody = zod.object({
+  "status": zod.enum(['pending', 'verified', 'rejected', 'suspended'])
+})
+
+export const SetEmployerStatusResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Platform-wide payroll metrics (employers, batches, workers paid)
  */
 export const GetAdminPayrollStatsResponse = zod.object({
@@ -922,7 +956,9 @@ export const GetFeeScheduleResponse = zod.object({
   "withdrawalFeeMin": zod.number().describe('Minimum withdrawal fee in USD'),
   "cardIssuanceFee": zod.number().describe('One-time virtual card creation fee in USD (covers Stripe\'s cost + margin)'),
   "p2pFeePercent": zod.number().describe('Transfer fee — percent component of the per-send commission'),
-  "transferFeeFlat": zod.number().describe('Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount\*percent\/100')
+  "transferFeeFlat": zod.number().describe('Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount\*percent\/100'),
+  "payrollFeePercent": zod.number().describe('Payroll fee — percent of each batch payment, charged to the employer on top of the payout'),
+  "payrollFeeFlat": zod.number().describe('Payroll fee — flat USDC per batch payment; total fee = flat + amount\*percent\/100')
 })
 
 
@@ -934,7 +970,9 @@ export const UpdateFeeScheduleBody = zod.object({
   "withdrawalFeeMin": zod.number().describe('Minimum withdrawal fee in USD'),
   "cardIssuanceFee": zod.number().describe('One-time virtual card creation fee in USD (covers Stripe\'s cost + margin)'),
   "p2pFeePercent": zod.number().describe('Transfer fee — percent component of the per-send commission'),
-  "transferFeeFlat": zod.number().describe('Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount\*percent\/100')
+  "transferFeeFlat": zod.number().describe('Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount\*percent\/100'),
+  "payrollFeePercent": zod.number().describe('Payroll fee — percent of each batch payment, charged to the employer on top of the payout'),
+  "payrollFeeFlat": zod.number().describe('Payroll fee — flat USDC per batch payment; total fee = flat + amount\*percent\/100')
 })
 
 export const UpdateFeeScheduleResponse = zod.object({
@@ -942,7 +980,9 @@ export const UpdateFeeScheduleResponse = zod.object({
   "withdrawalFeeMin": zod.number().describe('Minimum withdrawal fee in USD'),
   "cardIssuanceFee": zod.number().describe('One-time virtual card creation fee in USD (covers Stripe\'s cost + margin)'),
   "p2pFeePercent": zod.number().describe('Transfer fee — percent component of the per-send commission'),
-  "transferFeeFlat": zod.number().describe('Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount\*percent\/100')
+  "transferFeeFlat": zod.number().describe('Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount\*percent\/100'),
+  "payrollFeePercent": zod.number().describe('Payroll fee — percent of each batch payment, charged to the employer on top of the payout'),
+  "payrollFeeFlat": zod.number().describe('Payroll fee — flat USDC per batch payment; total fee = flat + amount\*percent\/100')
 })
 
 

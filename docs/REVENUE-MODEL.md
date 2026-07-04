@@ -20,7 +20,7 @@ the spread is mostly margin.
 
 | # | Line | Default price | Lever (code) | Status |
 |---|---|---|---|---|
-| 1 | **Payroll fee** | flat $0.00 + **1.0%** per payment | `DEFAULT_PAYROLL_FEE` (`lib/payroll.ts`), `payrollFee()` | ✅ Charged + reserved per payment; swept on-chain to treasury on settlement |
+| 1 | **Payroll fee** | flat $0.00 + **1.0%** per payment | `payrollFeePercent` / `payrollFeeFlat` in the admin fee schedule (`lib/settings.ts`), applied by `payrollFee()` | ✅ Admin-tunable live; charged + reserved per payment; swept on-chain to treasury on settlement |
 | 2 | **Withdrawal / cash-out fee** | **max($0.49, 1.0%)** per withdrawal | `DEFAULT_FEES.withdrawalFee*`, `withdrawalFee()` (`lib/settings.ts`) | ✅ Quoted live; collected on execution (D2) |
 | 3 | **Card issuance fee** | **$1.00** one-time | `DEFAULT_FEES.cardIssuanceFee` | ✅ Live with the card program |
 | 4 | **P2P transfer commission** | flat $0.00 + **0%** (free) | `transferFeeFlat`, `p2pFeePercent`, `transferFee()` | ✅ Live; swept to treasury when priced > 0 |
@@ -104,8 +104,9 @@ From **Admin → Settings → Fees & Revenue**:
 - Withdrawal **%** and **minimum** ($).
 - Card issuance fee ($).
 - P2P **%** and flat — keep at 0 for growth, raise once sticky.
-- (Payroll % / flat are in `DEFAULT_PAYROLL_FEE`; expose in the same panel when
-  you want per-tenant payroll pricing.)
+- Payroll **%** and flat — charged to the employer per batch payment; applies
+  to batches created after the change. The panel includes a "which fee applies
+  where" guide so an operator never guesses.
 
 From **Admin → Settings → Payout Providers**: preferred provider + per-provider
 on/off — your direct control over the cost side of every transaction.

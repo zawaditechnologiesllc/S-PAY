@@ -69,6 +69,7 @@ const HowItWorks = lazyWithReload(() => import("@/pages/how-it-works"));
 const ResetPassword = lazyWithReload(() => import("@/pages/reset-password"));
 const Deposit = lazyWithReload(() => import("@/pages/deposit"));
 const Support = lazyWithReload(() => import("@/pages/support"));
+const Notifications = lazyWithReload(() => import("@/pages/notifications"));
 const Security = lazyWithReload(() => import("@/pages/security"));
 const EmailVerified = lazyWithReload(() => import("@/pages/email-verified"));
 const Privacy = lazyWithReload(() => import("@/pages/privacy"));
@@ -230,6 +231,7 @@ function Router() {
       <Route path="/banking/withdraw"><ProtectedRoute component={Withdraw} /></Route>
       <Route path="/deposit"><ProtectedRoute component={Deposit} /></Route>
       <Route path="/support"><ProtectedRoute component={Support} /></Route>
+      <Route path="/notifications"><ProtectedRoute component={Notifications} /></Route>
       <Route path="/security"><ProtectedRoute component={Security} /></Route>
       <Route path="/wallet/exchange"><ProtectedRoute component={ExchangeWithdraw} /></Route>
       <Route path="/card"><ProtectedRoute component={CardPage} /></Route>

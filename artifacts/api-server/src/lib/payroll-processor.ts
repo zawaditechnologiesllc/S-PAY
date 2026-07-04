@@ -3,7 +3,7 @@ import {
   type Employer,
 } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { resolveWorker, payrollFee, round6, type IdentifierType } from "./payroll";
+import { resolveWorker, payrollFee, getPayrollFeeConfig, round6, type IdentifierType } from "./payroll";
 import { enqueueWebhook } from "./payroll-webhooks";
 import { notifyUser } from "./notify";
 import { logger } from "./logger";
@@ -92,6 +92,9 @@ async function processBatchInner(batchId: string): Promise<void> {
   const payments = await db.select().from(payrollPaymentsTable)
     .where(eq(payrollPaymentsTable.batchId, batchId));
 
+  // One fee config for the whole run, from the admin-set schedule.
+  const feeCfg = await getPayrollFeeConfig();
+
   let completed = 0;
   let failed = 0;
 
@@ -100,7 +103,7 @@ async function processBatchInner(batchId: string): Promise<void> {
     if (payment.status === "failed") { failed++; continue; }
 
     const amount = Number(payment.amount);
-    const fee = payrollFee(amount);
+    const fee = payrollFee(amount, feeCfg);
     try {
       const result = await payOne(employer, batch.sandbox, settlement, {
         paymentId: payment.id,

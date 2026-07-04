@@ -2,9 +2,11 @@ import { Link } from "wouter";
 import {
   useGetPayoutProviders, getGetPayoutProvidersQueryKey,
   useGetAdminPayrollStats, getGetAdminPayrollStatsQueryKey,
+  useGetAdminEmployers, getGetAdminEmployersQueryKey, useSetEmployerStatus,
 } from "@workspace/api-client-react";
 import { AdminLayout } from "./layout";
-import { CheckCircle2, XCircle, Building2, TrendingUp, Users, Banknote, ArrowRight } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { CheckCircle2, XCircle, Building2, TrendingUp, Users, Banknote, ArrowRight, BadgeCheck, Ban, Clock } from "lucide-react";
 
 const PROVIDER_CORRIDORS: Record<string, string> = {
   noah: "100+ countries",
@@ -70,6 +72,9 @@ export default function AdminPayroll() {
             </p>
           </div>
         </div>
+
+        {/* Employers: the KYB queue — verifying here unlocks live API keys */}
+        <EmployersPanel />
 
         {/* System Configuration */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
@@ -143,5 +148,103 @@ export default function AdminPayroll() {
 
       </div>
     </AdminLayout>
+  );
+}
+
+// The employer KYB queue: registered companies with their verification state,
+// balance and batch count. "Verify" is the action that unlocks LIVE API keys;
+// "Suspend" instantly blocks every key the employer holds.
+function EmployersPanel() {
+  const { toast } = useToast();
+  const { data, isLoading, refetch } = useGetAdminEmployers({ query: { queryKey: getGetAdminEmployersQueryKey() } });
+  const setStatus = useSetEmployerStatus();
+  const rows = data?.employers ?? [];
+
+  const change = (employerId: string, companyName: string, status: "verified" | "rejected" | "suspended" | "pending") => {
+    setStatus.mutate({ employerId, data: { status } }, {
+      onSuccess: () => {
+        toast({
+          title: status === "verified" ? `${companyName} verified ✓` : `${companyName} → ${status}`,
+          description: status === "verified" ? "They can now mint live API keys and run real payroll." : undefined,
+        });
+        refetch();
+      },
+      onError: (e) => toast({ title: "Could not update employer", description: (e as { data?: { message?: string } })?.data?.message ?? "Try again.", variant: "destructive" }),
+    });
+  };
+
+  const badge: Record<string, string> = {
+    verified: "bg-green-100 text-green-700",
+    pending: "bg-amber-100 text-amber-700",
+    rejected: "bg-red-100 text-red-700",
+    suspended: "bg-gray-200 text-gray-600",
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <div className="p-6 pb-4">
+        <h3 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 text-sm uppercase tracking-wider">
+          <span className="text-[#4DC9EE]"><Building2 size={16} /></span> Employers (KYB queue)
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Registered payroll companies. <strong>Verify</strong> unlocks live API keys (real money); <strong>Suspend</strong> blocks every key instantly. Sandbox keys work regardless.
+        </p>
+      </div>
+      {isLoading ? (
+        <p className="px-6 pb-6 text-sm text-gray-400">Loading employers…</p>
+      ) : rows.length === 0 ? (
+        <p className="px-6 pb-6 text-sm text-gray-400">No employers registered yet — companies appear here the moment they register in the payroll console.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60">
+                {["Company", "Owner", "Status", "Balance", "Batches", "Registered", "Actions"].map((h) => (
+                  <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((e) => (
+                <tr key={e.id} className="border-b border-gray-50 dark:border-gray-800">
+                  <td className="px-5 py-3">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{e.companyName}</span>
+                    {e.websiteUrl && <span className="text-gray-400 text-xs block truncate max-w-[180px]">{e.websiteUrl}</span>}
+                  </td>
+                  <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{e.ownerEmail ?? e.email}</td>
+                  <td className="px-5 py-3">
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${badge[e.status]}`}>
+                      {e.status === "verified" ? <BadgeCheck size={12} /> : e.status === "pending" ? <Clock size={12} /> : <Ban size={12} />} {e.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">{e.balanceUsdc.toLocaleString()} USDC</td>
+                  <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{e.batches}</td>
+                  <td className="px-5 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{new Date(e.createdAt).toLocaleDateString()}</td>
+                  <td className="px-5 py-3 whitespace-nowrap">
+                    <div className="flex gap-2">
+                      {e.status !== "verified" && (
+                        <button onClick={() => change(e.id, e.companyName, "verified")} disabled={setStatus.isPending}
+                          className="text-xs font-bold text-green-600 hover:underline disabled:opacity-50">Verify</button>
+                      )}
+                      {e.status === "pending" && (
+                        <button onClick={() => change(e.id, e.companyName, "rejected")} disabled={setStatus.isPending}
+                          className="text-xs font-bold text-red-500 hover:underline disabled:opacity-50">Reject</button>
+                      )}
+                      {e.status !== "suspended" ? (
+                        <button onClick={() => change(e.id, e.companyName, "suspended")} disabled={setStatus.isPending}
+                          className="text-xs font-bold text-gray-400 hover:text-gray-600 hover:underline disabled:opacity-50">Suspend</button>
+                      ) : (
+                        <button onClick={() => change(e.id, e.companyName, "pending")} disabled={setStatus.isPending}
+                          className="text-xs font-bold text-amber-600 hover:underline disabled:opacity-50">Reinstate</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }

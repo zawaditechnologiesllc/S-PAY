@@ -233,6 +233,10 @@ export interface FeeSchedule {
   // CELO gas you pay). Charged ON TOP of the send amount. Collected to
   // TREASURY_CELO_ADDRESS. Total fee = transferFeeFlat + amount*transferFeePercent/100.
   transferFeeFlat: number;      // flat USDC per transfer (e.g. 0.10)
+  // Payroll (batch API) — charged to the EMPLOYER per payment, on top of the
+  // payout, drawn from their prepaid balance. Fee = flat + amount*percent/100.
+  payrollFeePercent: number;    // % of each payroll payment
+  payrollFeeFlat: number;       // flat USDC per payroll payment
 }
 
 export const DEFAULT_FEES: FeeSchedule = {
@@ -241,6 +245,8 @@ export const DEFAULT_FEES: FeeSchedule = {
   cardIssuanceFee: 1.0,
   p2pFeePercent: 0,
   transferFeeFlat: 0,
+  payrollFeePercent: 1.0,
+  payrollFeeFlat: 0,
 };
 
 /** Total transfer fee (commission) for a send amount, given the schedule. */

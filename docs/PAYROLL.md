@@ -251,9 +251,12 @@ attempt is logged — see `GET /payroll/webhooks/deliveries`.
 
 ## 7. Fees
 
-Per payment: `1% + 0` flat (platform default; tiered pricing for high volume is
-an admin setting). Fees are drawn from the employer balance on top of each payout
-and surfaced as `feeAmount` / `totalCost` on the batch.
+Per payment: `percent + flat` — **admin-tunable live** from Admin → Settings →
+Fees & Revenue (`payrollFeePercent` / `payrollFeeFlat`; platform default `1% +
+$0`). Fees are drawn from the employer balance on top of each payout and
+surfaced as `feeAmount` / `totalCost` on the batch **before** submit, so the
+employer always sees the full cost first. Changes apply to batches created
+after the change. Revenue mechanics: `docs/REVENUE-MODEL.md`.
 
 ---
 

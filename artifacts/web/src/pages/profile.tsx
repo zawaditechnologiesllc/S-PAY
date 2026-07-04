@@ -127,9 +127,12 @@ export default function Profile() {
 
   return (
     <Layout back title="Profile">
-      <div className="space-y-6">
+      {/* Each section is one group: label + card move together, evenly spaced —
+          never a floating label orphaned between two cards. */}
+      <div className="space-y-7">
 
         {/* ── Account ── */}
+        <section className="space-y-2.5">
         <SectionLabel>Account</SectionLabel>
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
           <CardHeader className="bg-gray-50 dark:bg-gray-800/60 border-b pb-4">
@@ -235,7 +238,10 @@ export default function Profile() {
           </CardContent>
         </Card>
 
+        </section>
+
         {/* ── Security ── */}
+        <section className="space-y-2.5">
         <SectionLabel>Security</SectionLabel>
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
           <CardContent className="p-2">
@@ -269,7 +275,10 @@ export default function Profile() {
           </CardContent>
         </Card>
 
+        </section>
+
         {/* ── Preferences ── */}
+        <section className="space-y-2.5">
         <SectionLabel>Preferences</SectionLabel>
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
           <CardContent className="p-2">
@@ -285,11 +294,14 @@ export default function Profile() {
               </div>
               <ThemeToggle className="!bg-gray-100 dark:!bg-gray-800 !text-gray-600 dark:!text-gray-300" />
             </div>
-            <NavRow href="/support" icon={<Bell size={18} />} title="Notifications" subtitle="In-app alerts for money in & out" />
+            <NavRow href="/notifications" icon={<Bell size={18} />} title="Notifications" subtitle="In-app alerts for money in & out" />
           </CardContent>
         </Card>
 
+        </section>
+
         {/* ── Tools ── */}
+        <section className="space-y-2.5">
         <SectionLabel>Tools</SectionLabel>
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
           <CardContent className="p-2">
@@ -304,7 +316,10 @@ export default function Profile() {
           </CardContent>
         </Card>
 
+        </section>
+
         {/* ── Support ── */}
+        <section className="space-y-2.5">
         <SectionLabel>Support</SectionLabel>
         <Card className="border-0 shadow-md rounded-2xl overflow-hidden">
           <CardContent className="p-2">
@@ -317,6 +332,8 @@ export default function Profile() {
             <NavRow href="/terms" icon={<FileText size={18} />} title="Terms of service" subtitle="" />
           </CardContent>
         </Card>
+
+        </section>
 
         {/* ── Safe section: sign out & delete, clearly separated ── */}
         <div className="pt-2 space-y-3">
@@ -345,7 +362,7 @@ export default function Profile() {
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 px-1 -mb-3">{children}</p>;
+  return <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 pl-3">{children}</h2>;
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
