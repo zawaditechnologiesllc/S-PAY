@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { payrollApi, PayrollApiError } from "@/lib/payroll-api";
 import {
   Building2, KeyRound, ListChecks, Wallet, Users, CheckCircle2,
-  AlertCircle, ArrowRight, BadgeCheck, Banknote, Copy,
+  AlertCircle, ArrowRight, BadgeCheck, Banknote, Copy, BookOpen,
 } from "lucide-react";
 
 // Employer payroll console — overview + onboarding. Companies (Upwork, Fiverr,
@@ -83,6 +83,7 @@ export default function PayrollOverview() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <NavCard href="/payroll/keys" icon={<KeyRound size={20} />} title="API keys" desc="Create and manage the keys your backend uses." />
           <NavCard href="/payroll/batches" icon={<ListChecks size={20} />} title="Payroll batches" desc="Create a batch and pay your workers." />
+          <NavCard href="/payroll/docs" icon={<BookOpen size={20} />} title="Integration guide" desc="Auth, batches, webhooks, sandbox → live — the full walkthrough." />
         </div>
 
         <button

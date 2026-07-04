@@ -55,6 +55,7 @@ const PayrollOverview = lazyWithReload(() => import("@/pages/payroll"));
 const PayrollKeys = lazyWithReload(() => import("@/pages/payroll/keys"));
 const PayrollBatches = lazyWithReload(() => import("@/pages/payroll/batches"));
 const PayrollBatchDetail = lazyWithReload(() => import("@/pages/payroll/batch-detail"));
+const PayrollDocs = lazyWithReload(() => import("@/pages/payroll/docs"));
 const AdminDashboard = lazyWithReload(() => import("@/pages/admin/dashboard"));
 const AdminUsers = lazyWithReload(() => import("@/pages/admin/users"));
 const AdminTransactions = lazyWithReload(() => import("@/pages/admin/transactions"));
@@ -238,6 +239,7 @@ function Router() {
       <Route path="/payroll/keys"><ProtectedRoute component={PayrollKeys} /></Route>
       <Route path="/payroll/batches"><ProtectedRoute component={PayrollBatches} /></Route>
       <Route path="/payroll/batches/:batchId"><ProtectedRoute component={PayrollBatchDetail} /></Route>
+      <Route path="/payroll/docs"><ProtectedRoute component={PayrollDocs} /></Route>
 
       {/* ── Admin panel (auth + server-enforced admin-email check) ── */}
       <Route path="/admin"><ProtectedRoute component={AdminDashboard} /></Route>

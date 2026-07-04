@@ -1704,7 +1704,7 @@ paths:
     post:
       operationId: submitPayrollBatch
       tags: [payroll]
-      summary: Submit a batch — resolve workers and pay
+      summary: Submit a batch — resolve workers and pay. ≤25 payments settle inline (200 with the final state); larger batches return 202 and settle in the background (track via GET or webhooks)
       security: [{ bearerAuth: [] }]
       parameters:
         - name: batchId
@@ -1713,7 +1713,13 @@ paths:
           schema: { type: string }
       responses:
         "200":
-          description: Final batch state
+          description: Final batch state (small batches, settled inline)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchResponse"
+        "202":
+          description: Large batch accepted — processing in the background
           content:
             application/json:
               schema:

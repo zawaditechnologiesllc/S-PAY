@@ -174,9 +174,16 @@ JWT session instead — API keys are only for the marketplace's backend.
 - Flips the batch to `processing`, then for each payment: resolves/creates the
   worker, **atomically** debits the employer and credits the worker, notifies
   them, and records the result.
-- Returns the final batch (`completed`, `partially_completed`, or `failed`).
+- **Small batches (≤25 payments)** settle inline: the `200` response carries the
+  final batch (`completed`, `partially_completed`, or `failed`).
+- **Large batches** (AI-workforce scale — up to 10,000 payments) return **202**
+  immediately with the batch in `processing`, and settle in the background.
+  Track them via `GET /payroll/batches/{id}` or the webhooks
+  (`batch.completed` / `batch.partially_completed` / `batch.failed`).
 - Submit is **idempotent** — re-submitting a non-draft batch returns its current
-  state, never double-pays.
+  state, never double-pays. Re-submitting a batch stuck in `processing` (e.g.
+  after a server restart mid-run) safely **resumes** it: processing is guarded
+  against concurrent runs and terminal payments are always skipped.
 
 ### Inspect
 

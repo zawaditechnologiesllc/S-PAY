@@ -56,7 +56,24 @@ async function resolveSettlement(employer: Employer): Promise<SettlementContext 
   return { fundingWallet, signer };
 }
 
+// One runner per batch: prevents a re-submitted (resumed) batch from being
+// processed concurrently with a still-running background run, which could
+// double-pay a payment that is mid-settlement. In-memory is sufficient for the
+// single-instance deployment; a multi-instance deployment would move this to a
+// DB advisory lock.
+const activeBatches = new Set<string>();
+
 export async function processBatch(batchId: string): Promise<void> {
+  if (activeBatches.has(batchId)) return;
+  activeBatches.add(batchId);
+  try {
+    await processBatchInner(batchId);
+  } finally {
+    activeBatches.delete(batchId);
+  }
+}
+
+async function processBatchInner(batchId: string): Promise<void> {
   const [batch] = await db.select().from(payrollBatchesTable)
     .where(eq(payrollBatchesTable.id, batchId)).limit(1);
   if (!batch) return;

@@ -5988,7 +5988,7 @@ export const getSubmitPayrollBatchUrl = (batchId: string,) => {
 }
 
 /**
- * @summary Submit a batch — resolve workers and pay
+ * @summary Submit a batch — resolve workers and pay. ≤25 payments settle inline (200 with the final state); larger batches return 202 and settle in the background (track via GET or webhooks)
  */
 export const submitPayrollBatch = async (batchId: string, options?: RequestInit): Promise<BatchResponse> => {
 
@@ -6036,7 +6036,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SubmitPayrollBatchMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Submit a batch — resolve workers and pay
+ * @summary Submit a batch — resolve workers and pay. ≤25 payments settle inline (200 with the final state); larger batches return 202 and settle in the background (track via GET or webhooks)
  */
 export const useSubmitPayrollBatch = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPayrollBatch>>, TError,{batchId: string}, TContext>, request?: SecondParameter<typeof customFetch>}

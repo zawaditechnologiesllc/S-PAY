@@ -4,7 +4,9 @@
 
 > 📋 **Start here for operations:** [`LAUNCH-CHECKLIST.md`](./LAUNCH-CHECKLIST.md) — what's live, how to activate each provider (wallets/Noah/Stripe/Google/Apple/EAS), every remaining task with file paths, and how to run the platform without a terminal. For wallets specifically (the six switchable providers, costs, setup): [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md).
 >
-> 💼 **For investors & partners:** [`docs/INVESTOR-OVERVIEW.md`](./docs/INVESTOR-OVERVIEW.md) (what it is, status, the ask) · [`docs/REVENUE-MODEL.md`](./docs/REVENUE-MODEL.md) (how the business makes money) · [`docs/MARKETPLACE-INTEGRATION.md`](./docs/MARKETPLACE-INTEGRATION.md) (what to tell a marketplace and which option to choose) · [`docs/PAYMENT-FLOWS.md`](./docs/PAYMENT-FLOWS.md) (how money actually moves — the single-balance model) · [`docs/SEO-ENGINE.md`](./docs/SEO-ENGINE.md) (GSC/GA4/Reddit → AI drafts → reviewed blog content) · [`docs/SEO-ENGINE-PROMPT.md`](./docs/SEO-ENGINE-PROMPT.md) (portable prompt to rebuild the SEO engine on any site).
+> 💼 **For investors & partners:** [`docs/INVESTOR-OVERVIEW.md`](./docs/INVESTOR-OVERVIEW.md) (what it is, status, the ask) · [`docs/REVENUE-MODEL.md`](./docs/REVENUE-MODEL.md) (how the business makes money) · [`docs/PITCH.md`](./docs/PITCH.md) (**the pitch to send AI-workforce companies & marketplaces** — Scale, Mercor, Surge & co.) · [`docs/MARKETPLACE-INTEGRATION.md`](./docs/MARKETPLACE-INTEGRATION.md) (what to tell a marketplace and which option to choose) · [`docs/PAYROLL-MARKETPLACES.md`](./docs/PAYROLL-MARKETPLACES.md) (go-to-market target tiers) · [`docs/PAYMENT-FLOWS.md`](./docs/PAYMENT-FLOWS.md) (how money actually moves — the single-balance model) · [`docs/SEO-ENGINE.md`](./docs/SEO-ENGINE.md) (GSC/GA4/Reddit → AI drafts → reviewed blog content) · [`docs/SEO-ENGINE-PROMPT.md`](./docs/SEO-ENGINE-PROMPT.md) (portable prompt to rebuild the SEO engine on any site).
+>
+> 🔌 **For integrating companies (payroll API):** [`docs/PAYROLL.md`](./docs/PAYROLL.md) (full REST reference with a 5-call quickstart) — the same guide ships **inside the product** at `Payroll → Integration guide`, next to the API keys.
 
 Like MiniPay, S-PAY is built on the Celo network: stablecoin-first balances (USDC), sub-cent fees, 5-second finality, and no seed phrase, ever — a wallet appears automatically the first time money moves.
 
@@ -16,12 +18,13 @@ S-PAY was founded in 2024 by a team of full-stack fintech and crypto engineers f
 
 | Feature | What it gives the user |
 |---|---|
-| **Digital Wallet** | Hold USD balance, send/receive money globally |
+| **Digital Wallet** | Hold USD balance, send/receive money globally — with M-Pesa-style recipient pre-confirmation and Payd-style guided step bars on every money flow |
 | **Virtual Bank Account** | Real US ACH routing number + European IBAN — get paid like a local business |
-| **Global Payouts** | Withdraw to M-Pesa, MTN MoMo, PIX, SEPA, bank transfers in 180+ countries |
+| **Global Payouts** | Withdraw to M-Pesa, MTN MoMo, PIX, SEPA, bank transfers in 180+ countries — routed across multiple money rails to the best customer rate |
+| **Batch Payroll API** | Businesses pay whole workforces (up to 10,000 payments/batch) by email or phone — workers auto-onboarded, signed webhooks, sandbox mode. Built for AI-training/data platforms and marketplaces — see [`docs/PITCH.md`](./docs/PITCH.md) + [`docs/PAYROLL.md`](./docs/PAYROLL.md) |
 | **Remote Jobs Board** | 3,000–5,000 remote-only roles available daily, aggregated from 60+ sources, refreshed hourly, free for all users |
-| **Virtual Card** | Complete and integration-ready: Stripe Issuing wired end-to-end (cardholder + virtual card creation, KYC-gated, DB-backed waitlist). An admin flips the **Card Program master switch** in `/admin/settings` to take it from waitlist → live — no deploy needed |
-| **KYC / Identity Verification** | Automated via Noah — no manual review, no waiting |
+| **Virtual Card** | Stripe Issuing wired end-to-end: KYC-gated creation, freeze/unfreeze, monthly limits, and real-time authorization against the user's on-chain balance. An admin flips the **Card Program master switch** in `/admin/settings` to take it from waitlist → live — no deploy needed |
+| **KYC / Identity Verification** | Hosted flows run by the admin-designated money-rail partner (Noah, Bridge, Conduit, Yellow Card) — webhook-driven, with every attempt recorded in S-PAY's own verification trail |
 
 > **The jobs board is free on purpose** — it's S-PAY's acquisition funnel. Job seekers discover S-PAY through listings, sign up to apply, and become wallet users. Every account records its `signupSource` (`jobs`, `jobs:<jobId>`, `landing`, `google`, `mobile`, `direct`), and the admin dashboard shows the **Signups by Source** breakdown so you always know which channel is converting.
 
@@ -63,7 +66,7 @@ The user chooses a payout method and enters the recipient details:
 | **ACH / Bank Transfer** | USD | USA and international | 1–2 business days |
 | **Crypto exchange** | USDC / USDT | Binance, Bybit, OKX, any Celo wallet — guided MiniPay-style flow with network safety checks | ~5 seconds |
 
-All payouts are processed by **Noah Global Payouts** — no third-party wallet required. The user just enters a phone number (M-Pesa/MTN) or IBAN (SEPA) and hits confirm.
+Every payout is routed across the **pluggable money-rail layer** (Noah, Bridge, Conduit, Yellow Card, Thunes) to whichever enabled provider gives the customer the best rate for that corridor — the user never sees or picks a provider. The withdraw flow asks exactly what each rail needs (phone for M-Pesa, CPF/CNPJ for PIX, IBAN + name for SEPA, routing + account + name for US banks) and walks a guided Method → Details → Review → Done step bar.
 
 ### Internal transfers
 Users send USDC/USDT peer-to-peer within S-PAY by entering a recipient **phone number, email address, S-PAY ID (`spay_…`), or wallet address** — settled on-chain on Celo in ~5 seconds. A flat transfer fee and/or a P2P percentage (both admin-tunable) can be charged on top and swept to the business treasury wallet (`TREASURY_CELO_ADDRESS`); with no treasury configured, transfers are free. Every send is authorized by the user's transaction PIN.
@@ -219,7 +222,7 @@ Set these on **Render** (API server) and **Vercel** (web app):
 | Variable | Required | Description |
 |---|---|---|
 | `DATABASE_URL` | ✅ | PostgreSQL connection string (auto-wired by the render.yaml Blueprint, or Supabase URI) |
-| `JWT_SECRET` | ✅ | Random 64-char hex (auto-generated by the Blueprint) |
+| `JWT_SECRET` | ✅ | Random 64-char hex (auto-generated by the Blueprint). **The server refuses to boot in production without it** — never falls back to a dev secret |
 | `SESSION_SECRET` | ✅ | Random secret (auto-generated by the Blueprint) |
 | `CORS_ORIGIN` | ✅ | Web app URL(s), comma-separated: `https://spayewallet.com,https://www.spayewallet.com`. Include every host users visit (apex **and** `www.`). S-PAY's own production origins are always allowed regardless, but list yours here for any custom domains |
 | `ADMIN_EMAILS` | ✅ | Comma-separated admin emails — controls /admin access |
@@ -236,10 +239,15 @@ Wallets need **one** of the three providers below configured (admin picks the ac
 | `OPENFORT_API_KEY` + `OPENFORT_WALLET_SECRET` | Celo wallets + sends via **Openfort** | From dashboard.openfort.io (sk_ key) + `openfort wallet-keys create`. ~2,000 free ops/month — no MAU billing |
 | `THIRDWEB_SECRET_KEY` | Celo wallets + sends via **thirdweb** | From thirdweb.com/dashboard → project secret key. Plan tiers (no free tier since 2026); queued sends — no MAU billing |
 | `DYNAMIC_ENVIRONMENT_ID` + `DYNAMIC_API_TOKEN` + `DYNAMIC_WALLET_PASSWORD_SECRET` | Celo wallets + sends via **Dynamic** (TSS-MPC) | From app.dynamic.xyz + `openssl rand -hex 32` for the password secret (back it up like JWT_SECRET) |
-| `NOAH_API_KEY` | KYC + virtual accounts + cash-outs | From the Noah partner dashboard |
-| `NOAH_WEBHOOK_SECRET` | KYC auto-approval | From Noah webhook endpoint config (`/api/webhooks/noah`) |
+| `NOAH_API_KEY` | KYC + virtual accounts + cash-outs via **Noah** | From the Noah partner dashboard |
+| `NOAH_WEBHOOK_SECRET` | KYC auto-approval + deposit events | From Noah webhook endpoint config (`/api/webhooks/noah`). **Required in production** — unsigned events are rejected |
+| `BRIDGE_API_KEY` | USD/EUR virtual accounts + deposits via **Bridge (Stripe)** | bridge.xyz dashboard — the preferred (no-setup-fee) virtual-account issuer |
+| `CONDUIT_API_KEY` | LatAm/Africa/Asia deposits + payouts via **Conduit** | Conduit dashboard |
+| `YELLOWCARD_API_KEY` + `YELLOWCARD_API_SECRET` | African mobile-money deposits + payouts via **Yellow Card** | Yellow Card partner dashboard |
+| `THUNES_API_KEY` + `THUNES_API_SECRET` | Widest global payout coverage via **Thunes** | Thunes enterprise onboarding |
+| `BRIDGE_WEBHOOK_SECRET` / `CONDUIT_WEBHOOK_SECRET` / `YELLOWCARD_WEBHOOK_SECRET` | KYC decision webhooks per provider (`/api/webhooks/kyc/:provider`) | Each provider's webhook config. **Required in production** for that provider's KYC events |
 | `STRIPE_SECRET_KEY` | Virtual cards (with the admin switch) | Stripe → Developers → API keys (Issuing enabled) |
-| `STRIPE_WEBHOOK_SECRET` | Card transaction events | Stripe webhook endpoint config (`/api/webhooks/stripe`) |
+| `STRIPE_WEBHOOK_SECRET` | Card events **incl. real-time authorization** | Stripe webhook endpoint config (`/api/webhooks/stripe`) — subscribe it to `issuing_authorization.request` so each card swipe is approved/declined against the user's on-chain balance. **Required in production** |
 | `TREASURY_CELO_ADDRESS` | Business revenue collection | Your Celo (0x…) wallet that receives transfer/withdrawal commissions. Get it from any Celo-capable wallet or an exchange that supports Celo deposits (e.g. Binance → Deposit → USDC/USDT → network **CELO**). Unset = no fees are charged. Tune the amounts in `/admin/settings → Fees & Revenue` |
 
 **Wallet provider pricing — free tier at a glance** (mid-2026; re-verify before budgeting — full breakdown in [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md) §2):
@@ -280,6 +288,7 @@ Wallets need **one** of the three providers below configured (admin picks the ac
 |---|---|---|
 | `CELO_RPC_URL` | `https://forno.celo.org` | Celo JSON-RPC for balance reads + broadcasting CDP/Turnkey sends |
 | `CELO_CAIP2` | `eip155:42220` | Chain id for Privy sends (Celo mainnet) |
+| `CELO_FEE_CURRENCY` | unset (native CELO gas) | CIP-64 fee abstraction: set to the **USDC fee-currency adapter** (`0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B` on mainnet) so viem-signed wallets (CDP/Turnkey/Openfort/Dynamic) pay gas in USDC and never need CELO — see [`docs/WALLET-PROVIDERS.md`](./docs/WALLET-PROVIDERS.md) §4b |
 | `PRIVY_API_BASE` | `https://api.privy.io` | Privy API base |
 | `TURNKEY_API_BASE` | `https://api.turnkey.com` | Turnkey API base |
 | `DATABASE_SSL` | auto-detect | Force TLS on/off for Postgres (`true`/`false`) |

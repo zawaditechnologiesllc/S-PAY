@@ -1593,7 +1593,7 @@ export const GetPayrollBatchResponse = zod.object({
 
 
 /**
- * @summary Submit a batch — resolve workers and pay
+ * @summary Submit a batch — resolve workers and pay. ≤25 payments settle inline (200 with the final state); larger batches return 202 and settle in the background (track via GET or webhooks)
  */
 export const SubmitPayrollBatchParams = zod.object({
   "batchId": zod.coerce.string()
