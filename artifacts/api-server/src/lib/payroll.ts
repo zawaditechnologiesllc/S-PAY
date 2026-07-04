@@ -133,8 +133,10 @@ export async function resolveWorker(
 
 // ── Fees ────────────────────────────────────────────────────────────────────────
 // Payroll fee = flat per-payment + percent of amount, drawn from the employer's
-// balance on top of the payout. Tiered: high-volume employers pay less. These
-// are the platform defaults; a future admin setting can override them.
+// balance on top of the payout. Admin-tunable live from /admin/settings →
+// Fees & Revenue (payrollFeePercent / payrollFeeFlat) — no redeploy.
+
+import { getFeeSchedule } from "./settings";
 
 export interface PayrollFeeConfig {
   percent: number; // % of each payment
@@ -142,6 +144,12 @@ export interface PayrollFeeConfig {
 }
 
 export const DEFAULT_PAYROLL_FEE: PayrollFeeConfig = { percent: 1.0, flat: 0 };
+
+/** The live payroll fee config from the admin-set fee schedule. */
+export async function getPayrollFeeConfig(): Promise<PayrollFeeConfig> {
+  const fees = await getFeeSchedule();
+  return { percent: fees.payrollFeePercent, flat: fees.payrollFeeFlat };
+}
 
 /** Round to USDC's 6 decimal places. */
 export function round6(n: number): number {

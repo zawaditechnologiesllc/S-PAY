@@ -146,9 +146,12 @@ export function AdminLayout({ children, title }: { children: React.ReactNode; ti
             <h1 className="text-base md:text-lg font-bold text-gray-900 dark:text-gray-100">{title || "Admin"}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-200 transition-colors relative">
-              <Bell size={16} />
-            </button>
+            {/* The admin "inbox" is the enquiries queue — the bell goes there */}
+            <Link href="/admin/enquiries">
+              <button className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-200 transition-colors relative" aria-label="Enquiries inbox">
+                <Bell size={16} />
+              </button>
+            </Link>
             <div className="hidden sm:flex items-center gap-2 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-full px-3 py-1.5">
               <div className="w-6 h-6 bg-[#1A2B4A] rounded-full flex items-center justify-center">
                 <Shield size={12} className="text-white" />

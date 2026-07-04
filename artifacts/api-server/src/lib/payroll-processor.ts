@@ -3,7 +3,7 @@ import {
   type Employer,
 } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { resolveWorker, payrollFee, round6, type IdentifierType } from "./payroll";
+import { resolveWorker, payrollFee, getPayrollFeeConfig, round6, type IdentifierType } from "./payroll";
 import { enqueueWebhook } from "./payroll-webhooks";
 import { notifyUser } from "./notify";
 import { logger } from "./logger";
@@ -56,7 +56,24 @@ async function resolveSettlement(employer: Employer): Promise<SettlementContext 
   return { fundingWallet, signer };
 }
 
+// One runner per batch: prevents a re-submitted (resumed) batch from being
+// processed concurrently with a still-running background run, which could
+// double-pay a payment that is mid-settlement. In-memory is sufficient for the
+// single-instance deployment; a multi-instance deployment would move this to a
+// DB advisory lock.
+const activeBatches = new Set<string>();
+
 export async function processBatch(batchId: string): Promise<void> {
+  if (activeBatches.has(batchId)) return;
+  activeBatches.add(batchId);
+  try {
+    await processBatchInner(batchId);
+  } finally {
+    activeBatches.delete(batchId);
+  }
+}
+
+async function processBatchInner(batchId: string): Promise<void> {
   const [batch] = await db.select().from(payrollBatchesTable)
     .where(eq(payrollBatchesTable.id, batchId)).limit(1);
   if (!batch) return;
@@ -75,6 +92,9 @@ export async function processBatch(batchId: string): Promise<void> {
   const payments = await db.select().from(payrollPaymentsTable)
     .where(eq(payrollPaymentsTable.batchId, batchId));
 
+  // One fee config for the whole run, from the admin-set schedule.
+  const feeCfg = await getPayrollFeeConfig();
+
   let completed = 0;
   let failed = 0;
 
@@ -83,7 +103,7 @@ export async function processBatch(batchId: string): Promise<void> {
     if (payment.status === "failed") { failed++; continue; }
 
     const amount = Number(payment.amount);
-    const fee = payrollFee(amount);
+    const fee = payrollFee(amount, feeCfg);
     try {
       const result = await payOne(employer, batch.sandbox, settlement, {
         paymentId: payment.id,

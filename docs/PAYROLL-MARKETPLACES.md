@@ -17,6 +17,30 @@ technical.
 
 ## Target marketplaces by tier
 
+### Tier 0 — AI data & training workforces (the priority pitch)
+The most payout-intensive companies on Earth: thousands-to-hundreds-of-thousands
+of annotators, raters and RLHF domain experts, paid weekly or per task, heavily
+concentrated in Africa / South & Southeast Asia / LatAm — exactly the corridors
+where we beat PayPal/Payoneer on cost, speed and reach. Their supply-side churn
+is a payout-experience problem, which makes payouts a sales conversation, not a
+procurement one. Pitch doc to send them: [`docs/PITCH.md`](./PITCH.md).
+
+| Company | Workforce shape |
+|---|---|
+| **Scale AI** (incl. Remotasks, Outlier) | 100k+ taskers & experts globally; task-based micro-to-mid payouts |
+| **Surge AI** | Elite rater network; expert-tier weekly payouts |
+| **Mercor** | AI-vetted global talent marketplace; contractor payouts |
+| **Appen / Toloka / Clickworker** | Classic crowd platforms, enormous worker counts, tiny payments |
+| **Invisible Technologies** | AI-ops workforce across emerging markets |
+| **Turing / Micro1** | Remote engineer marketplaces feeding AI labs |
+| **iMerit / Sama / CloudFactory / Karya** | Africa/Asia-based annotation workforces (impact-oriented — local cash-out is the whole story) |
+| **DataAnnotation / Prolific / Pareto** | Research & annotation crowds, email-keyed |
+
+Why we win here: per-task economics (sub-cent rails make a $2 task payable),
+auto-onboarding by email (no bank-detail collection from 50k workers), local
+cash-out in the worker's currency in minutes, and one API instead of a
+per-country provider patchwork.
+
 ### Tier 1 — Freelance & gig marketplaces (best fit)
 Many small payments to globally-distributed workers — exactly what batch payouts
 + auto-onboarding are built for.

@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { requireAuth } from "../middlewares/auth";
 import { requireEmployer, generateApiKey } from "../lib/employer-auth";
 import {
-  resolveWorker, payrollFee, round6, inferIdentifierType, validateIdentifier,
+  resolveWorker, payrollFee, getPayrollFeeConfig, round6, inferIdentifierType, validateIdentifier,
   type IdentifierType,
 } from "../lib/payroll";
 import { processBatch } from "../lib/payroll-processor";
@@ -20,6 +20,11 @@ const router = Router();
 
 const VALID_TYPES: IdentifierType[] = ["email", "phone", "spay_id", "celo_address"];
 const MAX_PAYMENTS_PER_BATCH = 10_000;
+// Batches up to this size settle inline so the submit response carries the
+// final result. Larger ones (AI-workforce scale: thousands of annotators in
+// one run) are accepted with 202 and settle in the background — the batch is
+// polled via GET /payroll/batches/:id or observed through the signed webhooks.
+const SYNC_PROCESS_LIMIT = 25;
 
 // Public, non-secret view of an employer.
 function publicEmployer(e: Employer) {
@@ -337,8 +342,9 @@ router.post("/payroll/batches", requireEmployer("payroll:write"), async (req, re
       return;
     }
 
+    const feeCfg = await getPayrollFeeConfig(); // admin-set, live from /admin/settings
     const totalAmount = round6(cleaned.reduce((s, p) => s + p.amount, 0));
-    const feeAmount = round6(cleaned.reduce((s, p) => s + payrollFee(p.amount), 0));
+    const feeAmount = round6(cleaned.reduce((s, p) => s + payrollFee(p.amount, feeCfg), 0));
 
     const [batch] = await db.insert(payrollBatchesTable).values({
       employerId: employer.id,
@@ -392,6 +398,12 @@ router.post("/payroll/batches/:batchId/submit", requireEmployer("payroll:write")
     }
     if (batch.status !== "draft") {
       // Idempotent submit: return current state instead of erroring on retries.
+      // A batch stuck in "processing" (server restarted mid-run) is resumed —
+      // the processor is idempotent per payment and guarded against concurrent
+      // runs, so this is always safe to kick.
+      if (batch.status === "processing") {
+        void processBatch(batch.id).catch((err) => req.log.error({ err, batchId: batch.id }, "Batch resume errored"));
+      }
       res.status(200).json({ batch: await batchView(batch.id), alreadySubmitted: true });
       return;
     }
@@ -411,11 +423,25 @@ router.post("/payroll/batches/:batchId/submit", requireEmployer("payroll:write")
       .where(eq(payrollBatchesTable.id, batch.id));
     void enqueueWebhook(employer, "batch.processing", { batchId: batch.id, reference: batch.reference }, { batchId: batch.id, urlOverride: batch.webhookUrl ?? undefined });
 
-    // Process inline so the response reflects the final result. For very large
-    // batches this could be moved to a background worker without changing the API.
-    await processBatch(batch.id);
+    // Small batches settle inline so the response carries the final result.
+    // Large ones (thousands of workers) return 202 immediately and settle in
+    // the background — final state arrives via webhooks or GET /batches/:id.
+    // Safe either way: processing is idempotent per payment (terminal payments
+    // are never re-paid), so a crash mid-batch just resumes on re-submit.
+    if (batch.paymentCount <= SYNC_PROCESS_LIMIT) {
+      await processBatch(batch.id);
+      res.json({ batch: await batchView(batch.id) });
+      return;
+    }
 
-    res.json({ batch: await batchView(batch.id) });
+    void processBatch(batch.id).catch((err) => {
+      req.log.error({ err, batchId: batch.id }, "Background batch processing errored — re-submit to resume");
+    });
+    res.status(202).json({
+      batch: await batchView(batch.id),
+      processing: true,
+      message: "Batch accepted and processing in the background. Track it via GET /payroll/batches/{batchId} or your webhooks (batch.completed / batch.partially_completed / batch.failed).",
+    });
   } catch (err) {
     req.log.error({ err }, "Submit batch error");
     res.status(500).json({ error: "internal_error", message: "Could not submit batch" });

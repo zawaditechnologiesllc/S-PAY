@@ -55,6 +55,7 @@ const PayrollOverview = lazyWithReload(() => import("@/pages/payroll"));
 const PayrollKeys = lazyWithReload(() => import("@/pages/payroll/keys"));
 const PayrollBatches = lazyWithReload(() => import("@/pages/payroll/batches"));
 const PayrollBatchDetail = lazyWithReload(() => import("@/pages/payroll/batch-detail"));
+const PayrollDocs = lazyWithReload(() => import("@/pages/payroll/docs"));
 const AdminDashboard = lazyWithReload(() => import("@/pages/admin/dashboard"));
 const AdminUsers = lazyWithReload(() => import("@/pages/admin/users"));
 const AdminTransactions = lazyWithReload(() => import("@/pages/admin/transactions"));
@@ -68,6 +69,7 @@ const HowItWorks = lazyWithReload(() => import("@/pages/how-it-works"));
 const ResetPassword = lazyWithReload(() => import("@/pages/reset-password"));
 const Deposit = lazyWithReload(() => import("@/pages/deposit"));
 const Support = lazyWithReload(() => import("@/pages/support"));
+const Notifications = lazyWithReload(() => import("@/pages/notifications"));
 const Security = lazyWithReload(() => import("@/pages/security"));
 const EmailVerified = lazyWithReload(() => import("@/pages/email-verified"));
 const Privacy = lazyWithReload(() => import("@/pages/privacy"));
@@ -229,6 +231,7 @@ function Router() {
       <Route path="/banking/withdraw"><ProtectedRoute component={Withdraw} /></Route>
       <Route path="/deposit"><ProtectedRoute component={Deposit} /></Route>
       <Route path="/support"><ProtectedRoute component={Support} /></Route>
+      <Route path="/notifications"><ProtectedRoute component={Notifications} /></Route>
       <Route path="/security"><ProtectedRoute component={Security} /></Route>
       <Route path="/wallet/exchange"><ProtectedRoute component={ExchangeWithdraw} /></Route>
       <Route path="/card"><ProtectedRoute component={CardPage} /></Route>
@@ -238,6 +241,7 @@ function Router() {
       <Route path="/payroll/keys"><ProtectedRoute component={PayrollKeys} /></Route>
       <Route path="/payroll/batches"><ProtectedRoute component={PayrollBatches} /></Route>
       <Route path="/payroll/batches/:batchId"><ProtectedRoute component={PayrollBatchDetail} /></Route>
+      <Route path="/payroll/docs"><ProtectedRoute component={PayrollDocs} /></Route>
 
       {/* ── Admin panel (auth + server-enforced admin-email check) ── */}
       <Route path="/admin"><ProtectedRoute component={AdminDashboard} /></Route>

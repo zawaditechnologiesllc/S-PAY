@@ -202,6 +202,74 @@ router.get("/admin/payroll/stats", requireAuth, requireAnyAdmin, async (req, res
   }
 });
 
+// ─── Employer oversight: the admin side of payroll KYB ─────────────────────────
+// Live API keys require employer.status === "verified" — this is where an admin
+// grants (or revokes) that, after reviewing the business. Managers handle it,
+// mirroring their users/KYC duties.
+
+const EMPLOYER_STATUSES = ["pending", "verified", "rejected", "suspended"] as const;
+type EmployerStatus = typeof EMPLOYER_STATUSES[number];
+
+router.get("/admin/payroll/employers", requireAuth, requireAnyAdmin, async (req, res) => {
+  try {
+    const rows = await db.select({
+      id: employersTable.id,
+      companyName: employersTable.companyName,
+      email: employersTable.email,
+      websiteUrl: employersTable.websiteUrl,
+      country: employersTable.country,
+      status: employersTable.status,
+      balanceUsdc: employersTable.balanceUsdc,
+      ownerUserId: employersTable.ownerUserId,
+      createdAt: employersTable.createdAt,
+      ownerEmail: usersTable.email,
+      batches: sql<number>`(select count(*) from payroll_batches b where b.employer_id = ${employersTable.id})`,
+    }).from(employersTable)
+      .leftJoin(usersTable, eq(employersTable.ownerUserId, usersTable.id))
+      .orderBy(desc(employersTable.createdAt))
+      .limit(200);
+    res.json({
+      employers: rows.map((e) => ({
+        ...e,
+        balanceUsdc: Number(e.balanceUsdc),
+        batches: Number(e.batches),
+        createdAt: e.createdAt.toISOString(),
+      })),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Admin employers list error");
+    res.status(500).json({ error: "internal_error", message: "Failed to list employers" });
+  }
+});
+
+router.put("/admin/payroll/employers/:employerId/status", requireAuth, requireManager, async (req, res) => {
+  try {
+    const status = (req.body as { status?: string }).status as EmployerStatus;
+    if (!EMPLOYER_STATUSES.includes(status)) {
+      res.status(400).json({ error: "validation_error", message: `status must be one of: ${EMPLOYER_STATUSES.join(", ")}` });
+      return;
+    }
+    const [updated] = await db.update(employersTable)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(employersTable.id, req.params.employerId as string))
+      .returning();
+    if (!updated) {
+      res.status(404).json({ error: "not_found", message: "Employer not found" });
+      return;
+    }
+    if (status === "verified") {
+      notifyUser(updated.ownerUserId, "Business verified 🎉", `${updated.companyName} passed verification — you can now mint LIVE payroll API keys and pay your team with real money.`, "account");
+    } else if (status === "suspended") {
+      notifyUser(updated.ownerUserId, "Payroll account suspended", `${updated.companyName}'s payroll account was suspended. Contact support@spayewallet.com.`, "account");
+    }
+    req.log.warn({ employerId: updated.id, status, admin: req.user!.email }, "Employer status changed");
+    res.json({ employer: { id: updated.id, companyName: updated.companyName, status: updated.status } });
+  } catch (err) {
+    req.log.error({ err }, "Admin employer status error");
+    res.status(500).json({ error: "internal_error", message: "Failed to update employer" });
+  }
+});
+
 router.get("/admin/transactions", requireAuth, requireAnyAdmin, async (req, res) => {
   try {
     const type = typeof req.query["type"] === "string" ? req.query["type"] : undefined;
@@ -483,13 +551,15 @@ router.get("/admin/fees", requireAuth, requireAnyAdmin, async (req, res) => {
 router.put("/admin/fees", requireAuth, requireSuperadmin, async (req, res) => {
   try {
     const body = req.body as Partial<FeeSchedule>;
-    // transferFeeFlat is a USD amount (not a percent) so it has a higher ceiling
+    // Flat fees are USD amounts (not percents) so they have a higher ceiling
     const fields: { key: keyof FeeSchedule; max: number }[] = [
       { key: "withdrawalFeePercent", max: 100 },
       { key: "withdrawalFeeMin", max: 1000 },
       { key: "cardIssuanceFee", max: 1000 },
       { key: "p2pFeePercent", max: 100 },
       { key: "transferFeeFlat", max: 1000 },
+      { key: "payrollFeePercent", max: 100 },
+      { key: "payrollFeeFlat", max: 1000 },
     ];
     for (const { key, max } of fields) {
       const v = body[key];
@@ -504,6 +574,8 @@ router.put("/admin/fees", requireAuth, requireSuperadmin, async (req, res) => {
       cardIssuanceFee: body.cardIssuanceFee!,
       p2pFeePercent: body.p2pFeePercent!,
       transferFeeFlat: body.transferFeeFlat!,
+      payrollFeePercent: body.payrollFeePercent!,
+      payrollFeeFlat: body.payrollFeeFlat!,
     };
     await setFeeSchedule(fees);
     req.log.info({ fees, admin: req.user!.email }, "Fee schedule updated");
@@ -768,12 +840,26 @@ router.get("/admin/settings", requireAuth, requireAnyAdmin, (req, res) => {
       configured: check("NOAH_API_KEY"),
       webhookConfigured: check("NOAH_WEBHOOK_SECRET"),
     },
+    // Every money rail's API-key + KYC-webhook-secret state, so the settings
+    // panel reflects the whole provider-agnostic layer — not just Noah.
+    rails: Object.fromEntries(payoutProviderCatalog().map((p) => [p.key, {
+      configured: p.configured,
+      supportsKyc: p.supportsKyc,
+      webhookConfigured:
+        p.key === "noah" ? check("NOAH_WEBHOOK_SECRET")
+        : p.key === "bridge" ? check("BRIDGE_WEBHOOK_SECRET")
+        : p.key === "conduit" ? check("CONDUIT_WEBHOOK_SECRET")
+        : p.key === "yellowcard" ? check("YELLOWCARD_WEBHOOK_SECRET")
+        : false,
+    }])),
     wallet: Object.fromEntries(walletProviderCatalog().map((p) => [p.key, { configured: p.configured }])),
     socialConnect: { configured: isSocialConnectConfigured() },
     stripe: {
       configured: check("STRIPE_SECRET_KEY"),
       webhookConfigured: check("STRIPE_WEBHOOK_SECRET"),
     },
+    treasury: { configured: check("TREASURY_CELO_ADDRESS") },
+    celo: { feeCurrencyConfigured: check("CELO_FEE_CURRENCY") },
     cors: {
       origin: process.env.CORS_ORIGIN ?? "(not set)",
     },

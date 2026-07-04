@@ -147,7 +147,7 @@ export default function AdminSettings() {
     );
   };
 
-  const [feeForm, setFeeForm] = useState({ withdrawalFeePercent: "", withdrawalFeeMin: "", cardIssuanceFee: "", p2pFeePercent: "", transferFeeFlat: "" });
+  const [feeForm, setFeeForm] = useState({ withdrawalFeePercent: "", withdrawalFeeMin: "", cardIssuanceFee: "", p2pFeePercent: "", transferFeeFlat: "", payrollFeePercent: "", payrollFeeFlat: "" });
   useEffect(() => {
     if (fees) {
       setFeeForm({
@@ -156,6 +156,8 @@ export default function AdminSettings() {
         cardIssuanceFee: String(fees.cardIssuanceFee),
         p2pFeePercent: String(fees.p2pFeePercent),
         transferFeeFlat: String(fees.transferFeeFlat),
+        payrollFeePercent: String(fees.payrollFeePercent ?? 1),
+        payrollFeeFlat: String(fees.payrollFeeFlat ?? 0),
       });
     }
   }, [fees]);
@@ -167,6 +169,8 @@ export default function AdminSettings() {
       cardIssuanceFee: parseFloat(feeForm.cardIssuanceFee),
       p2pFeePercent: parseFloat(feeForm.p2pFeePercent),
       transferFeeFlat: parseFloat(feeForm.transferFeeFlat),
+      payrollFeePercent: parseFloat(feeForm.payrollFeePercent),
+      payrollFeeFlat: parseFloat(feeForm.payrollFeeFlat),
     };
     if (Object.values(parsed).some((v) => !Number.isFinite(v) || v < 0)) {
       toast({ title: "Invalid fees", description: "All fees must be zero or positive numbers.", variant: "destructive" });
@@ -520,6 +524,32 @@ export default function AdminSettings() {
             onChange={(v) => setFeeForm((f) => ({ ...f, p2pFeePercent: v }))}
             suffix="%"
           />
+          <FeeInput
+            label="Payroll fee — percent"
+            hint="Charged to the EMPLOYER on each batch payment, on top of the payout, from their prepaid balance"
+            value={feeForm.payrollFeePercent}
+            onChange={(v) => setFeeForm((f) => ({ ...f, payrollFeePercent: v }))}
+            suffix="%"
+          />
+          <FeeInput
+            label="Payroll fee — flat"
+            hint="Optional flat USDC per payroll payment, added to the percent (0 = percent-only)"
+            value={feeForm.payrollFeeFlat}
+            onChange={(v) => setFeeForm((f) => ({ ...f, payrollFeeFlat: v }))}
+            prefix="$"
+          />
+
+          {/* What fee is what — the map an operator needs before touching numbers */}
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl text-xs text-gray-600 dark:text-gray-300 leading-relaxed space-y-1.5">
+            <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">Which fee applies where</p>
+            <p>• <strong>Withdrawal fee (% + minimum)</strong> — the user cashing out to M-Pesa / PIX / SEPA / bank. Deducted from the withdrawal amount; the minimum keeps tiny cash-outs profitable.</p>
+            <p>• <strong>Card creation fee</strong> — one-time, charged when a user creates their virtual card.</p>
+            <p>• <strong>Transfer fee (flat + %)</strong> — P2P sends inside S-PAY. Charged on top of the amount, swept to your treasury wallet. Needs <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">TREASURY_CELO_ADDRESS</code>; unset = transfers stay free.</p>
+            <p>• <strong>Payroll fee (% + flat)</strong> — the employer using the batch payroll API, per payment, on top of what the worker receives. Shown to them as <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">feeAmount</code>/<code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">totalCost</code> before they submit. Changes apply to batches <em>created</em> after the change.</p>
+            <p>• Not set here: <strong>card interchange</strong> (Stripe shares it automatically per swipe) and the <strong>FX spread</strong> on payout corridors (routed at the provider layer).</p>
+            <p className="pt-1 text-gray-400">Full revenue map with worked examples: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">docs/REVENUE-MODEL.md</code> · payroll billing details: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">docs/PAYROLL.md</code> §7.</p>
+          </div>
+
           <div className="pt-4">
             <button
               onClick={saveFees}
@@ -541,14 +571,43 @@ export default function AdminSettings() {
           </div>
         </Section>
 
-        <Section icon={<Landmark size={16} />} title="KYC & Global Payouts (Noah)">
-          <StatusRow label="Noah API Key" ok={s?.noah?.configured} note="NOAH_API_KEY — covers KYC, virtual accounts, and global payouts" />
-          <StatusRow label="Noah Webhook Secret" ok={s?.noah?.webhookConfigured} note="NOAH_WEBHOOK_SECRET — verifies incoming webhook events" />
-          <div className="mt-3 p-3 bg-blue-50 rounded-xl text-xs text-blue-700 leading-relaxed space-y-1.5">
-            <p><strong>Noah handles everything in one integration:</strong></p>
-            <p>• <strong>KYC</strong> — automated identity verification. Noah triggers <code className="bg-blue-100 px-1 rounded">customer.kyc_approved</code> or <code className="bg-blue-100 px-1 rounded">customer.kyc_rejected</code> webhooks automatically. No manual review needed.</p>
-            <p>• <strong>Global Payouts</strong> — send money via M-Pesa, MTN Mobile Money, PIX (Brazil), SEPA (Europe), and local bank transfers across 100+ countries.</p>
-            <p><strong>To enable:</strong> Apply at noah.com for a partner account → get API key → set NOAH_API_KEY on Render. Register your webhook URL (<code className="bg-blue-100 px-1 rounded">/webhooks/noah</code>) in the Noah dashboard and set NOAH_WEBHOOK_SECRET on Render.</p>
+        <Section icon={<Landmark size={16} />} title="Identity Verification & Provider Webhooks">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 leading-relaxed">
+            Each money rail below can run hosted KYC/KYB and reports decisions on its own signed webhook. An API key
+            activates the rail; its webhook secret lets S-PAY trust the KYC/deposit events it sends back —
+            <strong> in production, unsigned events are rejected</strong>, so set both for any provider you use.
+          </p>
+          {(["noah", "bridge", "conduit", "yellowcard", "thunes"] as const).map((key) => {
+            const rail = s?.rails?.[key];
+            const labels: Record<string, string> = { noah: "Noah", bridge: "Bridge (Stripe)", conduit: "Conduit", yellowcard: "Yellow Card", thunes: "Thunes" };
+            const webhookPath = key === "noah" ? "/api/webhooks/noah" : `/api/webhooks/kyc/${key}`;
+            return (
+              <div key={key} className="py-3 border-b border-gray-50 dark:border-gray-800 last:border-0">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{labels[key]}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${rail?.configured ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+                      {rail?.configured ? <CheckCircle2 size={10} /> : <XCircle size={10} />} API key
+                    </span>
+                    {rail?.supportsKyc && (
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${rail?.webhookConfigured ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+                        {rail?.webhookConfigured ? <CheckCircle2 size={10} /> : <XCircle size={10} />} KYC webhook
+                      </span>
+                    )}
+                    {!rail?.supportsKyc && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">payouts only — no KYC</span>
+                    )}
+                  </div>
+                </div>
+                {rail?.supportsKyc && (
+                  <p className="text-xs text-gray-400 mt-0.5">Webhook endpoint: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">{webhookPath}</code></p>
+                )}
+              </div>
+            );
+          })}
+          <div className="mt-3 p-3 bg-blue-50 rounded-xl text-xs text-blue-700 leading-relaxed space-y-1">
+            <p><strong>How verification flows:</strong> a user taps “Verify Now” → S-PAY sends them to the hosted KYC/KYB flow of the provider selected under <strong>Money Rails → Identity verification</strong> below → the provider's webhook posts the decision → the account unlocks and the attempt is recorded on <strong>Users &amp; KYC → Identity verifications</strong>.</p>
+            <p>Env keys per provider are listed in the Money Rails section; register each webhook URL in that provider's dashboard and set its secret on Render.</p>
           </div>
         </Section>
 
@@ -641,6 +700,19 @@ function PayoutProvidersSection() {
   const issuers = (data?.providers ?? []).filter((p) => p.supportsVirtualAccounts);
   const kycers = (data?.providers ?? []).filter((p) => p.supportsKyc);
 
+  // What actually happens at runtime: the designated provider serves only while
+  // it is configured + enabled; otherwise routing falls back to the first
+  // eligible one (or none). Surface that so the dropdown is never misleading.
+  const effectiveOf = (list: typeof issuers, designatedKey?: string) => {
+    const usable = (p: (typeof issuers)[number]) => p.configured && p.enabled;
+    const designated = list.find((p) => p.key === designatedKey);
+    if (designated && usable(designated)) return { provider: designated, fallback: false };
+    const fallback = list.find(usable);
+    return { provider: fallback ?? null, fallback: Boolean(fallback) };
+  };
+  const effectiveIssuer = effectiveOf(issuers, data?.virtualAccountIssuer);
+  const effectiveKyc = effectiveOf(kycers, data?.kycProvider);
+
   return (
     <Section icon={<Banknote size={16} />} title="Money Rails (Deposits, Payouts & Accounts)">
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">
@@ -719,6 +791,13 @@ function PayoutProvidersSection() {
             </option>
           ))}
         </select>
+        <p className={`text-xs mt-1.5 ${effectiveIssuer.provider ? (effectiveIssuer.fallback ? "text-amber-600" : "text-green-600") : "text-red-500"}`}>
+          {effectiveIssuer.provider
+            ? effectiveIssuer.fallback
+              ? `⚠ Your selection isn't configured/enabled — new accounts currently fall back to ${effectiveIssuer.provider.label}.`
+              : `✓ Active: new accounts are issued by ${effectiveIssuer.provider.label}.`
+            : "✗ No issuer is configured + enabled — account provisioning answers 503 until one is."}
+        </p>
       </div>
 
       {/* KYC / KYB provider — most partners run their own hosted verification */}
@@ -741,6 +820,13 @@ function PayoutProvidersSection() {
             </option>
           ))}
         </select>
+        <p className={`text-xs mt-1.5 ${effectiveKyc.provider ? (effectiveKyc.fallback ? "text-amber-600" : "text-green-600") : "text-red-500"}`}>
+          {effectiveKyc.provider
+            ? effectiveKyc.fallback
+              ? `⚠ Your selection isn't configured/enabled — verifications currently fall back to ${effectiveKyc.provider.label}.`
+              : `✓ Active: verifications run through ${effectiveKyc.provider.label}.`
+            : '✗ No KYC provider is configured + enabled — "Verify Now" answers 503 until one is (set its API key + webhook secret above).'}
+        </p>
       </div>
 
       <div className="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 leading-relaxed">

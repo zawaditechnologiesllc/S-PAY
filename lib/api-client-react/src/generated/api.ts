@@ -22,6 +22,7 @@ import type {
 import type {
   AddFundsRequest,
   AddFundsResponse,
+  AdminEmployersResponse,
   AdminKycVerificationsResponse,
   AdminPayrollStats,
   AdminStats,
@@ -122,6 +123,8 @@ import type {
   SetCardFrozenBody,
   SetCardLimit200,
   SetCardLimitBody,
+  SetEmployerStatus200,
+  SetEmployerStatusBody,
   SetTransactionPinBody,
   SiteContent,
   SiteContentUpdateRequest,
@@ -3237,6 +3240,155 @@ export function useGetAdminKycVerifications<TData = Awaited<ReturnType<typeof ge
 
 
 
+export const getGetAdminEmployersUrl = () => {
+
+
+
+
+  return `/api/admin/payroll/employers`
+}
+
+/**
+ * @summary List payroll employers with KYB status, balance and batch count
+ */
+export const getAdminEmployers = async ( options?: RequestInit): Promise<AdminEmployersResponse> => {
+
+  return customFetch<AdminEmployersResponse>(getGetAdminEmployersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminEmployersQueryKey = () => {
+    return [
+    `/api/admin/payroll/employers`
+    ] as const;
+    }
+
+
+export const getGetAdminEmployersQueryOptions = <TData = Awaited<ReturnType<typeof getAdminEmployers>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminEmployers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminEmployersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminEmployers>>> = ({ signal }) => getAdminEmployers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminEmployers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminEmployersQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminEmployers>>>
+export type GetAdminEmployersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List payroll employers with KYB status, balance and batch count
+ */
+
+export function useGetAdminEmployers<TData = Awaited<ReturnType<typeof getAdminEmployers>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminEmployers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminEmployersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSetEmployerStatusUrl = (employerId: string,) => {
+
+
+
+
+  return `/api/admin/payroll/employers/${employerId}/status`
+}
+
+/**
+ * @summary Set an employer's KYB status — "verified" unlocks live payroll keys; "suspended" blocks the account
+ */
+export const setEmployerStatus = async (employerId: string,
+    setEmployerStatusBody: SetEmployerStatusBody, options?: RequestInit): Promise<SetEmployerStatus200> => {
+
+  return customFetch<SetEmployerStatus200>(getSetEmployerStatusUrl(employerId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setEmployerStatusBody,)
+  }
+);}
+
+
+
+
+export const getSetEmployerStatusMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setEmployerStatus>>, TError,{employerId: string;data: BodyType<SetEmployerStatusBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setEmployerStatus>>, TError,{employerId: string;data: BodyType<SetEmployerStatusBody>}, TContext> => {
+
+const mutationKey = ['setEmployerStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setEmployerStatus>>, {employerId: string;data: BodyType<SetEmployerStatusBody>}> = (props) => {
+          const {employerId,data} = props ?? {};
+
+          return  setEmployerStatus(employerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetEmployerStatusMutationResult = NonNullable<Awaited<ReturnType<typeof setEmployerStatus>>>
+    export type SetEmployerStatusMutationBody = BodyType<SetEmployerStatusBody>
+    export type SetEmployerStatusMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Set an employer's KYB status — "verified" unlocks live payroll keys; "suspended" blocks the account
+ */
+export const useSetEmployerStatus = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setEmployerStatus>>, TError,{employerId: string;data: BodyType<SetEmployerStatusBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setEmployerStatus>>,
+        TError,
+        {employerId: string;data: BodyType<SetEmployerStatusBody>},
+        TContext
+      > => {
+      return useMutation(getSetEmployerStatusMutationOptions(options));
+    }
+
 export const getGetAdminPayrollStatsUrl = () => {
 
 
@@ -5988,7 +6140,7 @@ export const getSubmitPayrollBatchUrl = (batchId: string,) => {
 }
 
 /**
- * @summary Submit a batch — resolve workers and pay
+ * @summary Submit a batch — resolve workers and pay. ≤25 payments settle inline (200 with the final state); larger batches return 202 and settle in the background (track via GET or webhooks)
  */
 export const submitPayrollBatch = async (batchId: string, options?: RequestInit): Promise<BatchResponse> => {
 
@@ -6036,7 +6188,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SubmitPayrollBatchMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Submit a batch — resolve workers and pay
+ * @summary Submit a batch — resolve workers and pay. ≤25 payments settle inline (200 with the final state); larger batches return 202 and settle in the background (track via GET or webhooks)
  */
 export const useSubmitPayrollBatch = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPayrollBatch>>, TError,{batchId: string}, TContext>, request?: SecondParameter<typeof customFetch>}

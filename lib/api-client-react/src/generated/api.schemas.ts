@@ -1101,6 +1101,10 @@ export interface FeeSchedule {
   p2pFeePercent: number;
   /** Transfer fee — flat USDC component per send (covers gas + margin); total fee = flat + amount*percent/100 */
   transferFeeFlat: number;
+  /** Payroll fee — percent of each batch payment, charged to the employer on top of the payout */
+  payrollFeePercent: number;
+  /** Payroll fee — flat USDC per batch payment; total fee = flat + amount*percent/100 */
+  payrollFeeFlat: number;
 }
 
 export interface CustomJob {
@@ -1598,6 +1602,34 @@ export interface AdminKycVerificationsResponse {
   total: number;
 }
 
+export type AdminEmployerStatus = typeof AdminEmployerStatus[keyof typeof AdminEmployerStatus];
+
+
+export const AdminEmployerStatus = {
+  pending: 'pending',
+  verified: 'verified',
+  rejected: 'rejected',
+  suspended: 'suspended',
+} as const;
+
+export interface AdminEmployer {
+  id: string;
+  companyName: string;
+  email: string;
+  websiteUrl?: string | null;
+  country?: string | null;
+  status: AdminEmployerStatus;
+  balanceUsdc: number;
+  ownerUserId?: string;
+  ownerEmail?: string | null;
+  batches: number;
+  createdAt: string;
+}
+
+export interface AdminEmployersResponse {
+  employers: AdminEmployer[];
+}
+
 export interface AdminPayrollStats {
   totalEmployers: number;
   verifiedEmployers: number;
@@ -1773,6 +1805,22 @@ export type StripeWebhookBody = { [key: string]: unknown };
 export type GetAdminUsersParams = {
 kycStatus?: string;
 };
+
+export type SetEmployerStatusBodyStatus = typeof SetEmployerStatusBodyStatus[keyof typeof SetEmployerStatusBodyStatus];
+
+
+export const SetEmployerStatusBodyStatus = {
+  pending: 'pending',
+  verified: 'verified',
+  rejected: 'rejected',
+  suspended: 'suspended',
+} as const;
+
+export type SetEmployerStatusBody = {
+  status: SetEmployerStatusBodyStatus;
+};
+
+export type SetEmployerStatus200 = { [key: string]: unknown };
 
 export type GetAdminTransactionsParams = {
 type?: string;
