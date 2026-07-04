@@ -472,6 +472,7 @@ async function payoutProvidersPayload() {
       pricingNote: p.pricingNote,
       supportsDeposits: p.supportsDeposits,
       supportsVirtualAccounts: p.supportsVirtualAccounts,
+      virtualAccountCurrencies: p.virtualAccountCurrencies,
       supportsKyc: p.supportsKyc,
     })),
   };

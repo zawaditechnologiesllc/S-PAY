@@ -295,9 +295,10 @@ const conduitProvider: MoneyRailProvider = {
   supportsDeposit: (c) => CONDUIT_CURRENCIES.has(c?.toUpperCase()),
   quoteDeposit: (req) => makeDepositQuote("conduit", 0.008, req),
   createDeposit: async () => { throw new DepositNotConfiguredError("conduit"); },
-  // Can issue local-currency collection accounts, but we only offer USD/EUR
-  // virtual accounts — so it is not a virtual-account issuer here.
-  supportsVirtualAccount: () => false,
+  // Conduit issues USD accounts for cross-border businesses (its core
+  // collections product) — a valid USD virtual-account issuer. It does not
+  // issue EU IBANs, so EUR requests route to Bridge/Noah instead.
+  supportsVirtualAccount: (c) => c?.toUpperCase() === "USD",
   createVirtualAccount: async () => { throw new VirtualAccountNotConfiguredError("conduit"); },
   supportsKyc: () => true, // Conduit runs KYB onboarding for its corridors
   startKyc: async () => { throw new KycNotConfiguredError("conduit"); },
@@ -360,7 +361,8 @@ const PROVIDERS: Record<PayoutProviderKey, MoneyRailProvider> = {
 /** Static provider facts for the admin panel. */
 export function payoutProviderCatalog(): Array<{
   key: PayoutProviderKey; label: string; configured: boolean; envHint: string;
-  pricingNote: string; supportsDeposits: boolean; supportsVirtualAccounts: boolean; supportsKyc: boolean;
+  pricingNote: string; supportsDeposits: boolean; supportsVirtualAccounts: boolean;
+  virtualAccountCurrencies: string[]; supportsKyc: boolean;
 }> {
   // A provider "supports deposits" in general if it can on-ramp any corridor.
   const anyDeposit = (p: MoneyRailProvider) =>
@@ -369,6 +371,9 @@ export function payoutProviderCatalog(): Array<{
     key: p.key, label: p.label, configured: p.isConfigured(),
     envHint: p.envHint, pricingNote: p.pricingNote, supportsDeposits: anyDeposit(p),
     supportsVirtualAccounts: p.supportsVirtualAccount("USD") || p.supportsVirtualAccount("EUR"),
+    // Which of the offered account currencies each rail can actually issue —
+    // lets the admin UI say "USD + EUR" vs "USD only" instead of guessing.
+    virtualAccountCurrencies: [...VIRTUAL_ACCOUNT_CURRENCIES].filter((c) => p.supportsVirtualAccount(c)),
     supportsKyc: p.supportsKyc(),
   }));
 }

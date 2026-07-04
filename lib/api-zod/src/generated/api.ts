@@ -1349,6 +1349,7 @@ export const GetPayoutProvidersResponse = zod.object({
   "pricingNote": zod.string().describe('One-line note on commercial terms (onboarding-fee posture especially)'),
   "supportsDeposits": zod.boolean().optional().describe('Whether this provider can on-ramp (deposit) at least one corridor'),
   "supportsVirtualAccounts": zod.boolean().optional().describe('Whether this provider can issue USD\/EUR virtual accounts'),
+  "virtualAccountCurrencies": zod.array(zod.string()).optional().describe('Which of the offered account currencies (USD, EUR) this provider can issue — empty for payout-only rails'),
   "supportsKyc": zod.boolean().optional().describe('Whether this provider runs its own hosted KYC\/KYB')
 }))
 })
@@ -1383,6 +1384,7 @@ export const UpdatePayoutProvidersResponse = zod.object({
   "pricingNote": zod.string().describe('One-line note on commercial terms (onboarding-fee posture especially)'),
   "supportsDeposits": zod.boolean().optional().describe('Whether this provider can on-ramp (deposit) at least one corridor'),
   "supportsVirtualAccounts": zod.boolean().optional().describe('Whether this provider can issue USD\/EUR virtual accounts'),
+  "virtualAccountCurrencies": zod.array(zod.string()).optional().describe('Which of the offered account currencies (USD, EUR) this provider can issue — empty for payout-only rails'),
   "supportsKyc": zod.boolean().optional().describe('Whether this provider runs its own hosted KYC\/KYB')
 }))
 })

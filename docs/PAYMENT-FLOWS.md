@@ -161,9 +161,13 @@ The virtual account is an **entry point, not a balance**. `GET /banking/accounts
 lists account details to receive into; it never reports a separate balance.
 
 **Provider-neutral, USD/EUR only:** S-PAY issues **USD ACH / EU IBAN** virtual
-accounts (we don't offer local-currency accounts). The issuer is **Bridge**
-(no onboarding fee) or **Noah** — the admin picks one (`virtualAccountIssuer`),
-and it's sticky per user. The deposit on-ramp itself is routed per-transaction by
+accounts (we don't offer local-currency accounts). Issuer-capable rails:
+**Bridge** (USD + EUR, no onboarding fee — the default), **Noah** (USD + EUR),
+and **Conduit** (USD only). The admin designates one (`virtualAccountIssuer`);
+it's sticky per user, and a currency the designated issuer can't serve routes
+to the next capable rail automatically. Yellow Card and Thunes are payout
+rails and can't issue accounts — the admin selector lists them disabled with
+that reason. The deposit on-ramp itself is routed per-transaction by
 `selectDepositProvider()` (see "On-ramp routing"), so S-PAY is never locked to
 Noah for deposits.
 

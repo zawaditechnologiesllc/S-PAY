@@ -3907,6 +3907,11 @@ components:
         supportsVirtualAccounts:
           type: boolean
           description: Whether this provider can issue USD/EUR virtual accounts
+        virtualAccountCurrencies:
+          type: array
+          items:
+            type: string
+          description: Which of the offered account currencies (USD, EUR) this provider can issue — empty for payout-only rails
         supportsKyc:
           type: boolean
           description: Whether this provider runs its own hosted KYC/KYB
