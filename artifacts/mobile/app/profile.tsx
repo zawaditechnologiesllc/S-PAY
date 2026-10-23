@@ -229,6 +229,7 @@ export default function ProfileScreen() {
             <Text style={[styles.cardTitle, { color: colors.foreground }]}>Account</Text>
             {[
               { icon: "lock" as const, label: "Security & PIN", path: "/security" },
+              { icon: "activity" as const, label: user?.accountType === "business" ? "Business Score" : "S-PAY Score", path: "/score" },
               { icon: "help-circle" as const, label: "Help & Support", path: "/support" },
             ].map((item) => (
               <TouchableOpacity key={item.label} style={[styles.infoRow, { borderBottomColor: colors.border }]} onPress={() => router.push(item.path)}>
@@ -247,6 +248,7 @@ export default function ProfileScreen() {
             {[
               { icon: "shield" as const, label: "Privacy Policy", url: "https://spayewallet.com/privacy" },
               { icon: "file-text" as const, label: "Terms of Service", url: "https://spayewallet.com/terms" },
+              { icon: "activity" as const, label: "How S-PAY Score works", url: "https://spayewallet.com/score" },
             ].map((item) => (
               <TouchableOpacity key={item.label} style={[styles.infoRow, { borderBottomColor: colors.border }]} onPress={() => Linking.openURL(item.url)}>
                 <View style={[styles.infoIcon, { backgroundColor: colors.muted }]}>

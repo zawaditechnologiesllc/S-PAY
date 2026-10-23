@@ -12,6 +12,7 @@ import notificationsRouter from "./notifications";
 import enquiriesRouter from "./enquiries";
 import payrollRouter from "./payroll";
 import seoRouter from "./seo";
+import scoreRouter from "./score";
 import adminRouter from "./admin";
 
 const router: IRouter = Router();
@@ -28,6 +29,7 @@ router.use(notificationsRouter);
 router.use(enquiriesRouter);
 router.use(payrollRouter);
 router.use(seoRouter);
+router.use(scoreRouter);
 router.use(webhooksRouter);
 router.use(adminRouter);
 

@@ -1167,6 +1167,8 @@ export interface FeatureFlagsResponse {
   socialConnectEnabled?: boolean;
   /** Whether the SocialConnect issuer env keys are set — the switch only takes effect when true */
   socialConnectConfigured?: boolean;
+  /** Master switch for the S-PAY Score program (on by default; off pauses scoring platform-wide) */
+  scoreProgramEnabled?: boolean;
 }
 
 /**
@@ -1178,6 +1180,270 @@ export interface FeatureFlagsUpdateRequest {
   /** @maxLength 280 */
   maintenanceMessage?: string;
   socialConnectEnabled?: boolean;
+  scoreProgramEnabled?: boolean;
+}
+
+export type ScoreBandKey = typeof ScoreBandKey[keyof typeof ScoreBandKey];
+
+
+export const ScoreBandKey = {
+  building: 'building',
+  good: 'good',
+  great: 'great',
+  excellent: 'excellent',
+} as const;
+
+export interface ScoreBand {
+  key: ScoreBandKey;
+  label: string;
+  min: number;
+  max: number;
+  color: string;
+  summary: string;
+}
+
+export type ScoreNextBandKey = typeof ScoreNextBandKey[keyof typeof ScoreNextBandKey];
+
+
+export const ScoreNextBandKey = {
+  building: 'building',
+  good: 'good',
+  great: 'great',
+  excellent: 'excellent',
+} as const;
+
+export interface ScoreNextBand {
+  key: ScoreNextBandKey;
+  label: string;
+  min: number;
+  max: number;
+  color: string;
+  summary: string;
+  pointsNeeded: number;
+}
+
+export type ScoreFactorKey = typeof ScoreFactorKey[keyof typeof ScoreFactorKey];
+
+
+export const ScoreFactorKey = {
+  identity: 'identity',
+  history: 'history',
+  payments: 'payments',
+  income: 'income',
+  health: 'health',
+} as const;
+
+export type ScoreFactorStatus = typeof ScoreFactorStatus[keyof typeof ScoreFactorStatus];
+
+
+export const ScoreFactorStatus = {
+  strong: 'strong',
+  fair: 'fair',
+  weak: 'weak',
+  no_data: 'no_data',
+} as const;
+
+export interface ScoreFactor {
+  key: ScoreFactorKey;
+  label: string;
+  /** Share of the 550-point span this factor controls (0–1) */
+  weight: number;
+  /** Factor value 0–100 */
+  value: number;
+  points: number;
+  maxPoints: number;
+  status: ScoreFactorStatus;
+  detail: string;
+}
+
+export type ScoreImprovementActionKind = typeof ScoreImprovementActionKind[keyof typeof ScoreImprovementActionKind];
+
+
+export const ScoreImprovementActionKind = {
+  link: 'link',
+  kyc: 'kyc',
+  email: 'email',
+} as const;
+
+export interface ScoreImprovementAction {
+  kind: ScoreImprovementActionKind;
+  href?: string;
+}
+
+export type ScoreImprovementFactor = typeof ScoreImprovementFactor[keyof typeof ScoreImprovementFactor];
+
+
+export const ScoreImprovementFactor = {
+  identity: 'identity',
+  history: 'history',
+  payments: 'payments',
+  income: 'income',
+  health: 'health',
+} as const;
+
+export interface ScoreImprovement {
+  key: string;
+  factor: ScoreImprovementFactor;
+  title: string;
+  description: string;
+  /** Simulated score gain; null when it builds over time */
+  estimatedPoints: number | null;
+  action: ScoreImprovementAction | null;
+}
+
+export interface ScoreHistoryPoint {
+  /** Calendar month, YYYY-MM */
+  period: string;
+  score: number;
+  band: string;
+  bandLabel: string;
+}
+
+export interface ScorePartnerSharing {
+  consented: boolean;
+  consentedAt: string | null;
+  consentVersion: string | null;
+  currentVersion: string;
+  targetYear: number;
+  /** Whether any partner currently receives data (false until the partner program launches) */
+  active: boolean;
+}
+
+export type ScoreViewAccountType = typeof ScoreViewAccountType[keyof typeof ScoreViewAccountType];
+
+
+export const ScoreViewAccountType = {
+  personal: 'personal',
+  business: 'business',
+} as const;
+
+export type ScoreViewRange = {
+  min: number;
+  max: number;
+};
+
+export interface ScoreView {
+  programEnabled: boolean;
+  enabled: boolean;
+  accountType: ScoreViewAccountType;
+  score: number | null;
+  band: ScoreBand | null;
+  range: ScoreViewRange;
+  trustedThreshold: number;
+  nextBand: ScoreNextBand | null;
+  factors: ScoreFactor[];
+  improvements: ScoreImprovement[];
+  history: ScoreHistoryPoint[];
+  /** Share of scored members below this score (only once 20+ members are scored) */
+  percentile: number | null;
+  computedAt: string | null;
+  modelVersion: string;
+  partnerSharing: ScorePartnerSharing;
+  activeShares: number;
+}
+
+/**
+ * Partial update — provide either or both
+ */
+export interface ScoreSettingsRequest {
+  enabled?: boolean;
+  partnerSharing?: boolean;
+}
+
+/**
+ * Link lifetime (default 7)
+ */
+export type ScoreShareRequestDays = typeof ScoreShareRequestDays[keyof typeof ScoreShareRequestDays];
+
+
+export const ScoreShareRequestDays = {
+  NUMBER_1: 1,
+  NUMBER_7: 7,
+  NUMBER_30: 30,
+} as const;
+
+export interface ScoreShareRequest {
+  /** false (default) shares the band only */
+  showExactScore?: boolean;
+  /** Link lifetime (default 7) */
+  days?: ScoreShareRequestDays;
+}
+
+export interface ScoreShare {
+  token: string;
+  url: string;
+  expiresAt: string;
+  showExactScore: boolean;
+  score: number;
+  band: ScoreBand;
+}
+
+export interface ScoreVerification {
+  valid: boolean;
+  displayName: string;
+  accountType: string;
+  band: ScoreBand;
+  score: number | null;
+  trustedMember: boolean;
+  identityVerified: boolean;
+  issuedAt: string;
+  expiresAt: string;
+  modelVersion: string;
+}
+
+export interface ScoreExport {
+  exportedAt?: string;
+  modelVersion?: string;
+  [key: string]: unknown;
+ }
+
+export interface AdminScoreBandCount {
+  band: string;
+  label: string;
+  personal: number;
+  business: number;
+}
+
+export interface AdminScoreConsentEvent {
+  action: string;
+  createdAt: string;
+  consentVersion: string;
+  email?: string | null;
+  fullName?: string | null;
+}
+
+export type AdminScoreStatsPartnerSharing = {
+  consented: number;
+  ratePct: number;
+  partnerReady: number;
+};
+
+export type AdminScoreStatsSnapshots = {
+  total: number;
+  members: number;
+  thisMonth: number;
+  firstPeriod: string | null;
+};
+
+export interface AdminScoreStats {
+  programEnabled: boolean;
+  modelVersion: string;
+  consentVersion: string;
+  partnerTargetYear: number;
+  totalUsers: number;
+  profiles: number;
+  enabledProfiles: number;
+  disabledProfiles: number;
+  scoredMembers: number;
+  coveragePct: number;
+  averageScore: number | null;
+  averagePersonal: number | null;
+  averageBusiness: number | null;
+  trustedMembers: number;
+  distribution: AdminScoreBandCount[];
+  partnerSharing: AdminScoreStatsPartnerSharing;
+  snapshots: AdminScoreStatsSnapshots;
+  recentConsent: AdminScoreConsentEvent[];
 }
 
 export type AdminTeamMemberRole = typeof AdminTeamMemberRole[keyof typeof AdminTeamMemberRole];
@@ -1684,6 +1950,9 @@ export interface AdminUser {
   accountType?: AdminUserAccountType;
   businessName?: string | null;
   createdAt?: string;
+  /** Cached S-PAY Score (null until computed or if the member turned it off) */
+  score?: number | null;
+  scoreBand?: string | null;
 }
 
 export interface AdminUsersResponse {

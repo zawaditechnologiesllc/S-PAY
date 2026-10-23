@@ -842,7 +842,9 @@ export const GetAdminUsersResponse = zod.object({
   "signupSource": zod.string().nullish(),
   "accountType": zod.enum(['personal', 'business']).optional(),
   "businessName": zod.string().nullish(),
-  "createdAt": zod.string().optional()
+  "createdAt": zod.string().optional(),
+  "score": zod.number().nullish().describe('Cached S-PAY Score (null until computed or if the member turned it off)'),
+  "scoreBand": zod.string().nullish()
 })),
   "total": zod.number()
 })
@@ -1400,7 +1402,8 @@ export const GetFeatureFlagsResponse = zod.object({
   "maintenanceMode": zod.boolean().describe('When true, the API serves 503 for user traffic (admin + auth + webhooks stay up)'),
   "maintenanceMessage": zod.string().optional().describe('Message shown to users while in maintenance'),
   "socialConnectEnabled": zod.boolean().optional().describe('Master switch for Celo SocialConnect phone\/email → address resolution on sends (admin-controlled)'),
-  "socialConnectConfigured": zod.boolean().optional().describe('Whether the SocialConnect issuer env keys are set — the switch only takes effect when true')
+  "socialConnectConfigured": zod.boolean().optional().describe('Whether the SocialConnect issuer env keys are set — the switch only takes effect when true'),
+  "scoreProgramEnabled": zod.boolean().optional().describe('Master switch for the S-PAY Score program (on by default; off pauses scoring platform-wide)')
 })
 
 
@@ -1415,7 +1418,8 @@ export const UpdateFeatureFlagsBody = zod.object({
   "cardProgramEnabled": zod.boolean().optional(),
   "maintenanceMode": zod.boolean().optional(),
   "maintenanceMessage": zod.string().max(updateFeatureFlagsBodyMaintenanceMessageMax).optional(),
-  "socialConnectEnabled": zod.boolean().optional()
+  "socialConnectEnabled": zod.boolean().optional(),
+  "scoreProgramEnabled": zod.boolean().optional()
 }).describe('Partial update — provide any subset of flags')
 
 export const UpdateFeatureFlagsResponse = zod.object({
@@ -1425,7 +1429,8 @@ export const UpdateFeatureFlagsResponse = zod.object({
   "maintenanceMode": zod.boolean().describe('When true, the API serves 503 for user traffic (admin + auth + webhooks stay up)'),
   "maintenanceMessage": zod.string().optional().describe('Message shown to users while in maintenance'),
   "socialConnectEnabled": zod.boolean().optional().describe('Master switch for Celo SocialConnect phone\/email → address resolution on sends (admin-controlled)'),
-  "socialConnectConfigured": zod.boolean().optional().describe('Whether the SocialConnect issuer env keys are set — the switch only takes effect when true')
+  "socialConnectConfigured": zod.boolean().optional().describe('Whether the SocialConnect issuer env keys are set — the switch only takes effect when true'),
+  "scoreProgramEnabled": zod.boolean().optional().describe('Master switch for the S-PAY Score program (on by default; off pauses scoring platform-wide)')
 })
 
 
@@ -2292,4 +2297,260 @@ export const UnpublishSeoPostResponse = zod.object({
 }))
 }).optional().describe('Cross-check of a draft against the Google 2026 SEO rules.')
 })
+})
+
+
+/**
+ * @summary The signed-in member's S-PAY Score (personal or business) — score, factors, plan, history, consent state
+ */
+export const GetMyScoreResponse = zod.object({
+  "programEnabled": zod.boolean(),
+  "enabled": zod.boolean(),
+  "accountType": zod.enum(['personal', 'business']),
+  "score": zod.number().nullable(),
+  "band": zod.object({
+  "key": zod.enum(['building', 'good', 'great', 'excellent']),
+  "label": zod.string(),
+  "min": zod.number(),
+  "max": zod.number(),
+  "color": zod.string(),
+  "summary": zod.string()
+}).nullable(),
+  "range": zod.object({
+  "min": zod.number(),
+  "max": zod.number()
+}),
+  "trustedThreshold": zod.number(),
+  "nextBand": zod.object({
+  "key": zod.enum(['building', 'good', 'great', 'excellent']),
+  "label": zod.string(),
+  "min": zod.number(),
+  "max": zod.number(),
+  "color": zod.string(),
+  "summary": zod.string(),
+  "pointsNeeded": zod.number()
+}).nullable(),
+  "factors": zod.array(zod.object({
+  "key": zod.enum(['identity', 'history', 'payments', 'income', 'health']),
+  "label": zod.string(),
+  "weight": zod.number().describe('Share of the 550-point span this factor controls (0–1)'),
+  "value": zod.number().describe('Factor value 0–100'),
+  "points": zod.number(),
+  "maxPoints": zod.number(),
+  "status": zod.enum(['strong', 'fair', 'weak', 'no_data']),
+  "detail": zod.string()
+})),
+  "improvements": zod.array(zod.object({
+  "key": zod.string(),
+  "factor": zod.enum(['identity', 'history', 'payments', 'income', 'health']),
+  "title": zod.string(),
+  "description": zod.string(),
+  "estimatedPoints": zod.number().nullable().describe('Simulated score gain; null when it builds over time'),
+  "action": zod.object({
+  "kind": zod.enum(['link', 'kyc', 'email']),
+  "href": zod.string().optional()
+}).nullable()
+})),
+  "history": zod.array(zod.object({
+  "period": zod.string().describe('Calendar month, YYYY-MM'),
+  "score": zod.number(),
+  "band": zod.string(),
+  "bandLabel": zod.string()
+})),
+  "percentile": zod.number().nullable().describe('Share of scored members below this score (only once 20+ members are scored)'),
+  "computedAt": zod.string().nullable(),
+  "modelVersion": zod.string(),
+  "partnerSharing": zod.object({
+  "consented": zod.boolean(),
+  "consentedAt": zod.string().nullable(),
+  "consentVersion": zod.string().nullable(),
+  "currentVersion": zod.string(),
+  "targetYear": zod.number(),
+  "active": zod.boolean().describe('Whether any partner currently receives data (false until the partner program launches)')
+}),
+  "activeShares": zod.number()
+})
+
+
+/**
+ * @summary Turn the score on/off and choose about future partner sharing (opt-in, logged)
+ */
+export const UpdateScoreSettingsBody = zod.object({
+  "enabled": zod.boolean().optional(),
+  "partnerSharing": zod.boolean().optional()
+}).describe('Partial update — provide either or both')
+
+export const UpdateScoreSettingsResponse = zod.object({
+  "programEnabled": zod.boolean(),
+  "enabled": zod.boolean(),
+  "accountType": zod.enum(['personal', 'business']),
+  "score": zod.number().nullable(),
+  "band": zod.object({
+  "key": zod.enum(['building', 'good', 'great', 'excellent']),
+  "label": zod.string(),
+  "min": zod.number(),
+  "max": zod.number(),
+  "color": zod.string(),
+  "summary": zod.string()
+}).nullable(),
+  "range": zod.object({
+  "min": zod.number(),
+  "max": zod.number()
+}),
+  "trustedThreshold": zod.number(),
+  "nextBand": zod.object({
+  "key": zod.enum(['building', 'good', 'great', 'excellent']),
+  "label": zod.string(),
+  "min": zod.number(),
+  "max": zod.number(),
+  "color": zod.string(),
+  "summary": zod.string(),
+  "pointsNeeded": zod.number()
+}).nullable(),
+  "factors": zod.array(zod.object({
+  "key": zod.enum(['identity', 'history', 'payments', 'income', 'health']),
+  "label": zod.string(),
+  "weight": zod.number().describe('Share of the 550-point span this factor controls (0–1)'),
+  "value": zod.number().describe('Factor value 0–100'),
+  "points": zod.number(),
+  "maxPoints": zod.number(),
+  "status": zod.enum(['strong', 'fair', 'weak', 'no_data']),
+  "detail": zod.string()
+})),
+  "improvements": zod.array(zod.object({
+  "key": zod.string(),
+  "factor": zod.enum(['identity', 'history', 'payments', 'income', 'health']),
+  "title": zod.string(),
+  "description": zod.string(),
+  "estimatedPoints": zod.number().nullable().describe('Simulated score gain; null when it builds over time'),
+  "action": zod.object({
+  "kind": zod.enum(['link', 'kyc', 'email']),
+  "href": zod.string().optional()
+}).nullable()
+})),
+  "history": zod.array(zod.object({
+  "period": zod.string().describe('Calendar month, YYYY-MM'),
+  "score": zod.number(),
+  "band": zod.string(),
+  "bandLabel": zod.string()
+})),
+  "percentile": zod.number().nullable().describe('Share of scored members below this score (only once 20+ members are scored)'),
+  "computedAt": zod.string().nullable(),
+  "modelVersion": zod.string(),
+  "partnerSharing": zod.object({
+  "consented": zod.boolean(),
+  "consentedAt": zod.string().nullable(),
+  "consentVersion": zod.string().nullable(),
+  "currentVersion": zod.string(),
+  "targetYear": zod.number(),
+  "active": zod.boolean().describe('Whether any partner currently receives data (false until the partner program launches)')
+}),
+  "activeShares": zod.number()
+})
+
+
+/**
+ * @summary Delete every stored monthly score snapshot for the signed-in member
+ */
+export const DeleteScoreHistoryResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Download the member's score data (profile, monthly snapshots, consent trail, shares)
+ */
+export const ExportScoreDataResponse = zod.object({
+  "exportedAt": zod.string().optional(),
+  "modelVersion": zod.string().optional()
+})
+
+
+/**
+ * @summary Create an expiring, verifiable proof-of-score link
+ */
+export const CreateScoreShareBody = zod.object({
+  "showExactScore": zod.boolean().optional().describe('false (default) shares the band only'),
+  "days": zod.union([zod.literal(1),zod.literal(7),zod.literal(30)]).optional().describe('Link lifetime (default 7)')
+})
+
+
+/**
+ * @summary Revoke every active proof-of-score link
+ */
+export const RevokeScoreSharesResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Public — verify a member-issued proof-of-score link (shows only what the member chose to share)
+ */
+export const VerifyScoreShareParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const VerifyScoreShareResponse = zod.object({
+  "valid": zod.boolean(),
+  "displayName": zod.string(),
+  "accountType": zod.string(),
+  "band": zod.object({
+  "key": zod.enum(['building', 'good', 'great', 'excellent']),
+  "label": zod.string(),
+  "min": zod.number(),
+  "max": zod.number(),
+  "color": zod.string(),
+  "summary": zod.string()
+}),
+  "score": zod.number().nullable(),
+  "trustedMember": zod.boolean(),
+  "identityVerified": zod.boolean(),
+  "issuedAt": zod.string(),
+  "expiresAt": zod.string(),
+  "modelVersion": zod.string()
+})
+
+
+/**
+ * @summary S-PAY Score program overview — distribution, averages, data collected, partner-sharing consent
+ */
+export const GetAdminScoreStatsResponse = zod.object({
+  "programEnabled": zod.boolean(),
+  "modelVersion": zod.string(),
+  "consentVersion": zod.string(),
+  "partnerTargetYear": zod.number(),
+  "totalUsers": zod.number(),
+  "profiles": zod.number(),
+  "enabledProfiles": zod.number(),
+  "disabledProfiles": zod.number(),
+  "scoredMembers": zod.number(),
+  "coveragePct": zod.number(),
+  "averageScore": zod.number().nullable(),
+  "averagePersonal": zod.number().nullable(),
+  "averageBusiness": zod.number().nullable(),
+  "trustedMembers": zod.number(),
+  "distribution": zod.array(zod.object({
+  "band": zod.string(),
+  "label": zod.string(),
+  "personal": zod.number(),
+  "business": zod.number()
+})),
+  "partnerSharing": zod.object({
+  "consented": zod.number(),
+  "ratePct": zod.number(),
+  "partnerReady": zod.number()
+}),
+  "snapshots": zod.object({
+  "total": zod.number(),
+  "members": zod.number(),
+  "thisMonth": zod.number(),
+  "firstPeriod": zod.string().nullable()
+}),
+  "recentConsent": zod.array(zod.object({
+  "action": zod.string(),
+  "createdAt": zod.string(),
+  "consentVersion": zod.string(),
+  "email": zod.string().nullish(),
+  "fullName": zod.string().nullish()
+}))
 })

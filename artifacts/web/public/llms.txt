@@ -8,6 +8,7 @@
 - [How it works](https://spayewallet.com/how-it-works): Step-by-step guide to receiving, holding, and cashing out money with S-PAY.
 - [For Business](https://spayewallet.com/#business): Business accounts, KYB verification, and batch payroll for companies and marketplaces.
 - [Remote Jobs](https://spayewallet.com/jobs): Free board of fully remote jobs, updated daily across engineering, design, marketing, finance and more.
+- [S-PAY Score](https://spayewallet.com/score): Free 300–850 financial-reliability score for personal and business accounts, built only from a member's own S-PAY activity (verification, payment success, income patterns, account history). Explains the five weighted factors, score bands and benefits, the data used and never used, why it's collected, how to keep it high, member controls (turn off, delete, download), and the opt-in plan to let licensed financial institutions use scores from around 2031.
 
 ## Company
 
@@ -30,4 +31,5 @@
 ## Notes
 
 - Banking and payout services are provided through licensed partners; S-PAY screens transactions for AML and sanctions compliance and requires identity verification (KYC/KYB).
-- Areas behind sign-in (dashboard, wallet, banking, card, profile, admin) are not crawlable and require authentication.
+- Areas behind sign-in (dashboard, wallet, banking, card, my score, profile, admin) are not crawlable and require authentication. Member-issued score proof links (/score/verify/…) are private and not indexed.
+- S-PAY Score is S-PAY's own score, not a credit-bureau report; nothing is shared with lenders unless a member opts in to partner sharing.

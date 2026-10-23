@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import {
   Wallet, Landmark, CreditCard, Briefcase,
-  CircleUser, QrCode, HelpCircle, LogOut, LayoutDashboard, Lock, Building2,
+  CircleUser, QrCode, HelpCircle, LogOut, LayoutDashboard, Lock, Building2, Gauge,
 } from "lucide-react";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { clearToken } from "@/lib/auth";
@@ -55,6 +55,7 @@ export function Layout({ children, title, back }: { children: React.ReactNode; t
           <NavLink href="/wallet" icon={<Wallet size={18} />} label="History" />
           <NavLink href="/banking" icon={<Landmark size={18} />} label="Banking" />
           <NavLink href="/card" icon={<CreditCard size={18} />} label="Card" />
+          <NavLink href="/my-score" icon={<Gauge size={18} />} label={me?.accountType === "business" ? "Business Score" : "S-PAY Score"} />
           {/* Payroll is a business-only feature — hide it for personal accounts */}
           {me?.accountType === "business" && (
             <NavLink href="/payroll" icon={<Building2 size={18} />} label="Payroll" />

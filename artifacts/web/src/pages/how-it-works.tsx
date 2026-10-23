@@ -4,10 +4,10 @@ import { Layout } from "@/components/layout";
 import { getToken } from "@/lib/auth";
 import {
   UserPlus, QrCode, ArrowRightLeft, Banknote, Landmark, ShieldCheck,
-  CreditCard, Briefcase, ScanLine, Wallet2, MailCheck, ChevronRight,
+  CreditCard, Briefcase, ScanLine, Wallet2, MailCheck, ChevronRight, Gauge,
 } from "lucide-react";
 
-const STEPS = [
+const STEPS: { icon: React.ReactNode; title: string; body: string; link?: { href: string; label: string } }[] = [
   {
     icon: <UserPlus size={22} />,
     title: "1 · Create your free account",
@@ -44,6 +44,12 @@ const STEPS = [
     body: "Create a virtual Visa-network card for online purchases and subscriptions, funded by your wallet balance. Available to verified users as the program rolls out.",
   },
   {
+    icon: <Gauge size={22} />,
+    title: "8 · Build your S-PAY Score",
+    body: "Every personal and business account gets a free 300–850 S-PAY Score built from your own S-PAY activity — verification, clean payments, regular income and account history. Your dashboard shows the score, the points each next step is worth, and a verified link you can share with employers or clients. You can turn it off, delete it or download it any time.",
+    link: { href: "/score", label: "How S-PAY Score works" },
+  },
+  {
     icon: <Briefcase size={22} />,
     title: "Bonus · Find remote work, free forever",
     body: "The jobs board lists 3,000–5,000 remote-only roles daily from 60+ sources, refreshed hourly. Find work, get paid into S-PAY, cash out locally — the whole loop in one app.",
@@ -62,6 +68,10 @@ const FAQS = [
   {
     q: "Why do I see a 'confirm your email' banner?",
     a: "We email a confirmation link at sign-up to secure your account. Click it and the banner disappears — you can use the app in the meantime.",
+  },
+  {
+    q: "What is the S-PAY Score and what data does it use?",
+    a: "A free 300–850 score for personal and business accounts, built only from your S-PAY activity (verification status, payment success, income patterns, account age). It never uses your contacts, location or documents, checking it never lowers it, and nothing is shared with lenders unless you opt in — a program planned for around 2031.",
   },
   {
     q: "Is the Celo network safe?",
@@ -112,6 +122,11 @@ function Content({ authed = false }: { authed?: boolean }) {
               <div>
                 <h3 className="font-bold text-[#1A2B4A] mb-1">{s.title}</h3>
                 <p className="text-sm text-gray-600 leading-relaxed">{s.body}</p>
+                {s.link && (
+                  <Link href={s.link.href} className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-[#2E8FD6]">
+                    {s.link.label} <ChevronRight size={14} />
+                  </Link>
+                )}
               </div>
             </div>
           ))}

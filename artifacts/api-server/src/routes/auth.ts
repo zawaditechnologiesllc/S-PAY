@@ -394,12 +394,20 @@ router.delete("/auth/me", requireAuth, async (req, res) => {
       }
     }
 
-    const { transactionsTable, cardWaitlistTable, notificationsTable, virtualAccountsTable, kycVerificationsTable } = await import("@workspace/db");
+    const {
+      transactionsTable, cardWaitlistTable, notificationsTable, virtualAccountsTable, kycVerificationsTable,
+      scoreProfilesTable, scoreSnapshotsTable, scoreConsentLogTable, scoreSharesTable,
+    } = await import("@workspace/db");
     await db.delete(transactionsTable).where(eq(transactionsTable.userId, userId));
     await db.delete(cardWaitlistTable).where(eq(cardWaitlistTable.userId, userId));
     await db.delete(notificationsTable).where(eq(notificationsTable.userId, userId));
     await db.delete(virtualAccountsTable).where(eq(virtualAccountsTable.userId, userId));
     await db.delete(kycVerificationsTable).where(eq(kycVerificationsTable.userId, userId));
+    // S-PAY Score: snapshots, shares, consent trail and profile go with the account.
+    await db.delete(scoreSnapshotsTable).where(eq(scoreSnapshotsTable.userId, userId));
+    await db.delete(scoreSharesTable).where(eq(scoreSharesTable.userId, userId));
+    await db.delete(scoreConsentLogTable).where(eq(scoreConsentLogTable.userId, userId));
+    await db.delete(scoreProfilesTable).where(eq(scoreProfilesTable.userId, userId));
     await db.delete(usersTable).where(eq(usersTable.id, userId));
     req.log.info({ userId }, "Account deleted at user request");
     res.json({ message: "Your account and all associated data have been permanently deleted." });

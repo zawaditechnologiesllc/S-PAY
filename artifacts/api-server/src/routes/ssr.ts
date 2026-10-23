@@ -3,6 +3,12 @@ import { fetchJobs, getJobById, CATEGORY_LABELS, type NormalizedJob } from "../l
 import { articleJsonLd } from "../lib/seo";
 import { db, blogPostsTable } from "@workspace/db";
 import { and, desc, eq } from "drizzle-orm";
+import {
+  SCORE_INTRO, SCORE_TAGLINE, SCORE_MIN, SCORE_MAX, SCORE_TRUSTED_THRESHOLD, SCORE_PARTNER_SHARING_TARGET_YEAR,
+  SCORE_BENEFITS, SCORE_DATA_USED, SCORE_DATA_NOT_USED, SCORE_HOW_COLLECTED, SCORE_WHY_COLLECTED,
+  SCORE_PARTNER_SHARING_NOTICE, SCORE_TIPS, SCORE_MYTHS, SCORE_CONTROLS, SCORE_TIMELINE, SCORE_FAQS,
+  SCORE_PAGE_META, SCORE_PAGE_PATH, SCORE_EXAMPLE, scoreFactorInfo, scoreBandsWithPerks, scorePageJsonLd,
+} from "@workspace/score-model";
 
 // Minimal, safe Markdown → HTML for blog bodies. Escapes all HTML first, then
 // only emits a known tag set; links are restricted to http(s) or same-origin
@@ -107,7 +113,7 @@ function pageShell(opts: {
   title: string;
   description: string;
   canonical: string;
-  jsonLd?: object;
+  jsonLd?: object | object[];
   body: string;
 }): string {
   return `<!DOCTYPE html>
@@ -338,6 +344,79 @@ router.get("/blog/:slug", async (req, res) => {
     req.log?.error?.({ err }, "Blog SSR article error");
     res.status(500).send("");
   }
+});
+
+// ── S-PAY Score explainer: full content + WebPage/FinancialProduct/FAQPage JSON-LD ──
+// Same copy as the SPA page (both render @workspace/score-model), so crawlers
+// and humans read identical content.
+
+router.get("/score", (_req, res) => {
+  const li = (items: string[]) => `<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>`;
+  const factors = (t: "personal" | "business") => scoreFactorInfo(t).map((f) =>
+    `<div class="card"><h3>${esc(f.label)} — ${f.weightPct}%</h3><p>${esc(f.description)}</p>${li(f.looksAt.map(esc))}</div>`).join("");
+  const bands = scoreBandsWithPerks().map((b) =>
+    `<div class="card"><h3>${esc(b.label)} (${b.min}–${b.max})</h3><p>${esc(b.summary)}</p>` +
+    li([...b.perks.live.map(esc), ...b.perks.planned.map((p) => `${esc(p)} (planned)`)]) + `</div>`).join("");
+  const benefits = (status: "live" | "planned") => li(SCORE_BENEFITS.filter((b) => b.status === status)
+    .map((b) => `<strong>${esc(b.title)}.</strong> ${esc(b.description)}`));
+  const titled = (rows: readonly { title: string; description: string }[]) => li(rows.map((r) => `<strong>${esc(r.title)}.</strong> ${esc(r.description)}`));
+
+  const body = `
+    <p class="meta"><span class="badge">S-PAY Score</span><span class="badge">Personal &amp; business</span></p>
+    <h1>S-PAY Score — your financial track record, scored, explained and yours</h1>
+    <p class="desc"><strong>${esc(SCORE_TAGLINE)}</strong></p>
+    <p class="desc">${esc(SCORE_INTRO)}</p>
+    <p class="desc">Example: a member who is ${esc(SCORE_EXAMPLE.description.charAt(0).toLowerCase() + SCORE_EXAMPLE.description.slice(1))} scores <strong>${SCORE_EXAMPLE.score}</strong>.</p>
+    <a class="cta" href="${SITE()}/register?source=score">Get my free S-PAY Score</a>
+
+    <h2 id="how-its-calculated">How the S-PAY Score is calculated</h2>
+    <p class="desc">Everyone starts at ${SCORE_MIN}. Five factors add up to 550 more points, each capped at its weight. Factors with no data start at a fair, neutral value, and small samples are blended toward neutral until there's enough history.</p>
+    <h3>For individuals</h3>${factors("personal")}
+    <h3>For businesses</h3>${factors("business")}
+
+    <h2 id="bands">Score bands (${SCORE_MIN}–${SCORE_MAX})</h2>
+    <p class="desc">${SCORE_TRUSTED_THRESHOLD}+ marks a trusted member. Live benefits work today; planned ones are on the roadmap and may change.</p>
+    ${bands}
+
+    <h2 id="benefits">Benefits</h2>
+    <h3>Available now</h3>${benefits("live")}
+    <h3>Planned</h3>${benefits("planned")}
+
+    <h2 id="business">The Business Score</h2>
+    <p class="desc">Every business account gets a Business Score on the same scale. Payroll &amp; payment reliability carries 30%, built from live S-PAY Payroll batches only — sandbox tests never count. Businesses that don't run payroll on S-PAY are scored on everyday transaction success instead.</p>
+    ${titled(SCORE_TIPS.business)}
+
+    <h2 id="your-data">Score Data Notice — what we collect, how and why</h2>
+    <h3>What your score uses</h3>${titled(SCORE_DATA_USED)}
+    <h3>What it never uses</h3>${li(SCORE_DATA_NOT_USED.map(esc))}
+    <h3>How it's collected</h3><ol>${SCORE_HOW_COLLECTED.map((d) => `<li>${esc(d)}</li>`).join("")}</ol>
+    <h3>Why we collect it</h3>${titled(SCORE_WHY_COLLECTED)}
+
+    <h2 id="partners">Partner sharing &amp; roadmap — fair credit by ~${SCORE_PARTNER_SHARING_TARGET_YEAR}, only with your consent</h2>
+    <div class="spay-callout"><p>${esc(SCORE_PARTNER_SHARING_NOTICE)}</p></div>
+    ${li(SCORE_TIMELINE.map((t) => `<strong>${esc(t.when)} · ${t.status === "live" ? "Live" : "Planned"} — ${esc(t.title)}.</strong> ${esc(t.description)}`))}
+
+    <h2 id="keep-it-high">How to raise — and keep — a high score</h2>
+    <h3>Individuals</h3>${titled(SCORE_TIPS.personal)}
+    <h3>Myths vs. facts</h3>${li(SCORE_MYTHS.map((m) => `<em>Myth:</em> ${esc(m.myth)} <strong>Fact:</strong> ${esc(m.fact)}`))}
+    <h3>Your controls</h3>${titled(SCORE_CONTROLS)}
+
+    <h2 id="faq">S-PAY Score FAQ</h2>
+    ${SCORE_FAQS.map((f) => `<div class="card"><h3>${esc(f.q)}</h3><p>${esc(f.a)}</p></div>`).join("")}
+
+    <div class="spay-callout"><p>Start building your track record today — free for every personal and business account.</p>
+    <a class="cta" href="${SITE()}/register?source=score">Get my free S-PAY Score</a></div>
+    <p class="meta"><a href="${SITE()}/how-it-works">How S-PAY works</a> · <a href="${SITE()}/privacy">Privacy Policy</a> · <a href="${SITE()}/terms">Terms of Service</a></p>`;
+
+  res.set("Content-Type", "text/html; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=3600");
+  res.send(pageShell({
+    title: SCORE_PAGE_META.title,
+    description: SCORE_PAGE_META.description,
+    canonical: `${SITE()}${SCORE_PAGE_PATH}`,
+    jsonLd: scorePageJsonLd(SITE()),
+    body,
+  }));
 });
 
 export default router;

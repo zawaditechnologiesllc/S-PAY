@@ -52,6 +52,7 @@ function RootLayoutNav() {
       <Stack.Screen name="register" options={{ headerShown: false }} />
       <Stack.Screen name="withdraw" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="profile" options={{ headerShown: false }} />
+      <Stack.Screen name="score" options={{ headerShown: false }} />
       <Stack.Screen name="job/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="+not-found" />
     </Stack>

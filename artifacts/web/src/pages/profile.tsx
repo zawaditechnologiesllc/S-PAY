@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/theme";
 import {
   CircleUser, ShieldCheck, LogOut, Wallet, HelpCircle, Trash2, Pencil, Save, X,
   QrCode, Copy, Check, ChevronRight, Lock, Landmark, CreditCard, Building2,
-  Mail, FileText, BookOpen, Palette, Bell,
+  Mail, FileText, BookOpen, Palette, Bell, Gauge,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import { Link, useLocation } from "wouter";
@@ -307,6 +307,8 @@ export default function Profile() {
           <CardContent className="p-2">
             <NavRow href="/banking" icon={<Landmark size={18} />} title="Bank accounts" subtitle="Your US ACH & EU IBAN details" />
             <NavRow href="/card" icon={<CreditCard size={18} />} title="Virtual card" subtitle="Spend your balance online" />
+            <NavRow href="/my-score" icon={<Gauge size={18} />} title={user?.accountType === "business" ? "Business Score" : "S-PAY Score"}
+              subtitle="Your 300–850 score, plan to raise it & data controls" />
             {user?.accountType === "business" && (
               <NavRow href="/payroll" icon={<Building2 size={18} />} title="Payroll console" subtitle="Pay your team · API keys · batches" />
             )}
@@ -328,6 +330,7 @@ export default function Profile() {
               <RowShell icon={<Mail size={18} />} title="Email support" subtitle="support@spayewallet.com" />
             </a>
             <NavRow href="/how-it-works" icon={<BookOpen size={18} />} title="How S-PAY works" subtitle="Deposits, sends, cash-outs & fees" />
+            <NavRow href="/score" icon={<BookOpen size={18} />} title="How S-PAY Score works" subtitle="Factors, data we use & why, how to keep it high" />
             <NavRow href="/privacy" icon={<FileText size={18} />} title="Privacy policy" subtitle="" />
             <NavRow href="/terms" icon={<FileText size={18} />} title="Terms of service" subtitle="" />
           </CardContent>

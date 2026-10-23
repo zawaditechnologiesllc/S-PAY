@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, ArrowLeftRight, LogOut,
-  Shield, Bell, ChevronRight, Settings, Menu, X, Briefcase, Inbox, Banknote, PenLine,
+  Shield, Bell, ChevronRight, Settings, Menu, X, Briefcase, Inbox, Banknote, PenLine, Gauge,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 import { prefetchRoutesIdle, linkPrefetchHandlers, ADMIN_ROUTES } from "@/lib/route-prefetch";
@@ -22,6 +22,7 @@ const NAV: { href: string; icon: React.ReactNode; label: string; minRole: AdminR
   { href: "/admin/users", icon: <Users size={18} />, label: "Users & KYC", minRole: "support" },
   { href: "/admin/transactions", icon: <ArrowLeftRight size={18} />, label: "Transactions", minRole: "support" },
   { href: "/admin/payroll", icon: <Banknote size={18} />, label: "Payroll", minRole: "manager" },
+  { href: "/admin/score", icon: <Gauge size={18} />, label: "S-PAY Score", minRole: "support" },
   { href: "/admin/jobs", icon: <Briefcase size={18} />, label: "Job Listings", minRole: "manager" },
   { href: "/admin/seo", icon: <PenLine size={18} />, label: "SEO & Blog", minRole: "manager" },
   { href: "/admin/enquiries", icon: <Inbox size={18} />, label: "Enquiries", minRole: "support" },

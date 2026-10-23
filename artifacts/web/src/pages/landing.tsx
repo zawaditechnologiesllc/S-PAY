@@ -4,9 +4,11 @@ import {
   Wallet, Landmark, CreditCard, Briefcase, ArrowRight,
   Globe, Shield, Zap, CheckCircle,
   ScanLine, ArrowUpFromLine, ArrowDownToLine, Send,
-  Star, Quote, Building2, Handshake,
+  Star, Quote, Building2, Handshake, Gauge,
 } from "lucide-react";
+import { computeScore, SCORE_EXAMPLE_SIGNALS, SCORE_PARTNER_SHARING_TARGET_YEAR } from "@workspace/score-model";
 import { PublicLayout } from "@/components/public-layout";
+import { ScoreGauge } from "@/components/score-gauge";
 import { textOn } from "@/lib/utils";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -635,6 +637,9 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ─── S-PAY SCORE (id="score") ─────────────────────────────────────── */}
+      <ScoreShowcase />
+
       {/* ─── TESTIMONIALS ────────────────────────────────────────────────── */}
       <section className="py-16 md:py-24 bg-white overflow-hidden">
         <div className="max-w-6xl mx-auto px-5 md:px-6">
@@ -792,6 +797,70 @@ export default function Landing() {
 }
 
 // ─── Testimonial Card subcomponent ───────────────────────────────────────────
+// The example is scored by the real model — the numbers shown are what the engine computes.
+const SCORE_EXAMPLE_RESULT = computeScore(SCORE_EXAMPLE_SIGNALS);
+
+function ScoreShowcase() {
+  return (
+    <section id="score" className="py-16 md:py-24 px-5 md:px-6 bg-gray-50 score-light">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
+        <div>
+          <div className="inline-flex items-center gap-2 bg-[#4DC9EE]/10 text-[#0E7490] text-xs font-bold px-3 py-1.5 rounded-full mb-5 border border-[#4DC9EE]/30">
+            <Gauge size={13} /> S-PAY Score · personal &amp; business
+          </div>
+          <h2 className="text-2xl md:text-4xl font-black text-[#1A2B4A] leading-tight mb-4">
+            Build a financial track record&nbsp;—<br className="hidden md:block" /> for you and your business.
+          </h2>
+          <p className="text-gray-500 leading-relaxed mb-7 text-base md:text-lg">
+            A free 300–850 score built from how you get paid and pay on S-PAY. No collateral, no credit bureau — just your real record.
+          </p>
+          <ul className="space-y-3.5 mb-8">
+            {[
+              "Free for every personal and business account",
+              "See the 5 factors and the points each next step is worth",
+              "Share verified proof with employers, clients and landlords",
+              "Your data, your call — turn it off, delete or download any time",
+              `From ~${SCORE_PARTNER_SHARING_TARGET_YEAR}: fairer credit from licensed partners, only if you opt in`,
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
+                <CheckCircle size={17} className="text-[#2E8FD6] flex-shrink-0 mt-0.5" />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/score" className="inline-flex items-center gap-2 bg-[#1A2B4A] text-white font-bold px-6 py-3 rounded-xl hover:bg-[#0d1f38] transition-colors text-sm shadow-md cursor-pointer">
+              How S-PAY Score works <ArrowRight size={15} />
+            </Link>
+            <Link href="/register?source=score" className="inline-flex items-center gap-2 border border-gray-200 text-[#1A2B4A] font-bold px-6 py-3 rounded-xl hover:border-gray-300 transition-colors text-sm cursor-pointer">
+              Get my free score
+            </Link>
+          </div>
+        </div>
+        <div className="flex justify-center lg:justify-end">
+          <div className="w-full max-w-[360px] bg-white rounded-3xl shadow-xl shadow-[#1A2B4A]/10 border border-gray-100 p-6">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 text-center mb-3">Example · 6 months in</p>
+            <ScoreGauge score={SCORE_EXAMPLE_RESULT.score} size="lg" />
+            <div className="mt-6 space-y-3">
+              {SCORE_EXAMPLE_RESULT.factors.map((f) => (
+                <div key={f.key}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-gray-700">{f.label}</span>
+                    <span className="font-semibold text-gray-900" style={{ fontVariantNumeric: "tabular-nums" }}>{f.points}/{f.maxPoints}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--score-track)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${f.value}%`, backgroundColor: "var(--score-mark)" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function TestimonialCard({ t }: { t: typeof TESTIMONIALS[number] }) {
   return (
     <div className="bg-white rounded-2xl md:rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col h-full">

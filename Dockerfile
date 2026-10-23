@@ -17,6 +17,7 @@ COPY lib/api-zod/package.json             ./lib/api-zod/package.json
 COPY lib/api-client-react/package.json    ./lib/api-client-react/package.json
 COPY lib/api-spec/package.json            ./lib/api-spec/package.json
 COPY lib/db/package.json                  ./lib/db/package.json
+COPY lib/score-model/package.json         ./lib/score-model/package.json
 COPY scripts/package.json                 ./scripts/package.json
 
 RUN pnpm install --frozen-lockfile
@@ -31,6 +32,9 @@ COPY lib/api-client-react/tsconfig.json ./lib/api-client-react/tsconfig.json
 COPY lib/db/src           ./lib/db/src
 COPY lib/db/migrations    ./lib/db/migrations
 COPY lib/db/tsconfig.json ./lib/db/tsconfig.json
+
+COPY lib/score-model/src           ./lib/score-model/src
+COPY lib/score-model/tsconfig.json ./lib/score-model/tsconfig.json
 
 COPY artifacts/api-server/src           ./artifacts/api-server/src
 COPY artifacts/api-server/build.mjs     ./artifacts/api-server/build.mjs

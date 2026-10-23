@@ -36,6 +36,8 @@ const routeImporters: Record<string, Importer> = {
   "/support": () => import("@/pages/support"),
   "/wallet/exchange": () => import("@/pages/exchange-withdraw"),
   "/how-it-works": () => import("@/pages/how-it-works"),
+  "/my-score": () => import("@/pages/my-score"),
+  "/score": () => import("@/pages/score"),
   // ── payroll (business) ──
   "/payroll": () => import("@/pages/payroll"),
   "/payroll/keys": () => import("@/pages/payroll/keys"),
@@ -47,19 +49,20 @@ const routeImporters: Record<string, Importer> = {
   "/admin/payroll": () => import("@/pages/admin/payroll"),
   "/admin/jobs": () => import("@/pages/admin/jobs"),
   "/admin/seo": () => import("@/pages/admin/seo"),
+  "/admin/score": () => import("@/pages/admin/score"),
   "/admin/enquiries": () => import("@/pages/admin/enquiries"),
   "/admin/settings": () => import("@/pages/admin/settings"),
 };
 
 // Route groups warmed together once a shell mounts.
 export const USER_CORE_ROUTES = [
-  "/dashboard", "/wallet", "/banking", "/card", "/jobs",
+  "/dashboard", "/wallet", "/banking", "/card", "/jobs", "/my-score",
   "/profile", "/security", "/deposit", "/banking/withdraw",
 ];
 export const PAYROLL_ROUTES = ["/payroll", "/payroll/keys", "/payroll/batches"];
 export const ADMIN_ROUTES = [
   "/admin", "/admin/users", "/admin/transactions", "/admin/payroll",
-  "/admin/jobs", "/admin/seo", "/admin/enquiries", "/admin/settings",
+  "/admin/jobs", "/admin/seo", "/admin/score", "/admin/enquiries", "/admin/settings",
 ];
 
 const warmed = new Set<string>();

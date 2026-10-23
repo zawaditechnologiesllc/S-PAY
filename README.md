@@ -6,6 +6,8 @@
 >
 > 💼 **For investors & partners:** [`docs/INVESTOR-OVERVIEW.md`](./docs/INVESTOR-OVERVIEW.md) (what it is, status, the ask) · [`docs/REVENUE-MODEL.md`](./docs/REVENUE-MODEL.md) (how the business makes money) · [`docs/PITCH.md`](./docs/PITCH.md) (**the pitch to send AI-workforce companies & marketplaces** — Scale, Mercor, Surge & co.) · [`docs/MARKETPLACE-INTEGRATION.md`](./docs/MARKETPLACE-INTEGRATION.md) (what to tell a marketplace and which option to choose) · [`docs/PAYROLL-MARKETPLACES.md`](./docs/PAYROLL-MARKETPLACES.md) (go-to-market target tiers) · [`docs/PAYMENT-FLOWS.md`](./docs/PAYMENT-FLOWS.md) (how money actually moves — the single-balance model) · [`docs/SEO-ENGINE.md`](./docs/SEO-ENGINE.md) (GSC/GA4/Reddit → AI drafts → reviewed blog content) · [`docs/SEO-ENGINE-PROMPT.md`](./docs/SEO-ENGINE-PROMPT.md) (portable prompt to rebuild the SEO engine on any site).
 >
+> 📈 **S-PAY Score:** [`docs/SPAY-SCORE.md`](./docs/SPAY-SCORE.md) — the 300–850 personal + business score: model and weights, what data it collects and why, consent controls, admin switches, SEO, and the road to opt-in partner sharing (~2031).
+>
 > 🔌 **For integrating companies (payroll API):** [`docs/PAYROLL.md`](./docs/PAYROLL.md) (full REST reference with a 5-call quickstart) — the same guide ships **inside the product** at `Payroll → Integration guide`, next to the API keys.
 
 Like MiniPay, S-PAY is built on the Celo network: stablecoin-first balances (USDC), sub-cent fees, 5-second finality, and no seed phrase, ever — a wallet appears automatically the first time money moves.
@@ -24,6 +26,7 @@ S-PAY was founded in 2024 by a team of full-stack fintech and crypto engineers f
 | **Batch Payroll API** | Businesses pay whole workforces (up to 10,000 payments/batch) by email or phone — workers auto-onboarded, signed webhooks, sandbox mode. Built for AI-training/data platforms and marketplaces — see [`docs/PITCH.md`](./docs/PITCH.md) + [`docs/PAYROLL.md`](./docs/PAYROLL.md) |
 | **Remote Jobs Board** | 3,000–5,000 remote-only roles available daily, aggregated from 60+ sources, refreshed hourly, free for all users |
 | **Virtual Card** | Stripe Issuing wired end-to-end: KYC-gated creation, freeze/unfreeze, monthly limits, and real-time authorization against the user's on-chain balance. An admin flips the **Card Program master switch** in `/admin/settings` to take it from waitlist → live — no deploy needed |
+| **S-PAY Score** | A free 300–850 score for every personal **and** business account, built only from the member's own S-PAY activity (verification, payment success, income patterns, history). Shows the five factors with exact points, a model-simulated plan to raise it, monthly history, and expiring "proof of score" links; members can turn it off, delete or download it. Builds a consented multi-year history so that — from ~2031 and **only for members who opt in** — licensed financial institutions can offer credit. Public explainer at `/score` (server-rendered for search engines). See [`docs/SPAY-SCORE.md`](./docs/SPAY-SCORE.md) |
 | **KYC / Identity Verification** | Hosted flows run by the admin-designated money-rail partner (Noah, Bridge, Conduit, Yellow Card) — webhook-driven, with every attempt recorded in S-PAY's own verification trail |
 
 > **The jobs board is free on purpose** — it's S-PAY's acquisition funnel. Job seekers discover S-PAY through listings, sign up to apply, and become wallet users. Every account records its `signupSource` (`jobs`, `jobs:<jobId>`, `landing`, `google`, `mobile`, `direct`), and the admin dashboard shows the **Signups by Source** breakdown so you always know which channel is converting.
@@ -171,6 +174,7 @@ Navigate to `https://your-app.vercel.app/admin` while logged in with that email.
 - **Users & KYC** — Full user list with account **Type** (Personal / Business · company name), country, acquisition source. KYC/KYB is webhook-driven via Noah — no manual review queue.
 - **Transactions** — Every on-chain send, P2P transfer, and deposit credit, filterable by type
 - **Job Listings** — Inject S-PAY/partner/sponsored roles: pinned to the top of the feed (SPAY badge), included in the SEO sitemap, live in ≤30s
+- **S-PAY Score** — members by band (personal/business), average scores, trusted members, data collected (monthly snapshots), partner-sharing opt-ins and "partner-ready" members, and the consent/control audit trail. Each user's cached score also shows in Users & KYC
 - **Settings** — Integration status (env configured: DB/Noah/Stripe/Google/wallet providers) **plus the master switches**: 🛠 Maintenance Mode (+ user-facing message), 👛 Wallet Infrastructure (active WaaS — Privy/Coinbase CDP/Turnkey — with per-provider on/off, configured status, and wallet counts), 💳 Card Program (waitlist → live, with waitlist count), 💰 Fees & Revenue (withdrawal %, minimum, card fee, P2P fee — live repricing, provider costs shown so your margin is explicit)
 
 ---

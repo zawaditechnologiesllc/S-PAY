@@ -8,6 +8,7 @@ import { ArrowUpRight, ArrowDownLeft, ChevronRight, ShieldCheck, MailCheck, Eye,
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { QuickActions } from "@/components/quick-actions";
+import { ScoreCard } from "@/components/score-card";
 import { Landmark, Smartphone, Coins, CreditCard, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -129,6 +130,9 @@ export default function Dashboard() {
           </button>
         </div>
       )}
+
+      {/* S-PAY Score (personal) / Business Score — gauge, distance to next band, top action */}
+      <ScoreCard />
 
       {/* Money services — banks & mobile money front and center, crypto kept simple */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">

@@ -25,6 +25,17 @@
       "destination": "https://s-pay.onrender.com/ssr/jobs"
     },
     {
+      "source": "/score",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(googlebot|google-inspectiontool|bingbot|yandex|baiduspider|duckduckbot|slurp|applebot|petalbot|twitterbot|facebookexternalhit|linkedinbot|whatsapp|telegrambot|discordbot|pinterestbot).*"
+        }
+      ],
+      "destination": "https://s-pay.onrender.com/ssr/score"
+    },
+    {
       "source": "/jobs-sitemap.xml",
       "destination": "https://s-pay.onrender.com/api/sitemap.xml"
     },

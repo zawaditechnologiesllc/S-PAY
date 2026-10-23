@@ -11,12 +11,13 @@ import { useRouter } from "expo-router";
 import {
   useGetDashboardSummary, getGetDashboardSummaryQueryKey,
   useGetWalletBalance, getGetWalletBalanceQueryKey,
-  useSendMoney,
+  useSendMoney, getGetMyScoreQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { TransactionItem } from "@/components/TransactionItem";
 import { SectionHeader } from "@/components/SectionHeader";
+import { ScoreCard } from "@/components/ScoreCard";
 
 export default function WalletScreen() {
   const colors = useColors();
@@ -47,6 +48,7 @@ export default function WalletScreen() {
     setRefreshing(true);
     await qc.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
     await qc.invalidateQueries({ queryKey: getGetWalletBalanceQueryKey() });
+    await qc.invalidateQueries({ queryKey: getGetMyScoreQueryKey() });
     setRefreshing(false);
   };
 
@@ -149,6 +151,9 @@ export default function WalletScreen() {
             ))}
           </View>
         </LinearGradient>
+
+        {/* S-PAY Score / Business Score — tap for the full breakdown */}
+        <ScoreCard />
 
         {/* Recent Transactions */}
         <SectionHeader

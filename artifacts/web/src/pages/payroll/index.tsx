@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
+import { ScoreCard } from "@/components/score-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,9 @@ export default function PayrollOverview() {
         <SetupGuide />
 
         <SummaryCards />
+
+        {/* Business Score — payroll reliability and float are its biggest levers */}
+        <ScoreCard />
 
         {/* Employer profile + verification */}
         <Card className="border-0 shadow-md rounded-2xl">

@@ -188,6 +188,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      '@workspace/score-model':
+        specifier: workspace:*
+        version: link:../../lib/score-model
       axios:
         specifier: ^1.16.1
         version: 1.16.1
@@ -307,6 +310,9 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../lib/api-client-react
+      '@workspace/score-model':
+        specifier: workspace:*
+        version: link:../../lib/score-model
       babel-plugin-react-compiler:
         specifier: ^19.0.0-beta-e993439-20250117
         version: 19.0.0-beta-ebf51a3-20250411
@@ -728,6 +734,9 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../lib/api-client-react
+      '@workspace/score-model':
+        specifier: workspace:*
+        version: link:../../lib/score-model
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -843,6 +852,8 @@ importers:
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
+
+  lib/score-model: {}
 
   scripts:
     devDependencies:
