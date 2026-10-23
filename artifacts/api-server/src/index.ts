@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { runMigrations } from "./lib/migrate";
 import { warmJobsCache, startJobsRefreshLoop } from "./lib/jobs";
+import { startScoreSweepLoop } from "./lib/score";
 
 const rawPort = process.env["PORT"];
 
@@ -26,7 +27,8 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
 
   // Post-boot tasks: apply DB migrations, then keep the jobs feed warm so
-  // 3,000–5,000 listings are available immediately and refreshed hourly.
+  // 3,000–5,000 listings are available immediately and refreshed hourly, and
+  // keep every member's monthly S-PAY Score history building in the background.
   void (async () => {
     try {
       await runMigrations();
@@ -39,5 +41,6 @@ app.listen(port, (err) => {
       logger.warn({ err }, "Jobs cache warm-up failed — will retry on next request");
     }
     startJobsRefreshLoop();
+    startScoreSweepLoop();
   })();
 });

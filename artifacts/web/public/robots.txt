@@ -6,6 +6,8 @@ Disallow: /profile
 Disallow: /wallet
 Disallow: /banking
 Disallow: /card
+Disallow: /my-score
+Disallow: /score/verify/
 
 Sitemap: https://spayewallet.com/sitemap.xml
 Sitemap: https://spayewallet.com/jobs-sitemap.xml

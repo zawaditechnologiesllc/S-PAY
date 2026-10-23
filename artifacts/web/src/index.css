@@ -168,3 +168,30 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* ── S-PAY Score viz tokens ───────────────────────────────────────────────────
+   Bands are an ORDERED tier set, so they use one-hue ordinal ramps (validated
+   light→dark against each surface), never status colors. Dark mode has its own
+   selected steps. Marks only — text always stays in ink tokens.
+   .score-light forces the light steps on the always-light marketing pages. */
+:root,
+.dark .score-light {
+  --score-band-building: #86b6ef;
+  --score-band-good: #5598e7;
+  --score-band-great: #256abf;
+  --score-band-excellent: #104281;
+  --score-mark: #256abf;      /* single-series marks: factor meters, history line */
+  --score-track: #e3edf9;     /* meter track: lighter step of the same ramp */
+  --score-grid: #e9edf2;      /* hairline gridlines */
+  --score-surface: #ffffff;   /* ring/gap colour = the card surface */
+}
+.dark {
+  --score-band-building: #2a64b0;
+  --score-band-good: #3e8ad8;
+  --score-band-great: #6bb2ee;
+  --score-band-excellent: #a9d6f7;
+  --score-mark: #6bb2ee;
+  --score-track: #1c2a44;
+  --score-grid: #1f2937;
+  --score-surface: #111827;
+}

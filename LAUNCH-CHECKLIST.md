@@ -46,9 +46,10 @@
 | **Send by phone / email / address** — P2P resolves an S-PAY member by phone OR email, or sends to any Celo address | ✅ Live | `routes/wallet.ts`, web `components/quick-actions.tsx` |
 | **SocialConnect (Celo identity)** — optional, additive: resolve phone/email → address via Celo's decentralized registry so sends can reach non-members. Admin switch + flag + send-flow fallback are wired; a no-op until issuer keys are set and the resolver is implemented (NOT a WaaS replacement, doesn't cut wallet cost) | ⚙️ Scaffold + switch live — activate by following `docs/SOCIALCONNECT.md` (set issuer env keys, implement §4/§5) | `lib/socialconnect.ts`, `lib/settings.ts`, `routes/wallet.ts`, Admin → Settings → SocialConnect |
 | **Security hardening** — helmet headers, per-IP rate limits on credential endpoints (50/15min) and enquiries (10/h), trust-proxy for real IPs, HMAC webhooks, RLS deny-all, sha256-hashed email tokens | ✅ Live | `src/app.ts`, `routes/enquiries.ts`, migrations 0008+ |
+| **S-PAY Score** — 300–850 score for personal + business accounts: dashboard + payroll cards, `/my-score` (factors, simulated plan, history, band benefits, proof links, on/off · partner-sharing opt-in · delete · download), public `/score` explainer (SSR for bots, in sitemap/llms.txt/nav/footer), Privacy §10 + Terms §7, admin overview + master switch, background monthly sweep, mobile card + screen | ✅ Live | `lib/score-model`, `lib/score.ts`, `routes/score.ts`, web `pages/score.tsx` + `my-score.tsx` + `admin/score.tsx`, mobile `app/score.tsx`, migration `0020_spay_score`, `docs/SPAY-SCORE.md` |
 | **Auto-migrations** — schema applies itself on every boot (14 migrations, 0000–0013) | ✅ Live | `lib/db/migrations/`, `src/lib/migrate.ts` |
 
-**Database**: PostgreSQL (Render Blueprint auto-provisions `spay-db`; Supabase supported — TLS auto-detected). Tables: `users`, `transactions`, `card_waitlist`, `jobs_cache`, `app_settings`, `custom_jobs`, `notifications`, `enquiries`.
+**Database**: PostgreSQL (Render Blueprint auto-provisions `spay-db`; Supabase supported — TLS auto-detected). Tables: `users`, `transactions`, `card_waitlist`, `jobs_cache`, `app_settings`, `custom_jobs`, `notifications`, `enquiries`, `score_profiles`, `score_snapshots`, `score_consent_log`, `score_shares`.
 
 ---
 
@@ -157,6 +158,7 @@ Pick **one** of the six supported providers (full walkthroughs, pricing comparis
 | C5 | Review the fee schedule (withdrawal %, min, card fee, P2P) — defaults: 1% / $0.49 / $1.00 / free | `/admin/settings` → Fees & Revenue | ☐ |
 | C6 | Decide on the landing testimonials (currently illustrative personas with earnings claims — owner's call) | `artifacts/web/src/pages/landing.tsx` → `TESTIMONIALS` | ☐ |
 | C7 | Claim brand social handles, then add links back to the footer | `artifacts/web/src/components/public-layout.tsx` | ☐ |
+| C8 | Get the S-PAY Score explainer indexed: Search Console → URL Inspection → `https://spayewallet.com/score` → **Request indexing**, then resubmit `sitemap.xml`. Have counsel review the Score Data Notice (Privacy §10, Terms §7, `/score#your-data`) for your launch markets | search.google.com/search-console · `lib/score-model/src/content.ts` | ☐ |
 
 ---
 
@@ -184,7 +186,8 @@ Ordered by launch impact. Each is small and isolated; the file tells you exactly
 
 - **Admin console** `/admin`: stats + signups-by-source · **Users & KYC** (type, country, source) · **Transactions** · **Job Listings** (inject/remove pinned SPAY roles — also your SEO content lever) · **Settings**.
 - **Admin sections**: Team & Roles (appoint/remove admins) · Enquiries inbox (reply + resolve) · Send a Notification (broadcast/per-user) · Site Content (hero/footer/colours).
-- **Settings switches**: Maintenance mode (+ user-facing message) · **Wallet Infrastructure** (active WaaS provider + per-provider kill switches — see `docs/WALLET-PROVIDERS.md` §5 for playbooks) · Card Program · Fees & Revenue (live repricing).
+- **Settings switches**: Maintenance mode (+ user-facing message) · **Wallet Infrastructure** (active WaaS provider + per-provider kill switches — see `docs/WALLET-PROVIDERS.md` §5 for playbooks) · Card Program · **S-PAY Score Program** (pause/resume scoring, non-destructive) · Fees & Revenue (live repricing).
+- **S-PAY Score** `/admin/score`: distribution, averages, data collected, partner-sharing readiness, consent trail. Model + copy live in `lib/score-model` — see `docs/SPAY-SCORE.md`.
 - **Health**: `GET /api/healthz` (uptime) · `GET /api/status` (maintenance state) · `GET /api/jobs?limit=1` (`total` = live job count) · Render Logs ("Database migrations applied", "Jobs feed warmed", hourly refresh lines).
 - **Deploys**: merge to `main` → Render (API) + Vercel (web) auto-deploy. DB schema changes apply themselves on boot.
 - **Schema changes** (developer task): edit `lib/db/src/schema/`, run `drizzle-kit generate` in `lib/db`, make the SQL idempotent (`IF NOT EXISTS` — see migrations 0001–0007 for the pattern), commit.

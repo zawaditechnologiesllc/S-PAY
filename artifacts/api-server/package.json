@@ -8,9 +8,11 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test test/seo.unit.mjs",
+    "test": "node --test test/seo.unit.mjs test/score.unit.mjs",
+    "test:score": "node --test test/score.unit.mjs",
     "test:seo": "node --test test/seo.unit.mjs",
-    "test:payroll": "pnpm run build && node test/payroll.e2e.mjs"
+    "test:payroll": "pnpm run build && node test/payroll.e2e.mjs",
+    "test:score:e2e": "pnpm run build && node test/score.e2e.mjs"
   },
   "dependencies": {
     "@coinbase/cdp-sdk": "^1.51.0",
@@ -21,6 +23,7 @@
     "@turnkey/viem": "^0.14.30",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
+    "@workspace/score-model": "workspace:*",
     "axios": "^1.16.1",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",

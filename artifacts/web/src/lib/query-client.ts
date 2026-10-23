@@ -36,10 +36,12 @@ export const queryClient = new QueryClient({
 });
 
 // Persist successful queries, but skip the large, fast-changing jobs feeds so the
-// stored blob stays small and focused on account data that's useful offline.
+// stored blob stays small and focused on account data that's useful offline —
+// and never someone else's shared score looked up via a proof link.
 function shouldPersist(query: Query): boolean {
   if (query.state.status !== "success") return false;
-  return !JSON.stringify(query.queryKey).includes("jobs");
+  const key = JSON.stringify(query.queryKey);
+  return !key.includes("jobs") && !key.includes("score/verify");
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined;

@@ -14,7 +14,8 @@ import {
   type PayoutProvidersUpdateRequestVirtualAccountIssuer,
   type PayoutProvidersUpdateRequestKycProvider,
 } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone, UserPlus, Trash2, Link2, Banknote } from "lucide-react";
+import { CheckCircle2, XCircle, Shield, CreditCard, Landmark, Database, Key, Users, Percent, Wrench, Wallet, Paintbrush, Megaphone, UserPlus, Trash2, Link2, Banknote, Gauge } from "lucide-react";
+import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 function StatusRow({ label, ok, note }: { label: string; ok: boolean; note?: string }) {
@@ -233,6 +234,25 @@ export default function AdminSettings() {
             description: next
               ? "Users now see “Create My Virtual Card” instead of the waitlist."
               : "Users see the waitlist again.",
+          });
+          refetchFlags();
+        },
+        onError: () => toast({ title: "Could not update", description: "Please try again.", variant: "destructive" }),
+      },
+    );
+  };
+
+  const toggleScoreProgram = () => {
+    const next = !flags?.scoreProgramEnabled;
+    updateFlags.mutate(
+      { data: { scoreProgramEnabled: next } },
+      {
+        onSuccess: () => {
+          toast({
+            title: next ? "S-PAY Score resumed" : "S-PAY Score paused",
+            description: next
+              ? "Scores update again and the monthly background sweep restarts."
+              : "No new scores or snapshots for anyone. Members' history and consent choices are untouched.",
           });
           refetchFlags();
         },
@@ -481,6 +501,38 @@ export default function AdminSettings() {
           <StatusRow label="Stripe Webhook" ok={s?.stripe?.webhookConfigured} note="STRIPE_WEBHOOK_SECRET — for card authorization events" />
           <div className="mt-3 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 leading-relaxed">
             <strong>Launch checklist:</strong> ① stripe.com → Developers → API keys → set STRIPE_SECRET_KEY on Render (enable Stripe Issuing on the account). ② Add the webhook endpoint (<code className="bg-amber-100 px-1 rounded">/webhooks/stripe</code>) and set STRIPE_WEBHOOK_SECRET. ③ Flip the master switch above — the waitlist instantly becomes “Create My Virtual Card” for KYC-approved users.
+          </div>
+        </Section>
+
+        <Section icon={<Gauge size={16} />} title="S-PAY Score Program">
+          <div className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-gray-800">
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Score Program Master Switch</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {flags?.scoreProgramEnabled === false
+                  ? "PAUSED — no new scores or monthly snapshots for anyone"
+                  : "LIVE — scores update on view and in the monthly background sweep"}
+              </p>
+            </div>
+            <button
+              onClick={toggleScoreProgram}
+              disabled={updateFlags.isPending}
+              aria-label="Toggle S-PAY Score program"
+              className={`relative w-14 h-8 rounded-full transition-colors flex-shrink-0 disabled:opacity-60 ${
+                flags?.scoreProgramEnabled !== false ? "bg-green-500" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`absolute top-1 w-6 h-6 bg-white dark:bg-gray-900 rounded-full shadow transition-all ${
+                  flags?.scoreProgramEnabled !== false ? "left-7" : "left-1"
+                }`}
+              />
+            </button>
+          </div>
+          <div className="mt-3 p-3 bg-blue-50 rounded-xl text-xs text-blue-700 leading-relaxed space-y-1.5">
+            <p><strong>Pausing is non-destructive:</strong> members' stored history and their score on/off and partner-sharing choices are kept exactly as they are. Use it for a regulatory or model-review pause.</p>
+            <p>Members control their own data from My Score (off, delete, download). Partner sharing stays OFF unless a member opts in — no data reaches any partner until the partner program launches.</p>
+            <p>• Program overview, data collected and consent rates: <Link href="/admin/score" className="underline font-semibold">Admin → S-PAY Score</Link> · model + notice: <code className="bg-blue-100 px-1 rounded">docs/SPAY-SCORE.md</code></p>
           </div>
         </Section>
 

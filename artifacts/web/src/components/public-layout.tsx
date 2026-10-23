@@ -3,6 +3,7 @@ import { useGetSiteContent, getGetSiteContentQueryKey } from "@workspace/api-cli
 import { Link } from "wouter";
 import { Globe, Mail, Menu, X, ArrowRight } from "lucide-react";
 import { EnquiryChat } from "@/components/enquiry-chat";
+import { SCORE_MIN, SCORE_MAX, SCORE_PARTNER_SHARING_TARGET_YEAR } from "@workspace/score-model";
 import spayLogo from "@assets/S-PAY_LOGO_1779718036468.webp";
 
 interface PublicNavProps {
@@ -36,6 +37,7 @@ export function PublicNav({ active }: PublicNavProps) {
           <a href="/#features" className={linkClass("features")}>Features</a>
           <a href="/#business" className={linkClass("business")}>For Business</a>
           <Link href="/jobs"><span className={`cursor-pointer ${linkClass("jobs")}`}>Jobs</span></Link>
+          <Link href="/score"><span className={`cursor-pointer ${linkClass("score")}`}>S-PAY Score</span></Link>
           <Link href="/about"><span className={`cursor-pointer ${linkClass("about")}`}>About</span></Link>
           <Link href="/how-it-works"><span className={`cursor-pointer ${linkClass("how-it-works")}`}>How it works</span></Link>
           <Link href="/contact"><span className={`cursor-pointer ${linkClass("contact")}`}>Contact</span></Link>
@@ -73,6 +75,7 @@ export function PublicNav({ active }: PublicNavProps) {
               { label: "Features", href: "/#features", internal: false },
               { label: "For Business", href: "/#business", internal: false },
               { label: "Jobs", href: "/jobs", internal: true },
+              { label: "S-PAY Score", href: "/score", internal: true },
               { label: "About", href: "/about", internal: true },
               { label: "How it works", href: "/how-it-works", internal: true },
               { label: "Contact", href: "/contact", internal: true },
@@ -164,6 +167,8 @@ export function PublicFooter() {
               <li><a href="/#card" className="text-blue-300 text-sm hover:text-white transition-colors">S-PAY Card</a></li>
               <li><a href="/#business" className="text-blue-300 text-sm hover:text-white transition-colors">S-PAY for Business</a></li>
               <li><Link href="/jobs"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">Remote Jobs</span></Link></li>
+              <li><Link href="/score"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">S-PAY Score</span></Link></li>
+              <li><a href="/score#business" className="text-blue-300 text-sm hover:text-white transition-colors">Business Score</a></li>
               <li><a href="/#markets" className="text-blue-300 text-sm hover:text-white transition-colors">Cash-Out Markets</a></li>
             </ul>
           </div>
@@ -187,8 +192,22 @@ export function PublicFooter() {
               <li><Link href="/privacy"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">Privacy Policy</span></Link></li>
               <li><Link href="/terms"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">Terms of Service</span></Link></li>
               <li><Link href="/cookies"><span className="text-blue-300 text-sm hover:text-white transition-colors cursor-pointer">Cookie Policy</span></Link></li>
+              <li><a href="/score#your-data" className="text-blue-300 text-sm hover:text-white transition-colors">Score Data Notice</a></li>
             </ul>
           </div>
+        </div>
+
+        {/* S-PAY Score disclosure — every page carries the short version */}
+        <div className="border-t border-white/10 pt-6 pb-6 text-xs text-blue-300/90 leading-relaxed">
+          <strong className="text-white">S-PAY Score</strong> is a free {SCORE_MIN}–{SCORE_MAX} score for personal and business accounts, built only from
+          your own S-PAY activity (verification, payments, income and account history) — never your contacts, location or documents.
+          It helps you prove reliability today; from around {SCORE_PARTNER_SHARING_TARGET_YEAR}, licensed financial partners may use it <em>only if you opt in</em>.
+          Turn it off, delete it or download it any time.{" "}
+          <Link href="/score"><span className="text-[#4DC9EE] hover:text-white cursor-pointer font-semibold">How it works</span></Link>
+          {" · "}
+          <a href="/score#your-data" className="text-[#4DC9EE] hover:text-white font-semibold">What we collect &amp; why</a>
+          {" · "}
+          <a href="/score#keep-it-high" className="text-[#4DC9EE] hover:text-white font-semibold">Keep it high</a>
         </div>
 
         {/* Bottom bar */}

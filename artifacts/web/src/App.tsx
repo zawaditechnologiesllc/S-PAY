@@ -81,6 +81,10 @@ const BlogPost = lazyWithReload(() => import("@/pages/blog-post"));
 const Cookies = lazyWithReload(() => import("@/pages/cookies"));
 const ForgotPassword = lazyWithReload(() => import("@/pages/forgot-password"));
 const AuthCallback = lazyWithReload(() => import("@/pages/auth-callback"));
+const ScorePage = lazyWithReload(() => import("@/pages/score"));
+const ScoreVerify = lazyWithReload(() => import("@/pages/score-verify"));
+const MyScore = lazyWithReload(() => import("@/pages/my-score"));
+const AdminScore = lazyWithReload(() => import("@/pages/admin/score"));
 
 // Skeleton fallback shown while a route chunk loads: instead of a spinner, the
 // user sees the shape of the page they're heading to (header band, balance
@@ -210,6 +214,8 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/cookies" component={Cookies} />
+      <Route path="/score" component={ScorePage} />
+      <Route path="/score/verify/:token" component={ScoreVerify} />
 
       {/* ── Auth pages ── */}
       <Route path="/login" component={Login} />
@@ -235,6 +241,7 @@ function Router() {
       <Route path="/security"><ProtectedRoute component={Security} /></Route>
       <Route path="/wallet/exchange"><ProtectedRoute component={ExchangeWithdraw} /></Route>
       <Route path="/card"><ProtectedRoute component={CardPage} /></Route>
+      <Route path="/my-score"><ProtectedRoute component={MyScore} /></Route>
 
       {/* ── Payroll / employer console (auth required) ── */}
       <Route path="/payroll"><ProtectedRoute component={PayrollOverview} /></Route>
@@ -251,6 +258,7 @@ function Router() {
       <Route path="/admin/jobs"><ProtectedRoute component={AdminJobs} /></Route>
       <Route path="/admin/enquiries"><ProtectedRoute component={AdminEnquiries} /></Route>
       <Route path="/admin/seo"><ProtectedRoute component={AdminSeo} /></Route>
+      <Route path="/admin/score"><ProtectedRoute component={AdminScore} /></Route>
       <Route path="/admin/settings"><ProtectedRoute component={AdminSettings} /></Route>
 
       <Route component={NotFound} />

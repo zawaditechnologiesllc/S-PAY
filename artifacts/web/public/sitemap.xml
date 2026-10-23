@@ -16,6 +16,20 @@
   </url>
 
   <url>
+    <loc>https://spayewallet.com/score</loc>
+    <lastmod>2026-10-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://spayewallet.com/how-it-works</loc>
+    <lastmod>2026-10-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
     <loc>https://spayewallet.com/login</loc>
     <lastmod>2026-06-03</lastmod>
     <changefreq>monthly</changefreq>
@@ -31,14 +45,14 @@
 
   <url>
     <loc>https://spayewallet.com/privacy</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-10-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
 
   <url>
     <loc>https://spayewallet.com/terms</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-10-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>

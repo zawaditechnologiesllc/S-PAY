@@ -1,6 +1,7 @@
 import { ArrowLeft, Shield } from "lucide-react";
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/public-layout";
+import { SCORE_MIN, SCORE_MAX, SCORE_PARTNER_SHARING_TARGET_YEAR } from "@workspace/score-model";
 
 interface SectionProps { num: string; title: string; children: React.ReactNode; }
 function Section({ num, title, children }: SectionProps) {
@@ -29,6 +30,7 @@ export default function Privacy() {
           <h1 className="text-4xl font-black text-white mb-2">Privacy Policy</h1>
           <p className="text-blue-300 text-sm">
             Effective date: <span className="text-white font-medium">June 1, 2024</span>
+            &nbsp;·&nbsp; Updated: <span className="text-white font-medium">October 2026</span> (S-PAY Score)
             &nbsp;·&nbsp; Company: <span className="text-white font-medium">S-PAY (Zawadi Technologies LLC)</span>
           </p>
         </div>
@@ -69,6 +71,7 @@ export default function Privacy() {
               <li><strong>Regulatory compliance:</strong> to fulfill obligations under anti-money laundering (AML), sanctions screening, and other financial regulations.</li>
               <li><strong>Product improvement:</strong> to analyze usage patterns, conduct research, and develop new features and services.</li>
               <li><strong>Communications:</strong> to send transactional notifications, security alerts, and — with your consent — marketing updates.</li>
+              <li><strong>S-PAY Score:</strong> to calculate your 300–850 S-PAY Score and improvement plan from aggregates of your own S-PAY activity (see section 10).</li>
             </ul>
           </Section>
 
@@ -80,6 +83,8 @@ export default function Privacy() {
               <li><strong>Legal and regulatory authorities:</strong> when required by applicable law, court order, or government request, including financial intelligence units.</li>
               <li><strong>Business transfers:</strong> in the event of a merger, acquisition, or sale of all or a portion of our assets, your data may be transferred to the successor entity.</li>
               <li><strong>Service providers:</strong> companies that help us operate the Services (cloud hosting, analytics, fraud detection) under strict data processing agreements.</li>
+              <li><strong>People you choose:</strong> anyone you send an S-PAY Score proof link to sees only what that link shows (your first name and initial, band and — if you chose — your exact score) until it expires or you revoke it.</li>
+              <li><strong>Licensed financial partners (future, opt-in only):</strong> S-PAY Score data is shared with banks, lenders or insurers only if you switch on partner sharing, and only once that program launches (planned around {SCORE_PARTNER_SHARING_TARGET_YEAR}). It is off by default and nothing is shared today.</li>
             </ul>
           </Section>
 
@@ -123,7 +128,21 @@ export default function Privacy() {
             <p>S-PAY is operated by Zawadi Technologies LLC, a US-registered entity. Your information may be processed in the United States and in other countries where our service providers operate. When transferring data internationally, we ensure appropriate safeguards are in place, including Standard Contractual Clauses where required under EU/UK GDPR.</p>
           </Section>
 
-          <Section num="10" title="Contact Us">
+          <Section num="10" title="S-PAY Score & Credit-Readiness Data">
+            <p>Every personal and business account has an S-PAY Score — a {SCORE_MIN}–{SCORE_MAX} score of how reliably you get paid, pay and manage money on S-PAY. The full explanation is on our <Link href="/score"><span className="text-[#4DC9EE] font-medium hover:underline cursor-pointer">S-PAY Score page</span></Link>.</p>
+            <ul className="list-disc pl-5 space-y-1.5 mt-2">
+              <li><strong>What we use:</strong> verification status (pass/fail — never your documents), account set-up (email confirmed, phone, country, PIN, business name, account age), and summarised counts and totals of your S-PAY transactions and payroll. Sandbox/test activity is excluded.</li>
+              <li><strong>What we never use:</strong> contacts, messages, photos, location, browsing, social media, jobs-board activity, data brokers, or sensitive traits such as gender, ethnicity, religion, health or political views.</li>
+              <li><strong>How it's collected:</strong> automatically from your account activity. We keep one snapshot per calendar month containing your score, factor values and the aggregate numbers behind them (not individual transactions), stamped with the model version so any score can be explained.</li>
+              <li><strong>Why:</strong> to show you your financial health and a plan to improve it; to reward reliable members with better S-PAY terms over time; and — only with your separate consent — to let licensed financial institutions offer you credit, loans or insurance from around {SCORE_PARTNER_SHARING_TARGET_YEAR}.</li>
+              <li><strong>Legal basis:</strong> calculating your score is part of providing the Services you signed up for and our legitimate interest in rewarding reliable members; sharing with financial partners relies solely on your explicit, revocable consent, recorded with a timestamp and notice version.</li>
+              <li><strong>Your choices:</strong> in My Score you can turn the score off (stopping all new collection), delete your score history, download your score data, revoke share links, and switch partner sharing on or off. Your score is never used to freeze, hold or block your own funds.</li>
+              <li><strong>Retention:</strong> monthly snapshots are kept while your account is open and the score is on, or until you delete them. They are deleted with your account unless the law requires us to keep them.</li>
+              <li><strong>Disputes:</strong> if you think your score is wrong, email <a href="mailto:privacy@spayewallet.com" className="text-[#4DC9EE] font-medium hover:underline">privacy@spayewallet.com</a>. A person reviews every dispute and replies within 30 days.</li>
+            </ul>
+          </Section>
+
+          <Section num="11" title="Contact Us">
             <p>If you have questions, concerns, or requests regarding this Privacy Policy or how we handle your personal data, please contact our Privacy team:</p>
             <div className="mt-3 bg-gray-50 rounded-xl p-5 border border-gray-100 not-italic">
               <p className="font-semibold text-[#1A2B4A]">S-PAY Privacy Team</p>

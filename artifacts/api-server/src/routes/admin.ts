@@ -10,6 +10,7 @@ import {
   getPayoutProviderConfig, setPayoutProviderConfig,
   PAYOUT_PROVIDER_KEYS, type PayoutProviderKey,
   getSocialConnect, setSocialConnectEnabled,
+  isScoreProgramEnabled, setScoreProgramEnabled,
 } from "../lib/settings";
 import { walletProviderCatalog } from "../lib/wallet-providers";
 import { payoutProviderCatalog } from "../lib/payout-providers";
@@ -22,7 +23,7 @@ import { isStripeConfigured } from "../lib/stripe-issuing";
 import { invalidateCustomJobs, CATEGORY_LABELS } from "../lib/jobs";
 import {
   db, usersTable, transactionsTable, cardWaitlistTable, customJobsTable, enquiriesTable,
-  kycVerificationsTable, employersTable, payrollBatchesTable, payrollPaymentsTable,
+  kycVerificationsTable, employersTable, payrollBatchesTable, payrollPaymentsTable, scoreProfilesTable,
 } from "@workspace/db";
 import { notifyAll, notifyUser } from "../lib/notify";
 import { eq, count, desc, sql, isNotNull, or } from "drizzle-orm";
@@ -102,7 +103,10 @@ router.get("/admin/users", requireAuth, requireAnyAdmin, async (req, res) => {
       accountType: usersTable.accountType,
       businessName: usersTable.businessName,
       createdAt: usersTable.createdAt,
-    }).from(usersTable);
+      // Cached S-PAY Score (null until computed or when the member turned it off)
+      score: sql<number | null>`CASE WHEN ${scoreProfilesTable.enabled} THEN ${scoreProfilesTable.lastScore} END`,
+      scoreBand: sql<string | null>`CASE WHEN ${scoreProfilesTable.enabled} THEN ${scoreProfilesTable.lastBand} END`,
+    }).from(usersTable).leftJoin(scoreProfilesTable, eq(scoreProfilesTable.userId, usersTable.id));
 
     const rows = await (
       kycStatus && ["pending", "approved", "rejected"].includes(kycStatus)
@@ -299,14 +303,16 @@ router.get("/admin/transactions", requireAuth, requireAnyAdmin, async (req, res)
 // ─── Feature flags: the admin master switches ─────────────────────────────────
 
 async function featureFlagsPayload() {
-  const [cardProgramEnabled, maintenance, socialConnect, [{ total: cardWaitlistCount }]] = await Promise.all([
+  const [cardProgramEnabled, maintenance, socialConnect, scoreProgramEnabled, [{ total: cardWaitlistCount }]] = await Promise.all([
     isCardProgramEnabled(),
     getMaintenance(),
     getSocialConnect(),
+    isScoreProgramEnabled(),
     db.select({ total: count() }).from(cardWaitlistTable),
   ]);
   return {
     cardProgramEnabled,
+    scoreProgramEnabled,
     stripeConfigured: isStripeConfigured(),
     cardWaitlistCount,
     maintenanceMode: maintenance.enabled,
@@ -327,12 +333,20 @@ router.get("/admin/feature-flags", requireAuth, requireAnyAdmin, async (req, res
 
 router.put("/admin/feature-flags", requireAuth, requireSuperadmin, async (req, res) => {
   try {
-    const { cardProgramEnabled, maintenanceMode, maintenanceMessage, socialConnectEnabled } = req.body as {
-      cardProgramEnabled?: unknown; maintenanceMode?: unknown; maintenanceMessage?: unknown; socialConnectEnabled?: unknown;
+    const { cardProgramEnabled, maintenanceMode, maintenanceMessage, socialConnectEnabled, scoreProgramEnabled } = req.body as {
+      cardProgramEnabled?: unknown; maintenanceMode?: unknown; maintenanceMessage?: unknown; socialConnectEnabled?: unknown; scoreProgramEnabled?: unknown;
     };
-    if (cardProgramEnabled === undefined && maintenanceMode === undefined && maintenanceMessage === undefined && socialConnectEnabled === undefined) {
+    if (cardProgramEnabled === undefined && maintenanceMode === undefined && maintenanceMessage === undefined && socialConnectEnabled === undefined && scoreProgramEnabled === undefined) {
       res.status(400).json({ error: "validation_error", message: "Provide at least one flag to update" });
       return;
+    }
+    if (scoreProgramEnabled !== undefined) {
+      if (typeof scoreProgramEnabled !== "boolean") {
+        res.status(400).json({ error: "validation_error", message: "scoreProgramEnabled must be a boolean" });
+        return;
+      }
+      await setScoreProgramEnabled(scoreProgramEnabled);
+      req.log.warn({ scoreProgramEnabled, admin: req.user!.email }, "S-PAY Score program switch changed");
     }
     if (socialConnectEnabled !== undefined) {
       if (typeof socialConnectEnabled !== "boolean") {

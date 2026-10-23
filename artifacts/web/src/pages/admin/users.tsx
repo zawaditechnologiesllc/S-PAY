@@ -88,7 +88,7 @@ export default function AdminUsers() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60">
-                  {["User", "Type", "Email", "Country", "KYC Status", "Source", "Balance", "Joined"].map((h) => (
+                  {["User", "Type", "Email", "Country", "KYC Status", "Score", "Source", "Balance", "Joined"].map((h) => (
                     <th key={h} className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -97,14 +97,14 @@ export default function AdminUsers() {
                 {isLoading ? (
                   Array.from({ length: 8 }).map((_, i) => (
                     <tr key={i} className="border-b border-gray-50 dark:border-gray-800">
-                      {Array.from({ length: 8 }).map((_, j) => (
+                      {Array.from({ length: 9 }).map((_, j) => (
                         <td key={j} className="px-5 py-3.5"><Skeleton className="h-4 w-full" /></td>
                       ))}
                     </tr>
                   ))
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-16 text-gray-400">
+                    <td colSpan={9} className="text-center py-16 text-gray-400">
                       <Filter size={32} className="mx-auto mb-3 opacity-40" />
                       No users match your filter.
                     </td>
@@ -133,6 +133,16 @@ export default function AdminUsers() {
                         <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${KYC_BADGE[u.kycStatus] ?? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
                           {KYC_ICON[u.kycStatus]} {u.kycStatus}
                         </span>
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        {u.score != null ? (
+                          <span className="inline-flex items-center gap-1.5 font-semibold text-gray-900 dark:text-gray-100" title={`S-PAY Score · ${u.scoreBand ?? ""}`}>
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: `var(--score-band-${u.scoreBand})` }} />
+                            {u.score}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${SOURCE_BADGE[(u.signupSource ?? "").split(":")[0]] ?? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>

@@ -218,6 +218,22 @@ export async function setSocialConnectEnabled(enabled: boolean): Promise<void> {
   await setSetting(SOCIALCONNECT_KEY, { enabled });
 }
 
+// ── S-PAY Score program switch ────────────────────────────────────────────────
+// ON by default. OFF pauses the whole score program platform-wide (no new
+// calculations, no background sweep, cards hidden) without touching any
+// member's stored history or consent choices — e.g. for a regulatory pause.
+
+const SCORE_PROGRAM_KEY = "score_program_enabled";
+
+export async function isScoreProgramEnabled(): Promise<boolean> {
+  const v = await getSetting<{ enabled?: boolean }>(SCORE_PROGRAM_KEY, { enabled: true });
+  return v?.enabled !== false;
+}
+
+export async function setScoreProgramEnabled(enabled: boolean): Promise<void> {
+  await setSetting(SCORE_PROGRAM_KEY, { enabled });
+}
+
 // ── Platform fee schedule ─────────────────────────────────────────────────────
 // User price = provider cost + S-PAY margin. Providers bill S-PAY separately
 // (Stripe nets fees from the Stripe balance, Noah nets from settlement, Celo

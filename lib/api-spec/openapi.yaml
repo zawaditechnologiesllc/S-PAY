@@ -26,6 +26,8 @@ tags:
     description: External service webhooks
   - name: payroll
     description: Payouts-as-a-service — companies pay their workers through S-PAY
+  - name: score
+    description: S-PAY Score — the member's 300–850 reliability score, plan, history and consent controls
 
 paths:
   /healthz:
@@ -2268,6 +2270,141 @@ paths:
               schema:
                 $ref: "#/components/schemas/BlogPostResponse"
 
+  /score/me:
+    get:
+      operationId: getMyScore
+      tags: [score]
+      summary: The signed-in member's S-PAY Score (personal or business) — score, factors, plan, history, consent state
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Score view (recomputed when stale)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScoreView"
+
+  /score/settings:
+    put:
+      operationId: updateScoreSettings
+      tags: [score]
+      summary: Turn the score on/off and choose about future partner sharing (opt-in, logged)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScoreSettingsRequest"
+      responses:
+        "200":
+          description: Updated score view
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScoreView"
+
+  /score/history:
+    delete:
+      operationId: deleteScoreHistory
+      tags: [score]
+      summary: Delete every stored monthly score snapshot for the signed-in member
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /score/export:
+    get:
+      operationId: exportScoreData
+      tags: [score]
+      summary: Download the member's score data (profile, monthly snapshots, consent trail, shares)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Export file (JSON)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScoreExport"
+
+  /score/share:
+    post:
+      operationId: createScoreShare
+      tags: [score]
+      summary: Create an expiring, verifiable proof-of-score link
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScoreShareRequest"
+      responses:
+        "201":
+          description: Share link (the token is shown once)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScoreShare"
+    delete:
+      operationId: revokeScoreShares
+      tags: [score]
+      summary: Revoke every active proof-of-score link
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /score/verify/{token}:
+    get:
+      operationId: verifyScoreShare
+      tags: [score]
+      summary: Public — verify a member-issued proof-of-score link (shows only what the member chose to share)
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Valid link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScoreVerification"
+        "404":
+          description: Invalid, expired or revoked
+
+  /admin/score/stats:
+    get:
+      operationId: getAdminScoreStats
+      tags: [Admin]
+      summary: S-PAY Score program overview — distribution, averages, data collected, partner-sharing consent
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Program stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminScoreStats"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -3650,6 +3787,9 @@ components:
         socialConnectConfigured:
           type: boolean
           description: Whether the SocialConnect issuer env keys are set — the switch only takes effect when true
+        scoreProgramEnabled:
+          type: boolean
+          description: Master switch for the S-PAY Score program (on by default; off pauses scoring platform-wide)
       required:
         - cardProgramEnabled
         - stripeConfigured
@@ -3669,6 +3809,364 @@ components:
           maxLength: 280
         socialConnectEnabled:
           type: boolean
+        scoreProgramEnabled:
+          type: boolean
+
+    ScoreBand:
+      type: object
+      properties:
+        key:
+          type: string
+          enum: [building, good, great, excellent]
+        label:
+          type: string
+        min:
+          type: integer
+        max:
+          type: integer
+        color:
+          type: string
+        summary:
+          type: string
+      required: [key, label, min, max, color, summary]
+
+    ScoreNextBand:
+      type: object
+      properties:
+        key:
+          type: string
+          enum: [building, good, great, excellent]
+        label:
+          type: string
+        min:
+          type: integer
+        max:
+          type: integer
+        color:
+          type: string
+        summary:
+          type: string
+        pointsNeeded:
+          type: integer
+      required: [key, label, min, max, color, summary, pointsNeeded]
+
+    ScoreFactor:
+      type: object
+      properties:
+        key:
+          type: string
+          enum: [identity, history, payments, income, health]
+        label:
+          type: string
+        weight:
+          type: number
+          description: Share of the 550-point span this factor controls (0–1)
+        value:
+          type: integer
+          description: Factor value 0–100
+        points:
+          type: integer
+        maxPoints:
+          type: integer
+        status:
+          type: string
+          enum: [strong, fair, weak, no_data]
+        detail:
+          type: string
+      required: [key, label, weight, value, points, maxPoints, status, detail]
+
+    ScoreImprovementAction:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [link, kyc, email]
+        href:
+          type: string
+      required: [kind]
+
+    ScoreImprovement:
+      type: object
+      properties:
+        key:
+          type: string
+        factor:
+          type: string
+          enum: [identity, history, payments, income, health]
+        title:
+          type: string
+        description:
+          type: string
+        estimatedPoints:
+          type: integer
+          nullable: true
+          description: Simulated score gain; null when it builds over time
+        action:
+          allOf:
+            - $ref: "#/components/schemas/ScoreImprovementAction"
+          nullable: true
+      required: [key, factor, title, description, estimatedPoints, action]
+
+    ScoreHistoryPoint:
+      type: object
+      properties:
+        period:
+          type: string
+          description: Calendar month, YYYY-MM
+        score:
+          type: integer
+        band:
+          type: string
+        bandLabel:
+          type: string
+      required: [period, score, band, bandLabel]
+
+    ScorePartnerSharing:
+      type: object
+      properties:
+        consented:
+          type: boolean
+        consentedAt:
+          type: string
+          nullable: true
+        consentVersion:
+          type: string
+          nullable: true
+        currentVersion:
+          type: string
+        targetYear:
+          type: integer
+        active:
+          type: boolean
+          description: Whether any partner currently receives data (false until the partner program launches)
+      required: [consented, consentedAt, consentVersion, currentVersion, targetYear, active]
+
+    ScoreView:
+      type: object
+      properties:
+        programEnabled:
+          type: boolean
+        enabled:
+          type: boolean
+        accountType:
+          type: string
+          enum: [personal, business]
+        score:
+          type: integer
+          nullable: true
+        band:
+          allOf:
+            - $ref: "#/components/schemas/ScoreBand"
+          nullable: true
+        range:
+          type: object
+          properties:
+            min:
+              type: integer
+            max:
+              type: integer
+          required: [min, max]
+        trustedThreshold:
+          type: integer
+        nextBand:
+          allOf:
+            - $ref: "#/components/schemas/ScoreNextBand"
+          nullable: true
+        factors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScoreFactor"
+        improvements:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScoreImprovement"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScoreHistoryPoint"
+        percentile:
+          type: integer
+          nullable: true
+          description: Share of scored members below this score (only once 20+ members are scored)
+        computedAt:
+          type: string
+          nullable: true
+        modelVersion:
+          type: string
+        partnerSharing:
+          $ref: "#/components/schemas/ScorePartnerSharing"
+        activeShares:
+          type: integer
+      required: [programEnabled, enabled, accountType, score, band, range, trustedThreshold, nextBand, factors, improvements, history, percentile, computedAt, modelVersion, partnerSharing, activeShares]
+
+    ScoreSettingsRequest:
+      type: object
+      description: Partial update — provide either or both
+      properties:
+        enabled:
+          type: boolean
+        partnerSharing:
+          type: boolean
+
+    ScoreShareRequest:
+      type: object
+      properties:
+        showExactScore:
+          type: boolean
+          description: false (default) shares the band only
+        days:
+          type: integer
+          enum: [1, 7, 30]
+          description: Link lifetime (default 7)
+
+    ScoreShare:
+      type: object
+      properties:
+        token:
+          type: string
+        url:
+          type: string
+        expiresAt:
+          type: string
+        showExactScore:
+          type: boolean
+        score:
+          type: integer
+        band:
+          $ref: "#/components/schemas/ScoreBand"
+      required: [token, url, expiresAt, showExactScore, score, band]
+
+    ScoreVerification:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        displayName:
+          type: string
+        accountType:
+          type: string
+        band:
+          $ref: "#/components/schemas/ScoreBand"
+        score:
+          type: integer
+          nullable: true
+        trustedMember:
+          type: boolean
+        identityVerified:
+          type: boolean
+        issuedAt:
+          type: string
+        expiresAt:
+          type: string
+        modelVersion:
+          type: string
+      required: [valid, displayName, accountType, band, score, trustedMember, identityVerified, issuedAt, expiresAt, modelVersion]
+
+    ScoreExport:
+      type: object
+      additionalProperties: true
+      properties:
+        exportedAt:
+          type: string
+        modelVersion:
+          type: string
+
+    AdminScoreBandCount:
+      type: object
+      properties:
+        band:
+          type: string
+        label:
+          type: string
+        personal:
+          type: integer
+        business:
+          type: integer
+      required: [band, label, personal, business]
+
+    AdminScoreConsentEvent:
+      type: object
+      properties:
+        action:
+          type: string
+        createdAt:
+          type: string
+        consentVersion:
+          type: string
+        email:
+          type: string
+          nullable: true
+        fullName:
+          type: string
+          nullable: true
+      required: [action, createdAt, consentVersion]
+
+    AdminScoreStats:
+      type: object
+      properties:
+        programEnabled:
+          type: boolean
+        modelVersion:
+          type: string
+        consentVersion:
+          type: string
+        partnerTargetYear:
+          type: integer
+        totalUsers:
+          type: integer
+        profiles:
+          type: integer
+        enabledProfiles:
+          type: integer
+        disabledProfiles:
+          type: integer
+        scoredMembers:
+          type: integer
+        coveragePct:
+          type: integer
+        averageScore:
+          type: integer
+          nullable: true
+        averagePersonal:
+          type: integer
+          nullable: true
+        averageBusiness:
+          type: integer
+          nullable: true
+        trustedMembers:
+          type: integer
+        distribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminScoreBandCount"
+        partnerSharing:
+          type: object
+          properties:
+            consented:
+              type: integer
+            ratePct:
+              type: integer
+            partnerReady:
+              type: integer
+          required: [consented, ratePct, partnerReady]
+        snapshots:
+          type: object
+          properties:
+            total:
+              type: integer
+            members:
+              type: integer
+            thisMonth:
+              type: integer
+            firstPeriod:
+              type: string
+              nullable: true
+          required: [total, members, thisMonth, firstPeriod]
+        recentConsent:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminScoreConsentEvent"
+      required: [programEnabled, modelVersion, consentVersion, partnerTargetYear, totalUsers, profiles, enabledProfiles, disabledProfiles, scoredMembers, coveragePct, averageScore, averagePersonal, averageBusiness, trustedMembers, distribution, partnerSharing, snapshots, recentConsent]
 
     AdminTeamMember:
       type: object
@@ -4210,6 +4708,13 @@ components:
           nullable: true
         createdAt:
           type: string
+        score:
+          type: integer
+          nullable: true
+          description: Cached S-PAY Score (null until computed or if the member turned it off)
+        scoreBand:
+          type: string
+          nullable: true
       required:
         - id
         - email

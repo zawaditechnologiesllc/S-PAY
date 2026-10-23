@@ -25,6 +25,7 @@ import type {
   AdminEmployersResponse,
   AdminKycVerificationsResponse,
   AdminPayrollStats,
+  AdminScoreStats,
   AdminStats,
   AdminTeamResponse,
   AdminTransactionsResponse,
@@ -113,6 +114,12 @@ import type {
   RegisterRequest,
   ResetPasswordBody,
   RevokeEmployerApiKey200,
+  ScoreExport,
+  ScoreSettingsRequest,
+  ScoreShare,
+  ScoreShareRequest,
+  ScoreVerification,
+  ScoreView,
   SendAdminNotificationBody,
   SendMoneyRequest,
   SeoAnalyticsResponse,
@@ -8122,4 +8129,594 @@ export const useUnpublishSeoPost = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getUnpublishSeoPostMutationOptions(options));
     }
+
+export const getGetMyScoreUrl = () => {
+
+
+
+
+  return `/api/score/me`
+}
+
+/**
+ * @summary The signed-in member's S-PAY Score (personal or business) — score, factors, plan, history, consent state
+ */
+export const getMyScore = async ( options?: RequestInit): Promise<ScoreView> => {
+
+  return customFetch<ScoreView>(getGetMyScoreUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyScoreQueryKey = () => {
+    return [
+    `/api/score/me`
+    ] as const;
+    }
+
+
+export const getGetMyScoreQueryOptions = <TData = Awaited<ReturnType<typeof getMyScore>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyScore>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyScoreQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyScore>>> = ({ signal }) => getMyScore({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyScore>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyScoreQueryResult = NonNullable<Awaited<ReturnType<typeof getMyScore>>>
+export type GetMyScoreQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The signed-in member's S-PAY Score (personal or business) — score, factors, plan, history, consent state
+ */
+
+export function useGetMyScore<TData = Awaited<ReturnType<typeof getMyScore>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyScore>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyScoreQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateScoreSettingsUrl = () => {
+
+
+
+
+  return `/api/score/settings`
+}
+
+/**
+ * @summary Turn the score on/off and choose about future partner sharing (opt-in, logged)
+ */
+export const updateScoreSettings = async (scoreSettingsRequest: ScoreSettingsRequest, options?: RequestInit): Promise<ScoreView> => {
+
+  return customFetch<ScoreView>(getUpdateScoreSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      scoreSettingsRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateScoreSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateScoreSettings>>, TError,{data: BodyType<ScoreSettingsRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateScoreSettings>>, TError,{data: BodyType<ScoreSettingsRequest>}, TContext> => {
+
+const mutationKey = ['updateScoreSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateScoreSettings>>, {data: BodyType<ScoreSettingsRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateScoreSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateScoreSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateScoreSettings>>>
+    export type UpdateScoreSettingsMutationBody = BodyType<ScoreSettingsRequest>
+    export type UpdateScoreSettingsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Turn the score on/off and choose about future partner sharing (opt-in, logged)
+ */
+export const useUpdateScoreSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateScoreSettings>>, TError,{data: BodyType<ScoreSettingsRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateScoreSettings>>,
+        TError,
+        {data: BodyType<ScoreSettingsRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateScoreSettingsMutationOptions(options));
+    }
+
+export const getDeleteScoreHistoryUrl = () => {
+
+
+
+
+  return `/api/score/history`
+}
+
+/**
+ * @summary Delete every stored monthly score snapshot for the signed-in member
+ */
+export const deleteScoreHistory = async ( options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getDeleteScoreHistoryUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteScoreHistoryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteScoreHistory>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteScoreHistory>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteScoreHistory'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteScoreHistory>>, void> = () => {
+
+
+          return  deleteScoreHistory(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteScoreHistoryMutationResult = NonNullable<Awaited<ReturnType<typeof deleteScoreHistory>>>
+
+    export type DeleteScoreHistoryMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete every stored monthly score snapshot for the signed-in member
+ */
+export const useDeleteScoreHistory = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteScoreHistory>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteScoreHistory>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteScoreHistoryMutationOptions(options));
+    }
+
+export const getExportScoreDataUrl = () => {
+
+
+
+
+  return `/api/score/export`
+}
+
+/**
+ * @summary Download the member's score data (profile, monthly snapshots, consent trail, shares)
+ */
+export const exportScoreData = async ( options?: RequestInit): Promise<ScoreExport> => {
+
+  return customFetch<ScoreExport>(getExportScoreDataUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportScoreDataQueryKey = () => {
+    return [
+    `/api/score/export`
+    ] as const;
+    }
+
+
+export const getExportScoreDataQueryOptions = <TData = Awaited<ReturnType<typeof exportScoreData>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportScoreData>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportScoreDataQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportScoreData>>> = ({ signal }) => exportScoreData({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportScoreData>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ExportScoreDataQueryResult = NonNullable<Awaited<ReturnType<typeof exportScoreData>>>
+export type ExportScoreDataQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Download the member's score data (profile, monthly snapshots, consent trail, shares)
+ */
+
+export function useExportScoreData<TData = Awaited<ReturnType<typeof exportScoreData>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportScoreData>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getExportScoreDataQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateScoreShareUrl = () => {
+
+
+
+
+  return `/api/score/share`
+}
+
+/**
+ * @summary Create an expiring, verifiable proof-of-score link
+ */
+export const createScoreShare = async (scoreShareRequest: ScoreShareRequest, options?: RequestInit): Promise<ScoreShare> => {
+
+  return customFetch<ScoreShare>(getCreateScoreShareUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      scoreShareRequest,)
+  }
+);}
+
+
+
+
+export const getCreateScoreShareMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createScoreShare>>, TError,{data: BodyType<ScoreShareRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createScoreShare>>, TError,{data: BodyType<ScoreShareRequest>}, TContext> => {
+
+const mutationKey = ['createScoreShare'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createScoreShare>>, {data: BodyType<ScoreShareRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createScoreShare(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateScoreShareMutationResult = NonNullable<Awaited<ReturnType<typeof createScoreShare>>>
+    export type CreateScoreShareMutationBody = BodyType<ScoreShareRequest>
+    export type CreateScoreShareMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create an expiring, verifiable proof-of-score link
+ */
+export const useCreateScoreShare = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createScoreShare>>, TError,{data: BodyType<ScoreShareRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createScoreShare>>,
+        TError,
+        {data: BodyType<ScoreShareRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateScoreShareMutationOptions(options));
+    }
+
+export const getRevokeScoreSharesUrl = () => {
+
+
+
+
+  return `/api/score/share`
+}
+
+/**
+ * @summary Revoke every active proof-of-score link
+ */
+export const revokeScoreShares = async ( options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getRevokeScoreSharesUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRevokeScoreSharesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeScoreShares>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeScoreShares>>, TError,void, TContext> => {
+
+const mutationKey = ['revokeScoreShares'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeScoreShares>>, void> = () => {
+
+
+          return  revokeScoreShares(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeScoreSharesMutationResult = NonNullable<Awaited<ReturnType<typeof revokeScoreShares>>>
+
+    export type RevokeScoreSharesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Revoke every active proof-of-score link
+ */
+export const useRevokeScoreShares = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeScoreShares>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeScoreShares>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRevokeScoreSharesMutationOptions(options));
+    }
+
+export const getVerifyScoreShareUrl = (token: string,) => {
+
+
+
+
+  return `/api/score/verify/${token}`
+}
+
+/**
+ * @summary Public — verify a member-issued proof-of-score link (shows only what the member chose to share)
+ */
+export const verifyScoreShare = async (token: string, options?: RequestInit): Promise<ScoreVerification> => {
+
+  return customFetch<ScoreVerification>(getVerifyScoreShareUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getVerifyScoreShareQueryKey = (token: string,) => {
+    return [
+    `/api/score/verify/${token}`
+    ] as const;
+    }
+
+
+export const getVerifyScoreShareQueryOptions = <TData = Awaited<ReturnType<typeof verifyScoreShare>>, TError = ErrorType<void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof verifyScoreShare>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getVerifyScoreShareQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof verifyScoreShare>>> = ({ signal }) => verifyScoreShare(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(token), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof verifyScoreShare>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type VerifyScoreShareQueryResult = NonNullable<Awaited<ReturnType<typeof verifyScoreShare>>>
+export type VerifyScoreShareQueryError = ErrorType<void>
+
+
+/**
+ * @summary Public — verify a member-issued proof-of-score link (shows only what the member chose to share)
+ */
+
+export function useVerifyScoreShare<TData = Awaited<ReturnType<typeof verifyScoreShare>>, TError = ErrorType<void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof verifyScoreShare>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getVerifyScoreShareQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminScoreStatsUrl = () => {
+
+
+
+
+  return `/api/admin/score/stats`
+}
+
+/**
+ * @summary S-PAY Score program overview — distribution, averages, data collected, partner-sharing consent
+ */
+export const getAdminScoreStats = async ( options?: RequestInit): Promise<AdminScoreStats> => {
+
+  return customFetch<AdminScoreStats>(getGetAdminScoreStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminScoreStatsQueryKey = () => {
+    return [
+    `/api/admin/score/stats`
+    ] as const;
+    }
+
+
+export const getGetAdminScoreStatsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminScoreStats>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminScoreStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminScoreStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminScoreStats>>> = ({ signal }) => getAdminScoreStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminScoreStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminScoreStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminScoreStats>>>
+export type GetAdminScoreStatsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary S-PAY Score program overview — distribution, averages, data collected, partner-sharing consent
+ */
+
+export function useGetAdminScoreStats<TData = Awaited<ReturnType<typeof getAdminScoreStats>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminScoreStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminScoreStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

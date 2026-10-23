@@ -1,6 +1,7 @@
 import { ArrowLeft, FileText } from "lucide-react";
 import { Link } from "wouter";
 import { PublicLayout } from "@/components/public-layout";
+import { SCORE_MIN, SCORE_MAX, SCORE_PARTNER_SHARING_TARGET_YEAR } from "@workspace/score-model";
 
 interface SectionProps { num: string; title: string; children: React.ReactNode; }
 function Section({ num, title, children }: SectionProps) {
@@ -29,6 +30,7 @@ export default function Terms() {
           <h1 className="text-4xl font-black text-white mb-2">Terms of Service</h1>
           <p className="text-blue-300 text-sm">
             Effective date: <span className="text-white font-medium">June 1, 2024</span>
+            &nbsp;·&nbsp; Updated: <span className="text-white font-medium">October 2026</span> (S-PAY Score)
             &nbsp;·&nbsp; Company: <span className="text-white font-medium">S-PAY (Zawadi Technologies LLC)</span>
           </p>
         </div>
@@ -116,17 +118,30 @@ export default function Terms() {
             <p className="mt-3">We reserve the right to restrict, suspend, or terminate your account if you fail to complete KYC requirements or if our screening processes identify a potential compliance concern.</p>
           </Section>
 
-          <Section num="7" title="Intellectual Property">
+          <Section num="7" title="S-PAY Score">
+            <p>S-PAY provides every personal and business account with an S-PAY Score — a {SCORE_MIN}–{SCORE_MAX} score calculated from your activity on S-PAY, explained in full on the <Link href="/score"><span className="text-[#4DC9EE] font-medium hover:underline cursor-pointer">S-PAY Score page</span></Link>. By using the score you agree that:</p>
+            <ul className="list-disc pl-5 space-y-1.5 mt-2">
+              <li><strong>It is S-PAY's own measure,</strong> not a consumer report or credit-bureau score, and not an offer, approval or guarantee of credit, limits, fees or any other benefit.</li>
+              <li><strong>Benefits marked "planned"</strong> are roadmap items. We may introduce, change or withdraw band-based benefits, and will tell you before a change that affects you.</li>
+              <li><strong>The model may change.</strong> We may update how the score is calculated; every score is recorded with its model version, and a change can move your score.</li>
+              <li><strong>Partner sharing is opt-in.</strong> We will only give your score data to licensed financial institutions if you switch on partner sharing and that program has launched (planned around {SCORE_PARTNER_SHARING_TARGET_YEAR}). You can withdraw consent at any time; any decision a partner makes about you is theirs, under their own terms.</li>
+              <li><strong>Shared proof links</strong> are yours to issue and revoke. Don't alter, misrepresent or reuse another member's score proof.</li>
+              <li><strong>You can turn the score off</strong> or delete your score history at any time without affecting your other S-PAY services. Your score is never used to freeze, hold or block your own funds.</li>
+              <li><strong>Disputes:</strong> email <a href="mailto:privacy@spayewallet.com" className="text-[#4DC9EE] font-medium hover:underline">privacy@spayewallet.com</a> if you believe your score is wrong. We will review it and correct any error we find.</li>
+            </ul>
+          </Section>
+
+          <Section num="8" title="Intellectual Property">
             <p>All content, trademarks, logos, graphics, and software included in or made available through the Services are the exclusive property of Zawadi Technologies LLC or its licensors and are protected by applicable intellectual property laws.</p>
             <p className="mt-3">You are granted a limited, non-exclusive, non-transferable, revocable licence to access and use the Services for personal, non-commercial purposes in accordance with these Terms. You may not copy, modify, distribute, sell, or lease any part of the Services, nor may you reverse-engineer or attempt to extract the source code of our software.</p>
           </Section>
 
-          <Section num="8" title="Disclaimer of Warranties">
+          <Section num="9" title="Disclaimer of Warranties">
             <p>The Services are provided "as is" and "as available" without warranty of any kind. To the fullest extent permitted by law, S-PAY expressly disclaims all warranties, whether express, implied, or statutory, including warranties of merchantability, fitness for a particular purpose, and non-infringement.</p>
             <p className="mt-3">We do not warrant that the Services will be uninterrupted, error-free, or free of viruses or other harmful components. Financial market fluctuations, exchange rate movements, and third-party network issues are beyond our control.</p>
           </Section>
 
-          <Section num="9" title="Limitation of Liability">
+          <Section num="10" title="Limitation of Liability">
             <p>To the fullest extent permitted by applicable law, S-PAY and its affiliates, officers, employees, agents, and licensors shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, data, or goodwill, arising out of or in connection with:</p>
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
               <li>Your use of, or inability to use, the Services.</li>
@@ -137,7 +152,7 @@ export default function Terms() {
             <p className="mt-3">Our total liability to you for any claim shall not exceed the greater of (a) the fees paid by you to S-PAY in the three months preceding the event giving rise to liability, or (b) USD $100.</p>
           </Section>
 
-          <Section num="10" title="Termination">
+          <Section num="11" title="Termination">
             <p>Either party may terminate the agreement formed by these Terms at any time:</p>
             <ul className="list-disc pl-5 space-y-1.5 mt-2">
               <li><strong>By you:</strong> you may close your account at any time by contacting support. Funds remaining in your wallet will be returned to you via your verified withdrawal method, subject to applicable laws and regulations.</li>
@@ -146,12 +161,12 @@ export default function Terms() {
             <p className="mt-3">Sections 6, 7, 8, 9, and 11 of these Terms survive termination.</p>
           </Section>
 
-          <Section num="11" title="Governing Law">
+          <Section num="12" title="Governing Law">
             <p>These Terms and any dispute arising out of or related to the Services shall be governed by and construed in accordance with the laws of the <strong>State of Delaware, United States of America</strong>, without regard to its conflict of law provisions.</p>
             <p className="mt-3">Any legal action or proceeding arising under these Terms shall be brought exclusively in the state or federal courts located in Delaware, and you hereby consent to the personal jurisdiction of such courts.</p>
           </Section>
 
-          <Section num="12" title="Contact Us">
+          <Section num="13" title="Contact Us">
             <p>For questions, legal notices, or concerns regarding these Terms of Service, please contact our legal team:</p>
             <div className="mt-3 bg-gray-50 rounded-xl p-5 border border-gray-100 not-italic">
               <p className="font-semibold text-[#1A2B4A]">S-PAY Legal Team</p>
