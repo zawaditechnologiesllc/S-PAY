@@ -115,6 +115,7 @@ import type {
   ResetPasswordBody,
   RevokeEmployerApiKey200,
   ScoreExport,
+  ScorePartnerPromptRequest,
   ScoreSettingsRequest,
   ScoreShare,
   ScoreShareRequest,
@@ -8276,6 +8277,77 @@ export const useUpdateScoreSettings = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateScoreSettingsMutationOptions(options));
+    }
+
+export const getRecordPartnerPromptUrl = () => {
+
+
+
+
+  return `/api/score/partner-prompt`
+}
+
+/**
+ * @summary Weekly partner-sharing reminder — "shown" restarts the 7-day clock, "never" stops reminders
+ */
+export const recordPartnerPrompt = async (scorePartnerPromptRequest: ScorePartnerPromptRequest, options?: RequestInit): Promise<ScoreView> => {
+
+  return customFetch<ScoreView>(getRecordPartnerPromptUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      scorePartnerPromptRequest,)
+  }
+);}
+
+
+
+
+export const getRecordPartnerPromptMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordPartnerPrompt>>, TError,{data: BodyType<ScorePartnerPromptRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordPartnerPrompt>>, TError,{data: BodyType<ScorePartnerPromptRequest>}, TContext> => {
+
+const mutationKey = ['recordPartnerPrompt'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordPartnerPrompt>>, {data: BodyType<ScorePartnerPromptRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  recordPartnerPrompt(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordPartnerPromptMutationResult = NonNullable<Awaited<ReturnType<typeof recordPartnerPrompt>>>
+    export type RecordPartnerPromptMutationBody = BodyType<ScorePartnerPromptRequest>
+    export type RecordPartnerPromptMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Weekly partner-sharing reminder — "shown" restarts the 7-day clock, "never" stops reminders
+ */
+export const useRecordPartnerPrompt = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordPartnerPrompt>>, TError,{data: BodyType<ScorePartnerPromptRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordPartnerPrompt>>,
+        TError,
+        {data: BodyType<ScorePartnerPromptRequest>},
+        TContext
+      > => {
+      return useMutation(getRecordPartnerPromptMutationOptions(options));
     }
 
 export const getDeleteScoreHistoryUrl = () => {

@@ -6,7 +6,7 @@ import { and, desc, eq } from "drizzle-orm";
 import {
   SCORE_INTRO, SCORE_TAGLINE, SCORE_MIN, SCORE_MAX, SCORE_TRUSTED_THRESHOLD, SCORE_PARTNER_SHARING_TARGET_YEAR,
   SCORE_BENEFITS, SCORE_DATA_USED, SCORE_DATA_NOT_USED, SCORE_HOW_COLLECTED, SCORE_WHY_COLLECTED,
-  SCORE_PARTNER_SHARING_NOTICE, SCORE_TIPS, SCORE_MYTHS, SCORE_CONTROLS, SCORE_TIMELINE, SCORE_FAQS,
+  SCORE_PARTNER_SHARING_NOTICE, SCORE_PARTNER_SHARING_BENEFITS, SCORE_TIPS, SCORE_MYTHS, SCORE_CONTROLS, SCORE_TIMELINE, SCORE_FAQS,
   SCORE_PAGE_META, SCORE_PAGE_PATH, SCORE_EXAMPLE, scoreFactorInfo, scoreBandsWithPerks, scorePageJsonLd,
 } from "@workspace/score-model";
 
@@ -394,6 +394,8 @@ router.get("/score", (_req, res) => {
 
     <h2 id="partners">Partner sharing &amp; roadmap — fair credit by ~${SCORE_PARTNER_SHARING_TARGET_YEAR}, only with your consent</h2>
     <div class="spay-callout"><p>${esc(SCORE_PARTNER_SHARING_NOTICE)}</p></div>
+    <h3>What partner sharing will unlock</h3>
+    ${li(SCORE_PARTNER_SHARING_BENEFITS.map((b) => `<strong>${esc(b.title)}${b.audience === "business" ? " (business)" : ""}.</strong> ${esc(b.description)}`))}
     ${li(SCORE_TIMELINE.map((t) => `<strong>${esc(t.when)} · ${t.status === "live" ? "Live" : "Planned"} — ${esc(t.title)}.</strong> ${esc(t.description)}`))}
 
     <h2 id="keep-it-high">How to raise — and keep — a high score</h2>

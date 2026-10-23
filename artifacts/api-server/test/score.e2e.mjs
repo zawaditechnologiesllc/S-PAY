@@ -204,6 +204,45 @@ async function main() {
     check("SSR /score has FAQPage + FinancialProduct JSON-LD", ld.some((x) => x["@type"] === "FAQPage" && x.mainEntity.length >= 8) && ld.some((x) => x.about?.["@type"] === "FinancialProduct"));
     check("SSR /score explains data, benefits, tips, business", ["your-data", "benefits", "keep-it-high", "business", "partners"].every((id) => html.includes(`id="${id}"`)));
 
+    console.log("weekly partner-sharing reminder");
+    const promptState = async (id) => (await q(`SELECT sharing_prompt_count AS n, sharing_prompt_opted_out AS stopped FROM score_profiles WHERE user_id = $1`, [id])).rows[0];
+    const setLastShown = (id, days) => q(`UPDATE score_profiles SET sharing_prompt_last_shown_at = now() - ($2 || ' days')::interval WHERE user_id = $1`, [id, String(days)]);
+    const r1 = await api("POST", "/auth/register", { body: { email: `score_prompt_${uniq}@test.com`, password: "Sup3rSecret!", fullName: "Prompt Person" } });
+    const pt = r1.body.token;
+    const pid = (await api("GET", "/auth/me", { token: pt })).body.id;
+    s = await api("GET", "/score/me", { token: pt });
+    check("reminder due for a scored member who hasn't opted in", s.body.partnerPrompt?.due === true && s.body.partnerPrompt.intervalDays === 7);
+    check("bad reminder action → 400", (await api("POST", "/score/partner-prompt", { token: pt, body: { action: "later" } })).status === 400);
+    s = await api("POST", "/score/partner-prompt", { token: pt, body: { action: "shown" } });
+    check("recording 'shown' starts the 7-day clock", s.status === 200 && s.body.partnerPrompt.due === false && (await promptState(pid)).n === 1);
+    await setLastShown(pid, 6);
+    check("not due again within 7 days", (await api("GET", "/score/me", { token: pt })).body.partnerPrompt.due === false);
+    await setLastShown(pid, 8);
+    check("due again after 7 days", (await api("GET", "/score/me", { token: pt })).body.partnerPrompt.due === true);
+    check("invalid consent source → 400", (await api("PUT", "/score/settings", { token: pt, body: { partnerSharing: true, source: "popup" } })).status === 400);
+    s = await api("PUT", "/score/settings", { token: pt, body: { partnerSharing: true, source: "prompt" } });
+    check("opt-in from the reminder", s.body.partnerSharing.consented === true && s.body.partnerPrompt.due === false);
+    const viaPrompt = (await q(`SELECT source FROM score_consent_log WHERE user_id = $1 AND action = 'sharing_granted'`, [pid])).rows[0];
+    check("opt-in is attributed to the reminder", viaPrompt?.source === "prompt");
+    await api("PUT", "/score/settings", { token: pt, body: { partnerSharing: false } });
+    await setLastShown(pid, 30);
+    s = await api("GET", "/score/me", { token: pt });
+    check("opting out later stops reminders for good", s.body.partnerPrompt.due === false && (await promptState(pid)).stopped === true);
+
+    const r2 = await api("POST", "/auth/register", { body: { email: `score_never_${uniq}@test.com`, password: "Sup3rSecret!", fullName: "Never Person" } });
+    const nt = r2.body.token;
+    const nid = (await api("GET", "/auth/me", { token: nt })).body.id;
+    await api("GET", "/score/me", { token: nt });
+    await api("POST", "/score/partner-prompt", { token: nt, body: { action: "shown" } });
+    s = await api("POST", "/score/partner-prompt", { token: nt, body: { action: "never" } });
+    await setLastShown(nid, 30);
+    check("'Don't ask me again' stops reminders", (await api("GET", "/score/me", { token: nt })).body.partnerPrompt.due === false);
+    const neverLog = (await q(`SELECT action, source FROM score_consent_log WHERE user_id = $1`, [nid])).rows;
+    check("'Don't ask me again' is in the consent trail", neverLog.some((r) => r.action === "sharing_prompt_never" && r.source === "prompt"));
+    check("can still opt in from settings after 'never'", (await api("PUT", "/score/settings", { token: nt, body: { partnerSharing: true } })).body.partnerSharing.consented === true);
+    await api("PUT", "/score/settings", { token: nt, body: { enabled: false } });
+    check("no reminder while the score is off", (await api("GET", "/score/me", { token: nt })).body.partnerPrompt.due === false);
+
     console.log("admin");
     check("non-admin blocked from stats", (await api("GET", "/admin/score/stats", { token })).status === 403);
     const areg = await api("POST", "/auth/register", { body: { email: adminEmail, password: "Sup3rSecret!", fullName: "Score Admin" } });
@@ -212,6 +251,8 @@ async function main() {
     check("admin stats load", st.status === 200 && st.body.programEnabled === true && st.body.distribution?.length === 4, `status ${st.status}`);
     check("admin sees snapshots collected", st.body.snapshots?.total >= 2 && st.body.scoredMembers >= 2);
     check("admin sees consent trail", st.body.recentConsent?.length > 0);
+    check("admin sees reminder conversion", st.body.partnerPrompt?.membersPrompted >= 2 && st.body.partnerPrompt.optInsFromPrompt >= 1 && st.body.partnerPrompt.conversionPct > 0 && st.body.partnerPrompt.remindersStopped >= 2);
+    check("admin consent trail carries the source", st.body.recentConsent.some((c) => c.source === "prompt"));
     const users = await api("GET", "/admin/users", { token: admin });
     const row = users.body.users?.find((u) => u.id === userId);
     check("admin users list shows score", row?.score === activeScore && row?.scoreBand);

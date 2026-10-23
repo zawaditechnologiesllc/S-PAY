@@ -62,9 +62,9 @@ To change the model: edit `lib/score-model/src/model.ts`, bump `SCORE_MODEL_VERS
 
 | Table | Purpose |
 |---|---|
-| `score_profiles` | One row per member: on/off, partner-sharing consent (+ timestamp + notice version), cached last score/band |
+| `score_profiles` | One row per member: on/off, partner-sharing consent (+ timestamp + notice version), cached last score/band, weekly-reminder state (last shown, count, stopped) |
 | `score_snapshots` | **One row per member per calendar month**: score, band, factor values, the aggregate signals, model version. This is the multi-year history |
-| `score_consent_log` | Append-only trail: `score_enabled`, `score_disabled`, `sharing_granted`, `sharing_revoked`, `history_deleted`, `shares_revoked` |
+| `score_consent_log` | Append-only trail: `score_enabled`, `score_disabled`, `sharing_granted`, `sharing_revoked`, `history_deleted`, `shares_revoked`, `sharing_prompt_never` — each with its `source` (settings / prompt) |
 | `score_shares` | Proof links: sha256 of the token (token never stored), band/score frozen at issue, expiry, revocation, view count |
 
 How it fills up:
@@ -82,14 +82,25 @@ How it fills up:
 - **Delete history**, **download data** (JSON), **revoke proof links**, **dispute** via privacy@spayewallet.com.
 - The score is **never** used to freeze, hold or block a member's funds.
 
+### Weekly partner-sharing reminder
+
+Members who haven't opted in see a popup on the dashboard (web) and home tab (mobile) **at most once every 7 days** (`SCORE_PARTNER_PROMPT_INTERVAL_DAYS`). It shows their current score, what partner sharing will unlock (`SCORE_PARTNER_SHARING_BENEFITS`, tailored per account type), the full notice behind "What you're agreeing to", and equally weighted **Not now** / **Turn on partner sharing** buttons plus **Don't ask me again**.
+
+- Shown only when: program on, score on and computed, not opted in, not stopped, last shown ≥ 7 days ago (`partnerPrompt.due` on `GET /score/me`).
+- Opening it records `shown` immediately, so the 7-day clock holds even if the member just closes the tab.
+- **Don't ask me again** stops reminders for good (logged as `sharing_prompt_never`). A member who opts in and later opts **out** is never reminded again either — they made an informed choice. Both can still opt in from My Score.
+- Opt-ins from the popup are logged with `source = "prompt"`; Admin → S-PAY Score shows members reminded, opt-ins from the reminder, conversion %, and "don't ask again" counts.
+- The cadence is disclosed in the FAQ and Your controls. Repeated consent prompts are a known regulator concern (e.g. EDPB guidance on "continuous prompting"), which is why the opt-out, the 7-day cap and the stop-on-revoke rule exist — keep them if you tune the cadence.
+
 ## 4. API
 
 | Method | Path | Auth | |
 |---|---|---|---|
 | GET | `/api/score/me` | member | Score view (recomputes when stale) |
-| PUT | `/api/score/settings` | member | `{ enabled?, partnerSharing? }` |
+| PUT | `/api/score/settings` | member | `{ enabled?, partnerSharing?, source?: "settings" \| "prompt" }` |
 | DELETE | `/api/score/history` | member | Erase snapshots |
 | GET | `/api/score/export` | member | JSON download |
+| POST | `/api/score/partner-prompt` | member | Weekly reminder: `{ action: "shown" \| "never" }` |
 | POST / DELETE | `/api/score/share` | member | Create (`{ showExactScore, days: 1\|7\|30 }`) / revoke all proof links |
 | GET | `/api/score/verify/:token` | public | What the member chose to share; 404 when invalid/expired/revoked |
 | GET | `/api/admin/score/stats` | any admin | Program overview |
@@ -124,8 +135,8 @@ Admin → S-PAY Score tracks readiness: opt-in count, opt-in rate, and **partner
 
 ```bash
 cd artifacts/api-server
-node --test test/score.unit.mjs                    # model, bands, plan, content↔model (19 tests)
-pnpm run build && DATABASE_URL=postgres://… node test/score.e2e.mjs   # 60 end-to-end checks against Postgres
+node --test test/score.unit.mjs                    # model, bands, plan, content↔model (20 tests)
+pnpm run build && DATABASE_URL=postgres://… node test/score.e2e.mjs   # 75 end-to-end checks against Postgres
 ```
 
-The e2e suite covers scoring from real ledger rows, sandbox exclusion, monthly snapshots storing aggregates only, consent changes and their audit trail, proof links (exact vs band-only, revoke, 404s, `noindex`), export, history deletion, account deletion wiping score data, business accounts, admin stats/users, the program master switch, and the SSR crawler page + JSON-LD.
+The e2e suite covers scoring from real ledger rows, sandbox exclusion, monthly snapshots storing aggregates only, consent changes and their audit trail, proof links (exact vs band-only, revoke, 404s, `noindex`), export, history deletion, account deletion wiping score data, the weekly partner-sharing reminder (cadence, opt-in attribution, "don't ask again", stop-on-revoke), business accounts, admin stats/users, the program master switch, and the SSR crawler page + JSON-LD.

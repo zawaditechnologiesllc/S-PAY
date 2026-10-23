@@ -2368,6 +2368,10 @@ export const GetMyScoreResponse = zod.object({
   "targetYear": zod.number(),
   "active": zod.boolean().describe('Whether any partner currently receives data (false until the partner program launches)')
 }),
+  "partnerPrompt": zod.object({
+  "due": zod.boolean().describe('Show the reminder now (not opted in, not stopped, last shown ≥ intervalDays ago)'),
+  "intervalDays": zod.number()
+}).describe('Weekly partner-sharing reminder state'),
   "activeShares": zod.number()
 })
 
@@ -2377,7 +2381,8 @@ export const GetMyScoreResponse = zod.object({
  */
 export const UpdateScoreSettingsBody = zod.object({
   "enabled": zod.boolean().optional(),
-  "partnerSharing": zod.boolean().optional()
+  "partnerSharing": zod.boolean().optional(),
+  "source": zod.enum(['settings', 'prompt']).optional().describe('Where the change was made (recorded in the consent trail; default settings)')
 }).describe('Partial update — provide either or both')
 
 export const UpdateScoreSettingsResponse = zod.object({
@@ -2445,6 +2450,90 @@ export const UpdateScoreSettingsResponse = zod.object({
   "targetYear": zod.number(),
   "active": zod.boolean().describe('Whether any partner currently receives data (false until the partner program launches)')
 }),
+  "partnerPrompt": zod.object({
+  "due": zod.boolean().describe('Show the reminder now (not opted in, not stopped, last shown ≥ intervalDays ago)'),
+  "intervalDays": zod.number()
+}).describe('Weekly partner-sharing reminder state'),
+  "activeShares": zod.number()
+})
+
+
+/**
+ * @summary Weekly partner-sharing reminder — "shown" restarts the 7-day clock, "never" stops reminders
+ */
+export const RecordPartnerPromptBody = zod.object({
+  "action": zod.enum(['shown', 'never'])
+})
+
+export const RecordPartnerPromptResponse = zod.object({
+  "programEnabled": zod.boolean(),
+  "enabled": zod.boolean(),
+  "accountType": zod.enum(['personal', 'business']),
+  "score": zod.number().nullable(),
+  "band": zod.object({
+  "key": zod.enum(['building', 'good', 'great', 'excellent']),
+  "label": zod.string(),
+  "min": zod.number(),
+  "max": zod.number(),
+  "color": zod.string(),
+  "summary": zod.string()
+}).nullable(),
+  "range": zod.object({
+  "min": zod.number(),
+  "max": zod.number()
+}),
+  "trustedThreshold": zod.number(),
+  "nextBand": zod.object({
+  "key": zod.enum(['building', 'good', 'great', 'excellent']),
+  "label": zod.string(),
+  "min": zod.number(),
+  "max": zod.number(),
+  "color": zod.string(),
+  "summary": zod.string(),
+  "pointsNeeded": zod.number()
+}).nullable(),
+  "factors": zod.array(zod.object({
+  "key": zod.enum(['identity', 'history', 'payments', 'income', 'health']),
+  "label": zod.string(),
+  "weight": zod.number().describe('Share of the 550-point span this factor controls (0–1)'),
+  "value": zod.number().describe('Factor value 0–100'),
+  "points": zod.number(),
+  "maxPoints": zod.number(),
+  "status": zod.enum(['strong', 'fair', 'weak', 'no_data']),
+  "detail": zod.string()
+})),
+  "improvements": zod.array(zod.object({
+  "key": zod.string(),
+  "factor": zod.enum(['identity', 'history', 'payments', 'income', 'health']),
+  "title": zod.string(),
+  "description": zod.string(),
+  "estimatedPoints": zod.number().nullable().describe('Simulated score gain; null when it builds over time'),
+  "action": zod.object({
+  "kind": zod.enum(['link', 'kyc', 'email']),
+  "href": zod.string().optional()
+}).nullable()
+})),
+  "history": zod.array(zod.object({
+  "period": zod.string().describe('Calendar month, YYYY-MM'),
+  "score": zod.number(),
+  "band": zod.string(),
+  "bandLabel": zod.string()
+})),
+  "percentile": zod.number().nullable().describe('Share of scored members below this score (only once 20+ members are scored)'),
+  "computedAt": zod.string().nullable(),
+  "modelVersion": zod.string(),
+  "partnerSharing": zod.object({
+  "consented": zod.boolean(),
+  "consentedAt": zod.string().nullable(),
+  "consentVersion": zod.string().nullable(),
+  "currentVersion": zod.string(),
+  "targetYear": zod.number(),
+  "active": zod.boolean().describe('Whether any partner currently receives data (false until the partner program launches)')
+}),
+  "partnerPrompt": zod.object({
+  "due": zod.boolean().describe('Show the reminder now (not opted in, not stopped, last shown ≥ intervalDays ago)'),
+  "intervalDays": zod.number()
+}).describe('Weekly partner-sharing reminder state'),
   "activeShares": zod.number()
 })
 
@@ -2540,6 +2629,14 @@ export const GetAdminScoreStatsResponse = zod.object({
   "ratePct": zod.number(),
   "partnerReady": zod.number()
 }),
+  "partnerPrompt": zod.object({
+  "intervalDays": zod.number(),
+  "membersPrompted": zod.number(),
+  "impressions": zod.number(),
+  "optInsFromPrompt": zod.number(),
+  "conversionPct": zod.number(),
+  "remindersStopped": zod.number()
+}).describe('Weekly partner-sharing reminder performance'),
   "snapshots": zod.object({
   "total": zod.number(),
   "members": zod.number(),
@@ -2550,6 +2647,7 @@ export const GetAdminScoreStatsResponse = zod.object({
   "action": zod.string(),
   "createdAt": zod.string(),
   "consentVersion": zod.string(),
+  "source": zod.string().nullish(),
   "email": zod.string().nullish(),
   "fullName": zod.string().nullish()
 }))

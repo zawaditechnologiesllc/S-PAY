@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { requireAnyAdmin } from "../lib/admin-roles";
 import {
-  getScoreView, updateScoreSettings, deleteScoreHistory, exportScoreData,
+  getScoreView, updateScoreSettings, recordPartnerPrompt, deleteScoreHistory, exportScoreData,
   createScoreShare, revokeScoreShares, verifyScoreShare, adminScoreStats, ScoreError,
 } from "../lib/score";
 
@@ -32,7 +32,7 @@ router.get("/score/me", requireAuth, async (req, res) => {
 
 router.put("/score/settings", requireAuth, async (req, res) => {
   try {
-    const { enabled, partnerSharing } = req.body as { enabled?: unknown; partnerSharing?: unknown };
+    const { enabled, partnerSharing, source } = req.body as { enabled?: unknown; partnerSharing?: unknown; source?: unknown };
     if (enabled === undefined && partnerSharing === undefined) {
       res.status(400).json({ error: "validation_error", message: "Provide enabled and/or partnerSharing" });
       return;
@@ -41,11 +41,31 @@ router.put("/score/settings", requireAuth, async (req, res) => {
       res.status(400).json({ error: "validation_error", message: "enabled and partnerSharing must be booleans" });
       return;
     }
-    await updateScoreSettings(req.user!.userId, { enabled, partnerSharing });
-    req.log.info({ userId: req.user!.userId, enabled, partnerSharing }, "S-PAY Score settings changed");
+    if (source !== undefined && source !== "settings" && source !== "prompt") {
+      res.status(400).json({ error: "validation_error", message: "source must be settings or prompt" });
+      return;
+    }
+    await updateScoreSettings(req.user!.userId, { enabled, partnerSharing }, source ?? "settings");
+    req.log.info({ userId: req.user!.userId, enabled, partnerSharing, source }, "S-PAY Score settings changed");
     res.json(await getScoreView(req.user!.userId));
   } catch (err) {
     fail(req, res, err, "Update score settings");
+  }
+});
+
+// Weekly partner-sharing reminder: "shown" restarts the 7-day clock,
+// "never" is "Don't ask me again". Returns the refreshed score view.
+router.post("/score/partner-prompt", requireAuth, async (req, res) => {
+  try {
+    const { action } = req.body as { action?: unknown };
+    if (action !== "shown" && action !== "never") {
+      res.status(400).json({ error: "validation_error", message: "action must be shown or never" });
+      return;
+    }
+    await recordPartnerPrompt(req.user!.userId, action);
+    res.json(await getScoreView(req.user!.userId));
+  } catch (err) {
+    fail(req, res, err, "Record partner prompt");
   }
 });
 
