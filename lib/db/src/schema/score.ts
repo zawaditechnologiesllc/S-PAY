@@ -30,6 +30,11 @@ export const scoreProfilesTable = pgTable("score_profiles", {
   accountType: text("account_type"),                                    // personal | business at the last computation
   modelVersion: text("model_version"),
   lastComputedAt: timestamp("last_computed_at"),
+  // Weekly partner-sharing reminder (only for members who haven't opted in):
+  // when it was last shown, how many times, and whether they said "don't ask again".
+  sharingPromptLastShownAt: timestamp("sharing_prompt_last_shown_at"),
+  sharingPromptCount: integer("sharing_prompt_count").default(0).notNull(),
+  sharingPromptOptedOut: boolean("sharing_prompt_opted_out").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [
@@ -58,8 +63,10 @@ export const scoreConsentLogTable = pgTable("score_consent_log", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   // score_enabled | score_disabled | sharing_granted | sharing_revoked | history_deleted | shares_revoked
+  // | sharing_prompt_never ("Don't ask me again" on the weekly reminder)
   action: text("action").notNull(),
   consentVersion: text("consent_version").notNull(),
+  source: text("source"),                                               // where the change was made: settings | prompt
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("idx_score_consent_user_created").on(t.userId, t.createdAt.desc()),

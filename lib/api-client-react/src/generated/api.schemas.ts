@@ -1322,6 +1322,15 @@ export type ScoreViewRange = {
   max: number;
 };
 
+/**
+ * Weekly partner-sharing reminder state
+ */
+export type ScoreViewPartnerPrompt = {
+  /** Show the reminder now (not opted in, not stopped, last shown ≥ intervalDays ago) */
+  due: boolean;
+  intervalDays: number;
+};
+
 export interface ScoreView {
   programEnabled: boolean;
   enabled: boolean;
@@ -1339,8 +1348,21 @@ export interface ScoreView {
   computedAt: string | null;
   modelVersion: string;
   partnerSharing: ScorePartnerSharing;
+  /** Weekly partner-sharing reminder state */
+  partnerPrompt: ScoreViewPartnerPrompt;
   activeShares: number;
 }
+
+/**
+ * Where the change was made (recorded in the consent trail; default settings)
+ */
+export type ScoreSettingsRequestSource = typeof ScoreSettingsRequestSource[keyof typeof ScoreSettingsRequestSource];
+
+
+export const ScoreSettingsRequestSource = {
+  settings: 'settings',
+  prompt: 'prompt',
+} as const;
 
 /**
  * Partial update — provide either or both
@@ -1348,6 +1370,20 @@ export interface ScoreView {
 export interface ScoreSettingsRequest {
   enabled?: boolean;
   partnerSharing?: boolean;
+  /** Where the change was made (recorded in the consent trail; default settings) */
+  source?: ScoreSettingsRequestSource;
+}
+
+export type ScorePartnerPromptRequestAction = typeof ScorePartnerPromptRequestAction[keyof typeof ScorePartnerPromptRequestAction];
+
+
+export const ScorePartnerPromptRequestAction = {
+  shown: 'shown',
+  never: 'never',
+} as const;
+
+export interface ScorePartnerPromptRequest {
+  action: ScorePartnerPromptRequestAction;
 }
 
 /**
@@ -1408,6 +1444,7 @@ export interface AdminScoreConsentEvent {
   action: string;
   createdAt: string;
   consentVersion: string;
+  source?: string | null;
   email?: string | null;
   fullName?: string | null;
 }
@@ -1416,6 +1453,18 @@ export type AdminScoreStatsPartnerSharing = {
   consented: number;
   ratePct: number;
   partnerReady: number;
+};
+
+/**
+ * Weekly partner-sharing reminder performance
+ */
+export type AdminScoreStatsPartnerPrompt = {
+  intervalDays: number;
+  membersPrompted: number;
+  impressions: number;
+  optInsFromPrompt: number;
+  conversionPct: number;
+  remindersStopped: number;
 };
 
 export type AdminScoreStatsSnapshots = {
@@ -1442,6 +1491,8 @@ export interface AdminScoreStats {
   trustedMembers: number;
   distribution: AdminScoreBandCount[];
   partnerSharing: AdminScoreStatsPartnerSharing;
+  /** Weekly partner-sharing reminder performance */
+  partnerPrompt: AdminScoreStatsPartnerPrompt;
   snapshots: AdminScoreStatsSnapshots;
   recentConsent: AdminScoreConsentEvent[];
 }

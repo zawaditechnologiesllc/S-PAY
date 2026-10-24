@@ -9,7 +9,7 @@
 
 import {
   SCORE_BANDS, SCORE_FACTOR_LABELS, SCORE_MAX, SCORE_MIN, SCORE_PARTNER_SHARING_TARGET_YEAR,
-  SCORE_TRUSTED_THRESHOLD, SCORE_WEIGHTS, SCORE_EXAMPLE_SIGNALS, computeScore,
+  SCORE_PARTNER_PROMPT_INTERVAL_DAYS, SCORE_TRUSTED_THRESHOLD, SCORE_WEIGHTS, SCORE_EXAMPLE_SIGNALS, computeScore,
   type ScoreAccountType, type ScoreBandKey, type ScoreFactorKey,
 } from "./model";
 
@@ -183,6 +183,24 @@ export const SCORE_PARTNER_SHARING_NOTICE =
   `factor values and monthly score history so they can make you offers. Partners will be named before anything is shared, ` +
   `we'll ask again if the terms change, and you can switch it off at any time. We never sell your data.`;
 
+/**
+ * What switching partner sharing on will unlock — shown in the weekly reminder,
+ * the consent dialog and the public page. All of it starts when the partner
+ * program launches; nothing is shared before then.
+ */
+export const SCORE_PARTNER_SHARING_BENEFITS: readonly { title: string; description: string; audience: "all" | "personal" | "business" }[] = [
+  { title: "Credit based on your real record", description: "Licensed lenders can offer you loans and credit lines from your S-PAY history — no collateral and no local credit file needed.", audience: "all" },
+  { title: "Working capital for your business", description: "Business accounts can be offered payroll and working-capital financing based on payroll reliability and cash flow.", audience: "business" },
+  { title: "Better terms as your score grows", description: "Every month of clean history strengthens your case for lower rates and higher limits.", audience: "all" },
+  { title: "Insurance and more", description: "Partners can offer cover such as income protection, built around how you actually earn.", audience: "all" },
+  { title: "First to hear when offers launch", description: `Members who opt in are told first when partner offers go live (~${SCORE_PARTNER_SHARING_TARGET_YEAR}).`, audience: "all" },
+  { title: "You stay in control", description: "Nothing is shared today. Partners are named before anything is shared, and you can switch it off any time in My Score.", audience: "all" },
+];
+
+export function partnerSharingBenefits(accountType: ScoreAccountType) {
+  return SCORE_PARTNER_SHARING_BENEFITS.filter((b) => b.audience === "all" || b.audience === accountType);
+}
+
 // ── How to keep it high ───────────────────────────────────────────────────────
 
 export const SCORE_TIPS: Record<ScoreAccountType, readonly { title: string; description: string }[]> = {
@@ -218,7 +236,7 @@ export const SCORE_CONTROLS: readonly { title: string; description: string }[] =
   { title: "Turn the score off", description: "Stops all new score calculation and collection straight away. Turn it back on whenever you like." },
   { title: "Delete your score history", description: "Erase every stored monthly snapshot and start fresh." },
   { title: "Download your score data", description: "Get your score, history and consent record as a file (data portability)." },
-  { title: "Choose about partner sharing", description: "Off by default. Switch it on or off at any time — every change is recorded with a timestamp." },
+  { title: "Choose about partner sharing", description: `Off by default. Switch it on or off at any time — every change is recorded with a timestamp. Until you decide, we remind you at most once every ${SCORE_PARTNER_PROMPT_INTERVAL_DAYS} days; tap "Don't ask me again" to stop.` },
   { title: "Revoke shared links", description: "Cancel every score-proof link you've sent, instantly." },
   { title: "Ask, correct or object", description: "Think something is wrong? Email privacy@spayewallet.com — we reply within 30 days, and a person reviews any dispute." },
 ];
@@ -244,6 +262,7 @@ export const SCORE_FAQS: readonly { q: string; a: string }[] = [
   { q: "Will S-PAY sell my data or share it with lenders?", a: `We never sell your data. Nothing is shared with financial institutions today. From around ${SCORE_PARTNER_SHARING_TARGET_YEAR}, licensed partners may see your score only if you've switched partner sharing on — and you can switch it off any time.` },
   { q: "Does withdrawing or cashing out hurt my score?", a: "No. Cashing out is normal and is never scored below neutral. Keeping a small 10–20% buffer simply earns a little extra." },
   { q: "Can I turn it off or delete it?", a: "Yes. In My Score → Your controls you can turn the score off, delete your history, download your data and revoke shared links." },
+  { q: "Why does S-PAY remind me about partner sharing?", a: `Partner sharing only works with your consent, so if you haven't opted in we show a short reminder of what it unlocks at most once every ${SCORE_PARTNER_PROMPT_INTERVAL_DAYS} days. "Not now" keeps it off; "Don't ask me again" stops the reminders for good. If you opt in and later switch it off, we won't remind you again.` },
   { q: "Can my score be used against me?", a: "Your score is never used to freeze, hold or block your own money, and it doesn't use sensitive traits like gender, ethnicity, religion or location." },
 ];
 

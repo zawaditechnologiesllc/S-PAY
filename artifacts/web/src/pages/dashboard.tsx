@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { QuickActions } from "@/components/quick-actions";
 import { ScoreCard } from "@/components/score-card";
+import { PartnerSharingReminder } from "@/components/partner-sharing-dialog";
 import { Landmark, Smartphone, Coins, CreditCard, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -133,6 +134,8 @@ export default function Dashboard() {
 
       {/* S-PAY Score (personal) / Business Score — gauge, distance to next band, top action */}
       <ScoreCard />
+      {/* Weekly partner-sharing reminder for members who haven't opted in (stops on opt-in or "Don't ask me again") */}
+      <PartnerSharingReminder />
 
       {/* Money services — banks & mobile money front and center, crypto kept simple */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">

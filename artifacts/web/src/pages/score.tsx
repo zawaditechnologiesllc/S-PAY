@@ -7,7 +7,7 @@ import {
 import {
   SCORE_INTRO, SCORE_TAGLINE, SCORE_MIN, SCORE_MAX, SCORE_TRUSTED_THRESHOLD, SCORE_PARTNER_SHARING_TARGET_YEAR,
   SCORE_BENEFITS, SCORE_DATA_USED, SCORE_DATA_NOT_USED, SCORE_HOW_COLLECTED, SCORE_WHY_COLLECTED,
-  SCORE_PARTNER_SHARING_NOTICE, SCORE_TIPS, SCORE_MYTHS, SCORE_CONTROLS, SCORE_TIMELINE, SCORE_FAQS,
+  SCORE_PARTNER_SHARING_NOTICE, SCORE_PARTNER_SHARING_BENEFITS, SCORE_TIPS, SCORE_MYTHS, SCORE_CONTROLS, SCORE_TIMELINE, SCORE_FAQS,
   SCORE_PAGE_META, SCORE_EXAMPLE, scoreFactorInfo, scoreBandsWithPerks, scorePageJsonLd,
   type ScoreAccountType,
 } from "@workspace/score-model";
@@ -287,6 +287,18 @@ function Content({ authed = false }: { authed?: boolean }) {
         <div className="rounded-2xl border-2 border-[#4DC9EE]/40 bg-[#4DC9EE]/5 p-5 mb-8 flex gap-3">
           <ShieldCheck size={22} className="text-[#2E8FD6] flex-shrink-0 mt-0.5" />
           <p className="text-sm text-gray-700 leading-relaxed">{SCORE_PARTNER_SHARING_NOTICE}</p>
+        </div>
+        <h3 className="font-bold mb-3">What partner sharing will unlock</h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-10">
+          {SCORE_PARTNER_SHARING_BENEFITS.map((b) => (
+            <div key={b.title} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+              <p className="font-semibold text-sm mb-0.5">
+                {b.title}
+                {b.audience === "business" && <span className="ml-2 text-[10px] uppercase tracking-wide font-bold text-gray-400">Business</span>}
+              </p>
+              <p className="text-xs text-gray-600 leading-relaxed">{b.description}</p>
+            </div>
+          ))}
         </div>
         <ol className="relative border-l-2 border-gray-100 ml-3 space-y-6">
           {SCORE_TIMELINE.map((t) => (

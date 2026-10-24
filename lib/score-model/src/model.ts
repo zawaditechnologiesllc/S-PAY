@@ -18,6 +18,8 @@ export const SCORE_MODEL_VERSION = "spay-score-v1";
 export const SCORE_CONSENT_VERSION = "2026-10";
 /** Planned earliest year licensed financial partners may use opted-in scores. */
 export const SCORE_PARTNER_SHARING_TARGET_YEAR = 2031;
+/** Members who haven't opted in to partner sharing are reminded at most this often (until they say "don't ask again"). */
+export const SCORE_PARTNER_PROMPT_INTERVAL_DAYS = 7;
 
 export const SCORE_MIN = 300;
 export const SCORE_MAX = 850;

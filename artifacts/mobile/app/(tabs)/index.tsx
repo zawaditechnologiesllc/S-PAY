@@ -18,6 +18,7 @@ import { useColors } from "@/hooks/useColors";
 import { TransactionItem } from "@/components/TransactionItem";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ScoreCard } from "@/components/ScoreCard";
+import { PartnerSharingReminder } from "@/components/PartnerSharingModal";
 
 export default function WalletScreen() {
   const colors = useColors();
@@ -154,6 +155,8 @@ export default function WalletScreen() {
 
         {/* S-PAY Score / Business Score — tap for the full breakdown */}
         <ScoreCard />
+        {/* Weekly partner-sharing reminder (until opt-in or "Don't ask me again") */}
+        <PartnerSharingReminder />
 
         {/* Recent Transactions */}
         <SectionHeader

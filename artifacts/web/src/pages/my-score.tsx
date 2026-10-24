@@ -7,11 +7,11 @@ import {
   type ScoreView, type ScoreShare, type ScoreFactor,
 } from "@workspace/api-client-react";
 import {
-  SCORE_BAND_PERKS, SCORE_PARTNER_SHARING_NOTICE, SCORE_PARTNER_SHARING_TARGET_YEAR, SCORE_BANDS,
+  SCORE_BAND_PERKS, SCORE_PARTNER_SHARING_TARGET_YEAR, SCORE_BANDS,
   type ScoreBandKey,
 } from "@workspace/score-model";
 import {
-  Gauge, Sparkles, ShieldCheck, Share2, Download, Trash2, Copy, Check, ChevronRight,
+  Gauge, Sparkles, Share2, Download, Trash2, Copy, Check, ChevronRight,
   CheckCircle2, CircleDashed, AlertTriangle, MinusCircle, Clock, Lock, BadgeCheck, PauseCircle, Info,
 } from "lucide-react";
 import { Layout } from "@/components/layout";
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useScoreAction } from "@/lib/use-score-action";
+import { PartnerSharingDialog } from "@/components/partner-sharing-dialog";
 
 function apiMessage(err: unknown, fallback: string): string {
   return (err as { data?: { message?: string } })?.data?.message ?? fallback;
@@ -445,20 +446,8 @@ function Controls({ data, changeSettings, pending }: {
       </div>
       <p className="text-[11px] text-gray-400 mt-3 flex gap-1.5"><Info size={13} className="flex-shrink-0 mt-px" /><span>Spotted something wrong? Email <a href="mailto:privacy@spayewallet.com" className="underline">privacy@spayewallet.com</a> — a person reviews every dispute within 30 days.</span></p>
 
-      {/* Partner-sharing consent: explicit, versioned, revocable */}
-      <AlertDialog open={consentOpen} onOpenChange={setConsentOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2"><ShieldCheck size={18} className="text-[#2E8FD6]" /> Partner sharing</AlertDialogTitle>
-            <AlertDialogDescription className="text-left leading-relaxed">{SCORE_PARTNER_SHARING_NOTICE}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <p className="text-xs text-gray-500">Score Data Notice version {ps.currentVersion}.</p>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Not now</AlertDialogCancel>
-            <AlertDialogAction onClick={() => changeSettings({ partnerSharing: true }, "Partner sharing is on")}>I agree — turn it on</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Partner-sharing consent: what it unlocks + the full notice; explicit, versioned, revocable */}
+      <PartnerSharingDialog open={consentOpen} onClose={() => setConsentOpen(false)} view={data} mode="settings" />
 
       <AlertDialog open={offOpen} onOpenChange={setOffOpen}>
         <AlertDialogContent>

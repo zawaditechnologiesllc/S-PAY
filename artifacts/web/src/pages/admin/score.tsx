@@ -14,6 +14,7 @@ const ACTION_LABEL: Record<string, string> = {
   sharing_revoked: "Opted out of partner sharing",
   history_deleted: "Deleted score history",
   shares_revoked: "Revoked share links",
+  sharing_prompt_never: "Stopped partner-sharing reminders",
 };
 
 const card = "bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800 shadow-sm";
@@ -117,6 +118,18 @@ export default function AdminScore() {
                 <div><p className="text-2xl font-black text-gray-900 dark:text-gray-100">{data ? `${data.partnerSharing.ratePct}%` : "—"}</p><p className="text-xs text-gray-500">opt-in rate</p></div>
                 <div><p className="text-2xl font-black text-gray-900 dark:text-gray-100">{n(data?.partnerSharing.partnerReady)}</p><p className="text-xs text-gray-500">opted in + 12 months of history</p></div>
               </div>
+              <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  Weekly reminder <span className="font-normal text-gray-400">· shown to members who haven't opted in, at most every {data?.partnerPrompt.intervalDays ?? 7} days</span>
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div><p className="text-xl font-black text-gray-900 dark:text-gray-100">{n(data?.partnerPrompt.membersPrompted)}</p><p className="text-xs text-gray-500">members reminded</p></div>
+                  <div><p className="text-xl font-black text-gray-900 dark:text-gray-100">{n(data?.partnerPrompt.optInsFromPrompt)}</p><p className="text-xs text-gray-500">opted in from it</p></div>
+                  <div><p className="text-xl font-black text-gray-900 dark:text-gray-100">{data ? `${data.partnerPrompt.conversionPct}%` : "—"}</p><p className="text-xs text-gray-500">conversion</p></div>
+                  <div><p className="text-xl font-black text-gray-900 dark:text-gray-100">{n(data?.partnerPrompt.remindersStopped)}</p><p className="text-xs text-gray-500">said "don't ask again"</p></div>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-2">{n(data?.partnerPrompt.impressions)} reminders shown in total.</p>
+              </div>
             </div>
             <div className={card}>
               <h2 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-1"><Database size={18} className="text-[#4DC9EE]" /> Data collected</h2>
@@ -143,7 +156,10 @@ export default function AdminScore() {
                   {data.recentConsent.map((c, i) => (
                     <tr key={i} className="border-t border-gray-100 dark:border-gray-800">
                       <td className="py-2 pr-3"><span className="font-medium text-gray-900 dark:text-gray-100">{c.fullName ?? "—"}</span> <span className="text-xs text-gray-400">{c.email}</span></td>
-                      <td className="py-2 pr-3 text-gray-700 dark:text-gray-300">{ACTION_LABEL[c.action] ?? c.action}</td>
+                      <td className="py-2 pr-3 text-gray-700 dark:text-gray-300">
+                        {ACTION_LABEL[c.action] ?? c.action}
+                        {c.source === "prompt" && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-[#2E8FD6]">via reminder</span>}
+                      </td>
                       <td className="py-2 pr-3 text-gray-500">{c.consentVersion}</td>
                       <td className="py-2 text-right text-gray-500 whitespace-nowrap">{new Date(c.createdAt).toLocaleString()}</td>
                     </tr>

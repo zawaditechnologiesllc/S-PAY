@@ -221,3 +221,13 @@ test("every band has perks and every benefit is labelled live or planned", () =>
   assert.ok(m.SCORE_FAQS.length >= 8);
   assert.match(m.SCORE_PARTNER_SHARING_NOTICE, /OFF by default/);
 });
+
+test("partner-sharing benefits are tailored per account type and the reminder is disclosed", () => {
+  const personal = m.partnerSharingBenefits("personal").map((b) => b.title);
+  const business = m.partnerSharingBenefits("business").map((b) => b.title);
+  assert.ok(!personal.includes("Working capital for your business"));
+  assert.ok(business.includes("Working capital for your business"));
+  assert.ok(personal.includes("You stay in control"));
+  assert.equal(m.SCORE_PARTNER_PROMPT_INTERVAL_DAYS, 7);
+  assert.ok(m.SCORE_FAQS.some((f) => /remind/i.test(f.q) && f.a.includes(`${m.SCORE_PARTNER_PROMPT_INTERVAL_DAYS} days`) && /Don't ask me again/.test(f.a)));
+});

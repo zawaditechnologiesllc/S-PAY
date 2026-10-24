@@ -13,9 +13,10 @@ import {
   useStartKyc, useResendVerification, exportScoreData,
   type ScoreImprovement, type ScoreView,
 } from "@workspace/api-client-react";
-import { SCORE_BAND_PERKS, SCORE_PARTNER_SHARING_NOTICE, SCORE_PARTNER_SHARING_TARGET_YEAR, type ScoreBandKey } from "@workspace/score-model";
+import { SCORE_BAND_PERKS, SCORE_PARTNER_SHARING_TARGET_YEAR, type ScoreBandKey } from "@workspace/score-model";
 import { useColors } from "@/hooks/useColors";
 import { ScoreGauge } from "@/components/ScoreGauge";
+import { PartnerSharingModal } from "@/components/PartnerSharingModal";
 
 const SITE = "https://spayewallet.com";
 const MARK = "#256ABF";   // single-series mark (score ramp)
@@ -35,6 +36,7 @@ export default function ScoreScreen() {
   const router = useRouter();
   const qc = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [sharingOpen, setSharingOpen] = useState(false);
   const { data, isLoading } = useGetMyScore({ query: { queryKey: getGetMyScoreQueryKey() } });
   const update = useUpdateScoreSettings();
   const del = useDeleteScoreHistory();
@@ -80,11 +82,6 @@ export default function ScoreScreen() {
     "Turn off your S-PAY Score?",
     "We'll stop calculating and collecting anything for your score, and partner sharing switches off too. Stored snapshots stay until you delete them.",
     [{ text: "Keep it on", style: "cancel" }, { text: "Turn off", style: "destructive", onPress: () => settings({ enabled: false }) }],
-  );
-  const confirmSharing = () => Alert.alert(
-    "Partner sharing",
-    `${SCORE_PARTNER_SHARING_NOTICE}\n\nScore Data Notice version ${data?.partnerSharing.currentVersion}.`,
-    [{ text: "Not now", style: "cancel" }, { text: "I agree", onPress: () => settings({ partnerSharing: true }) }],
   );
   const confirmDelete = () => Alert.alert(
     "Delete your score history?",
@@ -235,7 +232,7 @@ export default function ScoreScreen() {
                 <Text style={[s.rowTitle, { color: colors.foreground }]}>Partner sharing (from ~{SCORE_PARTNER_SHARING_TARGET_YEAR})</Text>
                 <Text style={[s.small, { color: colors.mutedForeground }]}>{data.partnerSharing.consented ? "On — nothing is shared today" : "Off (default) — opt-in only"}</Text>
               </View>
-              <Switch value={data.partnerSharing.consented} onValueChange={(on) => (on ? confirmSharing() : settings({ partnerSharing: false }))} disabled={update.isPending || !data.enabled} />
+              <Switch value={data.partnerSharing.consented} onValueChange={(on) => (on ? setSharingOpen(true) : settings({ partnerSharing: false }))} disabled={update.isPending || !data.enabled} />
             </View>
             <TouchableOpacity style={[s.ctrl, { borderBottomColor: colors.border }]} onPress={download}>
               <Text style={[s.rowTitle, { color: colors.foreground, flex: 1 }]}>Download my score data</Text>
@@ -249,6 +246,8 @@ export default function ScoreScreen() {
               <Text style={[s.small, { color: colors.primary, marginTop: 10 }]}>What we collect, why, and how to keep your score high →</Text>
             </TouchableOpacity>
           </Card>
+
+          <PartnerSharingModal visible={sharingOpen} onClose={() => setSharingOpen(false)} view={data} mode="settings" />
 
           <Text style={[s.small, { color: colors.mutedForeground, marginHorizontal: 20, marginTop: 12 }]}>
             {title} is S-PAY's own score, built only from your S-PAY activity. It isn't a credit-bureau report, isn't shared with any lender today, and is never used to freeze your money.

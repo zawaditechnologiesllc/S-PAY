@@ -8,6 +8,7 @@ import { and, asc, count, desc, eq, gt, isNotNull, isNull, lt, or, sql } from "d
 import {
   computeScore, improvementPlan, bandFor, nextBand,
   SCORE_MIN, SCORE_MAX, SCORE_MODEL_VERSION, SCORE_CONSENT_VERSION, SCORE_PARTNER_SHARING_TARGET_YEAR,
+  SCORE_PARTNER_PROMPT_INTERVAL_DAYS,
   SCORE_TRUSTED_THRESHOLD, SCORE_BANDS,
   type ScoreSignals, type ScoreResult, type ScoreBand,
 } from "@workspace/score-model";
@@ -155,8 +156,22 @@ async function ensureProfile(userId: string): Promise<ScoreProfile> {
   return (await getProfile(userId))!;
 }
 
-async function logConsent(userId: string, action: string): Promise<void> {
-  await db.insert(scoreConsentLogTable).values({ userId, action, consentVersion: SCORE_CONSENT_VERSION });
+export type ConsentSource = "settings" | "prompt";
+
+async function logConsent(userId: string, action: string, source: ConsentSource = "settings"): Promise<void> {
+  await db.insert(scoreConsentLogTable).values({ userId, action, consentVersion: SCORE_CONSENT_VERSION, source });
+}
+
+/**
+ * Weekly partner-sharing reminder. Due for members who have the score on, a
+ * computed score, haven't opted in, haven't said "don't ask again", and
+ * haven't been shown it in the last SCORE_PARTNER_PROMPT_INTERVAL_DAYS days.
+ */
+function partnerPromptDue(profile: ScoreProfile | undefined, scored: boolean, programEnabled: boolean): boolean {
+  if (!programEnabled || !scored || !profile || !profile.enabled) return false;
+  if (profile.partnerSharingConsent || profile.sharingPromptOptedOut) return false;
+  const last = profile.sharingPromptLastShownAt;
+  return !last || Date.now() - last.getTime() >= SCORE_PARTNER_PROMPT_INTERVAL_DAYS * 86_400_000;
 }
 
 const BAND_ORDER: string[] = SCORE_BANDS.map((b) => b.key);
@@ -280,6 +295,10 @@ export async function getScoreView(userId: string) {
       targetYear: SCORE_PARTNER_SHARING_TARGET_YEAR,
       active: false, // no partner receives any data yet — the program isn't live
     },
+    partnerPrompt: {
+      due: partnerPromptDue(latest, computed !== null, programEnabled),
+      intervalDays: SCORE_PARTNER_PROMPT_INTERVAL_DAYS,
+    },
     activeShares: shares?.total ?? 0,
   };
 }
@@ -290,7 +309,11 @@ export class ScoreError extends Error {
   }
 }
 
-export async function updateScoreSettings(userId: string, update: { enabled?: boolean; partnerSharing?: boolean }): Promise<void> {
+export async function updateScoreSettings(
+  userId: string,
+  update: { enabled?: boolean; partnerSharing?: boolean },
+  source: ConsentSource = "settings",
+): Promise<void> {
   const profile = await ensureProfile(userId);
   const now = new Date();
   const enabled = update.enabled ?? profile.enabled;
@@ -306,13 +329,41 @@ export async function updateScoreSettings(userId: string, update: { enabled?: bo
     set.partnerSharingConsentAt = now;
     set.consentVersion = SCORE_CONSENT_VERSION;
   }
-  if (!sharing && profile.partnerSharingConsent) set.partnerSharingConsentAt = null;
+  if (!sharing && profile.partnerSharingConsent) {
+    set.partnerSharingConsentAt = null;
+    // Someone who opted in and then out has made an informed choice — never
+    // remind them again (they can still opt back in from My Score).
+    set.sharingPromptOptedOut = true;
+  }
   await db.update(scoreProfilesTable).set(set).where(eq(scoreProfilesTable.userId, userId));
 
-  if (enabled !== profile.enabled) await logConsent(userId, enabled ? "score_enabled" : "score_disabled");
-  if (sharing !== profile.partnerSharingConsent) await logConsent(userId, sharing ? "sharing_granted" : "sharing_revoked");
+  if (enabled !== profile.enabled) await logConsent(userId, enabled ? "score_enabled" : "score_disabled", source);
+  if (sharing !== profile.partnerSharingConsent) await logConsent(userId, sharing ? "sharing_granted" : "sharing_revoked", source);
 
   if (enabled && !profile.enabled && (await isScoreProgramEnabled())) await refreshScore(userId);
+}
+
+/**
+ * The client reports the weekly reminder: "shown" starts the 7-day clock (so the
+ * cadence holds even if the tab is just closed; "Not now" needs nothing more),
+ * "never" is "Don't ask me again" — a preference, so it goes in the consent
+ * trail. Opting in goes through updateScoreSettings with source "prompt".
+ */
+export async function recordPartnerPrompt(userId: string, action: "shown" | "never"): Promise<void> {
+  const profile = await ensureProfile(userId);
+  const now = new Date();
+  if (action === "shown") {
+    await db.update(scoreProfilesTable).set({
+      sharingPromptLastShownAt: now,
+      sharingPromptCount: sql`${scoreProfilesTable.sharingPromptCount} + 1`,
+      updatedAt: now,
+    }).where(eq(scoreProfilesTable.userId, userId));
+    return;
+  }
+  if (profile.sharingPromptOptedOut) return;
+  await db.update(scoreProfilesTable).set({ sharingPromptOptedOut: true, updatedAt: now })
+    .where(eq(scoreProfilesTable.userId, userId));
+  await logConsent(userId, "sharing_prompt_never", "prompt");
 }
 
 export async function deleteScoreHistory(userId: string): Promise<number> {
@@ -345,13 +396,14 @@ export async function exportScoreData(userId: string) {
       enabled: profile.enabled,
       partnerSharingConsent: profile.partnerSharingConsent,
       partnerSharingConsentAt: profile.partnerSharingConsentAt,
+      partnerReminders: { shown: profile.sharingPromptCount, lastShownAt: profile.sharingPromptLastShownAt, stopped: profile.sharingPromptOptedOut },
       consentVersion: profile.consentVersion,
       lastScore: profile.lastScore,
       lastBand: profile.lastBand,
       lastComputedAt: profile.lastComputedAt,
     },
     snapshots: snapshots.map(({ userId: _u, id: _id, ...s }) => s),
-    consentLog: consentLog.map(({ action, consentVersion, createdAt }) => ({ action, consentVersion, createdAt })),
+    consentLog: consentLog.map(({ action, consentVersion, source, createdAt }) => ({ action, consentVersion, source, createdAt })),
     shares,
   };
 }
@@ -428,7 +480,7 @@ export async function verifyScoreShare(token: string) {
 
 export async function adminScoreStats() {
   const p = scoreProfilesTable;
-  const [programEnabled, [totals], bandRows, [snaps], readyRows, recent, [{ total: totalUsers }]] = await Promise.all([
+  const [programEnabled, [totals], bandRows, [snaps], readyRows, recent, [{ total: totalUsers }], [fromPrompt]] = await Promise.all([
     isScoreProgramEnabled(),
     db.select({
       profiles: count(),
@@ -439,6 +491,9 @@ export async function adminScoreStats() {
       avgPersonal: sql<string>`AVG(${p.lastScore}) FILTER (WHERE ${p.enabled} AND ${p.accountType} = 'personal')`,
       avgBusiness: sql<string>`AVG(${p.lastScore}) FILTER (WHERE ${p.enabled} AND ${p.accountType} = 'business')`,
       trusted: sql<string>`COUNT(*) FILTER (WHERE ${p.enabled} AND ${p.lastScore} >= ${SCORE_TRUSTED_THRESHOLD})`,
+      prompted: sql<string>`COUNT(*) FILTER (WHERE ${p.sharingPromptCount} > 0)`,
+      impressions: sql<string>`COALESCE(SUM(${p.sharingPromptCount}), 0)`,
+      remindersStopped: sql<string>`COUNT(*) FILTER (WHERE ${p.sharingPromptOptedOut})`,
     }).from(p),
     db.select({ band: p.lastBand, accountType: p.accountType, total: count() }).from(p)
       .where(and(eq(p.enabled, true), isNotNull(p.lastBand))).groupBy(p.lastBand, p.accountType),
@@ -458,11 +513,14 @@ export async function adminScoreStats() {
       ) r`),
     db.select({
       action: scoreConsentLogTable.action, createdAt: scoreConsentLogTable.createdAt,
-      consentVersion: scoreConsentLogTable.consentVersion,
+      consentVersion: scoreConsentLogTable.consentVersion, source: scoreConsentLogTable.source,
       email: usersTable.email, fullName: usersTable.fullName,
     }).from(scoreConsentLogTable).leftJoin(usersTable, eq(usersTable.id, scoreConsentLogTable.userId))
       .orderBy(desc(scoreConsentLogTable.createdAt)).limit(20),
     db.select({ total: count() }).from(usersTable),
+    // Members whose opt-in came from the weekly reminder (one per member, even if they later re-opted).
+    db.select({ members: sql<string>`COUNT(DISTINCT ${scoreConsentLogTable.userId})` }).from(scoreConsentLogTable)
+      .where(and(eq(scoreConsentLogTable.action, "sharing_granted"), eq(scoreConsentLogTable.source, "prompt"))),
   ]);
 
   const distribution = SCORE_BANDS.map(({ key, label }) => {
@@ -499,6 +557,14 @@ export async function adminScoreStats() {
       consented: sharingCount,
       ratePct: enabledCount > 0 ? Math.round((sharingCount / enabledCount) * 100) : 0,
       partnerReady: readyRow?.ready ?? 0,
+    },
+    partnerPrompt: {
+      intervalDays: SCORE_PARTNER_PROMPT_INTERVAL_DAYS,
+      membersPrompted: num(totals?.prompted),
+      impressions: num(totals?.impressions),
+      optInsFromPrompt: num(fromPrompt?.members),
+      conversionPct: num(totals?.prompted) > 0 ? Math.round((num(fromPrompt?.members) / num(totals?.prompted)) * 100) : 0,
+      remindersStopped: num(totals?.remindersStopped),
     },
     snapshots: {
       total: snaps?.total ?? 0,
